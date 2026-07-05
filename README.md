@@ -1,5 +1,7 @@
 # Keeper Draft Board
 
+**Live demo:** https://garrett-pdx.github.io/keeper-draft-board/
+
 A local, static web app for running a fantasy football **keeper draft** off the
 [Sleeper](https://sleeper.com) API. Pull your league's rosters, pick up to two keepers per
 team, see a computed keeper **value** metric, and lay it all out on a draggable draft board.
