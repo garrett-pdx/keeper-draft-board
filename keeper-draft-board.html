@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keeper Draft Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220;
+    --bg-elevated:#121B2E;
+    --bg-card:#16213A;
+    --turf:#2FAE66;
+    --turf-bright:#3CCB7F;
+    --flag:#F5A524;
+    --chalk:#EDEFF3;
+    --slate:#8892A6;
+    --slate-dim:#57607A;
+    --danger:#E5484D;
+    --border:rgba(255,255,255,0.08);
+    --border-bright:rgba(255,255,255,0.16);
+    --qb:#E5484D; --rb:#3CCB7F; --wr:#4EA1FF; --te:#F5A524; --k:#B78CF2; --def:#8892A6;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #142240 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #10281f 0%, transparent 55%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--turf); color:#08150E;}
+  a{color:var(--turf-bright);}
+  :focus-visible{outline:2px solid var(--turf-bright); outline-offset:2px;}
+
+  .display{font-family:'Teko',sans-serif; font-weight:600; letter-spacing:0.02em; text-transform:uppercase;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Setup screen ---------- */
+  .setup-wrap{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .setup-card{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:16px;
+    padding:36px; max-width:460px; width:100%;
+    box-shadow:0 30px 80px rgba(0,0,0,0.45);
+  }
+  .setup-card .eyebrow{color:var(--turf-bright); font-size:13px; letter-spacing:0.14em; text-transform:uppercase; font-weight:600; margin-bottom:6px;}
+  .setup-card h1{margin:0 0 4px 0; font-size:40px; line-height:1;}
+  .setup-card p.sub{color:var(--slate); margin:0 0 26px 0; font-size:14.5px; line-height:1.5;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12.5px; color:var(--slate); margin-bottom:6px; letter-spacing:0.02em;}
+  .field input, .field select{
+    width:100%; background:#0D1626; border:1px solid var(--border-bright); color:var(--chalk);
+    padding:11px 12px; border-radius:8px; font-size:14.5px; font-family:'IBM Plex Mono',monospace;
+  }
+  .field input::placeholder{color:var(--slate-dim); font-family:'Inter',sans-serif;}
+  .btn{
+    appearance:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600;
+    border-radius:8px; padding:11px 18px; font-size:14.5px; transition:transform .08s ease, filter .15s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--turf); color:#06150C; width:100%;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent; color:var(--slate); border:1px solid var(--border-bright);}
+  .btn-ghost:hover{color:var(--chalk); border-color:var(--slate);}
+  .btn-icon{display:inline-flex; align-items:center; gap:8px;}
+  .setup-error{
+    background:rgba(229,72,77,0.1); border:1px solid rgba(229,72,77,0.4); color:#ff9b9e;
+    padding:10px 12px; border-radius:8px; font-size:13.5px; margin-bottom:16px; display:none;
+  }
+  .setup-hint{font-size:12.5px; color:var(--slate-dim); margin-top:-8px; margin-bottom:16px; line-height:1.5;}
+
+  /* ---------- App shell ---------- */
+  .app{display:none; min-height:100vh; flex-direction:column;}
+  .scoreboard{
+    background:linear-gradient(180deg, #0F1A2E 0%, #0B1424 100%);
+    border-bottom:1px solid var(--border);
+    padding:18px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:20;
+  }
+  .scoreboard-left{display:flex; align-items:center; gap:14px;}
+  .scoreboard-badge{
+    width:44px; height:44px; border-radius:10px; background:var(--turf);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .scoreboard-title h1{font-size:30px; margin:0; line-height:1; display:block;}
+  .scoreboard-title .meta{color:var(--slate); font-size:12.5px; font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+  .scoreboard-right{display:flex; align-items:center; gap:10px;}
+
+  .tabs{
+    display:flex; gap:4px; padding:0 28px; border-bottom:1px solid var(--border);
+    background:var(--bg-elevated); position:sticky; top:81px; z-index:15; overflow-x:auto;
+  }
+  .tab-btn{
+    background:none; border:none; color:var(--slate); padding:14px 4px; margin-right:26px;
+    font-family:'Teko',sans-serif; font-size:19px; letter-spacing:0.04em; text-transform:uppercase;
+    cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;
+  }
+  .tab-btn.active{color:var(--chalk); border-bottom-color:var(--turf-bright);}
+  .tab-btn:hover{color:var(--chalk);}
+
+  .panel{display:none; padding:22px 28px 60px; max-width:1400px; margin:0 auto; width:100%;}
+  .panel.active{display:block;}
+
+  .panel-toolbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;
+  }
+  .sync-readout{display:flex; align-items:center; gap:12px;}
+  .last-updated{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--slate);}
+  .last-updated b{color:var(--slate); font-weight:500;}
+  .refresh-btn{
+    display:inline-flex; align-items:center; gap:8px; background:var(--bg-card); border:1px solid var(--border-bright);
+    color:var(--chalk); padding:8px 14px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .refresh-btn:hover{border-color:var(--turf-bright); color:var(--turf-bright);}
+  .refresh-btn:disabled{opacity:0.6; cursor:default;}
+  .spin-icon{display:inline-block; transform-origin:50% 50%;}
+  .spin-icon.spinning{animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){
+    .spin-icon.spinning{animation:none; opacity:0.5;}
+  }
+
+  .toolbar-controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .toolbar-controls input[type="search"], .toolbar-controls select{
+    background:var(--bg-card); border:1px solid var(--border-bright); color:var(--chalk);
+    padding:9px 12px; border-radius:8px; font-size:13.5px; font-family:'Inter',sans-serif;
+  }
+  .toolbar-controls input[type="search"]{min-width:200px;}
+
+  .empty-state, .error-banner{
+    background:var(--bg-elevated); border:1px dashed var(--border-bright); border-radius:12px;
+    padding:32px; text-align:center; color:var(--slate); font-size:14px;
+  }
+  .error-banner{border-style:solid; border-color:rgba(229,72,77,0.4); background:rgba(229,72,77,0.08); color:#ff9b9e; text-align:left;}
+  .info-note{
+    background:rgba(78,161,255,0.07); border:1px solid rgba(78,161,255,0.28); color:#a9cdff;
+    padding:10px 14px; border-radius:8px; font-size:12.5px; margin-bottom:18px; line-height:1.5;
+  }
+
+  /* ---------- Roster cards ---------- */
+  .roster-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:18px;
+  }
+  .skeleton-card{height:340px; border-radius:12px; background:linear-gradient(100deg, var(--bg-elevated) 30%, #1a2740 50%, var(--bg-elevated) 70%); background-size:300% 100%; animation:shimmer 1.4s ease-in-out infinite;}
+  @keyframes shimmer{0%{background-position:150% 0;} 100%{background-position:-50% 0;}}
+  @media (prefers-reduced-motion: reduce){ .skeleton-card{animation:none;} }
+
+  .team-card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .team-card-head{
+    padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  }
+  .team-avatar{
+    width:36px; height:36px; border-radius:50%; background:var(--bg-elevated); border:1px solid var(--border-bright);
+    display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--turf-bright); flex-shrink:0;
+    overflow:hidden;
+  }
+  .team-avatar img{width:100%; height:100%; object-fit:cover;}
+  .team-name{font-size:15.5px; font-weight:600; line-height:1.2;}
+  .team-owner{font-size:12px; color:var(--slate);}
+  .keeper-count{
+    margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:4px 9px; border-radius:20px;
+    border:1px solid var(--border-bright); color:var(--slate); white-space:nowrap;
+  }
+  .keeper-count.full{color:var(--turf-bright); border-color:var(--turf); background:rgba(60,203,127,0.08);}
+
+  .player-row{
+    display:flex; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
+  }
+  .player-row:last-child{border-bottom:none;}
+  .player-row.is-keeper{background:rgba(245,165,36,0.05);}
+  .pos-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:4px;
+    min-width:30px; text-align:center; flex-shrink:0; color:#08150E;
+  }
+  .pos-QB{background:var(--qb); color:#2a0002;} .pos-RB{background:var(--rb); color:#04160c;}
+  .pos-WR{background:var(--wr); color:#001732;} .pos-TE{background:var(--te); color:#2a1900;}
+  .pos-K{background:var(--k); color:#160029;} .pos-DEF{background:var(--def); color:#0c0f14;}
+
+  .player-info{flex:1; min-width:0;}
+  .player-name{font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .player-sub{font-size:11px; color:var(--slate); display:flex; align-items:center; gap:7px;}
+
+  .inflate-mark{
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#f0b34a; letter-spacing:0.02em;
+    padding:1px 5px; border-radius:20px; background:rgba(245,165,36,0.12); border:1px solid rgba(245,165,36,0.3);
+    white-space:nowrap;
+  }
+  .player-row.is-inflated{box-shadow:inset 3px 0 0 rgba(245,165,36,0.55);}
+
+  .cost-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 7px; border-radius:20px;
+    border:1px solid var(--border-bright); color:var(--slate-dim); white-space:nowrap; flex-shrink:0;
+  }
+  .cost-tag.active{color:var(--flag); border-color:rgba(245,165,36,0.5); background:rgba(245,165,36,0.1); font-weight:500;}
+  .cost-tag.bumped{color:#ff9b9e; border-color:rgba(229,72,77,0.4); background:rgba(229,72,77,0.08);}
+  .cost-tag.inflated{border-color:rgba(245,165,36,0.6); color:#f0b34a;}
+  .cost-tag.active.inflated{border-color:rgba(245,165,36,0.8);}
+  .cost-tag.none{visibility:hidden;}
+
+  .val-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 7px; border-radius:20px;
+    border:1px solid var(--border-bright); color:var(--slate); white-space:nowrap; flex-shrink:0; min-width:46px; text-align:center;
+  }
+  .val-tag.pos{color:var(--turf-bright); border-color:rgba(60,203,127,0.4); background:rgba(60,203,127,0.08);}
+  .val-tag.neg{color:var(--slate-dim); border-color:var(--border);}
+  .val-tag.na{color:var(--slate-dim); border-style:dashed;}
+  .val-tag.best{box-shadow:0 0 0 1px var(--turf) inset; font-weight:600;}
+
+  .keeper-toggle{
+    flex-shrink:0; width:26px; height:26px; border-radius:6px; border:1px solid var(--border-bright);
+    background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:var(--slate-dim); font-size:14px; transition:all .12s ease;
+  }
+  .keeper-toggle:hover{border-color:var(--flag); color:var(--flag);}
+  .keeper-toggle.active{background:var(--flag); border-color:var(--flag); color:#2a1900;}
+  .keeper-toggle.disabled{opacity:0.3; cursor:not-allowed;}
+  .keeper-toggle.disabled:hover{border-color:var(--border-bright); color:var(--slate-dim);}
+  .keeper-toggle.shake{animation:shake .3s ease;}
+  @keyframes shake{25%{transform:translateX(-3px);} 75%{transform:translateX(3px);}}
+
+  /* ---------- Shared scrollable table wrap (frozen header) ---------- */
+  .table-scroll{
+    max-height:70vh; overflow:auto; border:1px solid var(--border); border-radius:12px; background:var(--bg-card);
+  }
+  .draft-note{font-size:12.5px; color:var(--slate); margin-bottom:14px; line-height:1.5;}
+  table.draft-table{width:100%; border-collapse:collapse;}
+  .draft-table thead th{
+    text-align:left; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--slate); padding:12px 16px; border-bottom:1px solid var(--border-bright); background:var(--bg-elevated);
+    position:sticky; top:0; z-index:5;
+  }
+  .draft-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);}
+  .draft-table tbody tr:hover{background:rgba(255,255,255,0.02);}
+  .draft-table td{padding:10px 16px; font-size:13.5px;}
+  .rank-cell{font-family:'IBM Plex Mono',monospace; color:var(--turf-bright); font-weight:500; width:70px;}
+  .draft-table tr.kept{opacity:0.42;}
+  .draft-table tr.kept .rank-cell{color:var(--slate-dim);}
+  .kept-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; background:rgba(245,165,36,0.12); color:var(--flag);
+    border:1px solid rgba(245,165,36,0.35); padding:2px 8px; border-radius:20px; white-space:nowrap;
+  }
+  .skeleton-row td{padding:12px 16px;}
+  .skeleton-bar{height:14px; border-radius:4px; background:linear-gradient(100deg, var(--bg-elevated) 30%, #1a2740 50%, var(--bg-elevated) 70%); background-size:300% 100%; animation:shimmer 1.4s ease-in-out infinite;}
+
+  /* ---------- Draft Board grid ---------- */
+  table.board-table{border-collapse:collapse; width:100%;}
+  .board-table th, .board-table td{border:1px solid var(--border); padding:0; font-size:12.5px;}
+  .board-table thead th{
+    position:sticky; top:0; background:var(--bg-elevated); z-index:6;
+    padding:0; user-select:none;
+  }
+  .board-table thead th.round-col, .board-table td.round-col{
+    position:sticky; left:0; background:var(--bg-elevated); z-index:7;
+    text-align:center; font-family:'IBM Plex Mono',monospace; color:var(--slate); min-width:56px; width:56px;
+  }
+  .board-table thead th.round-col{ z-index:8; }
+  .board-th-inner{
+    display:flex; align-items:center; gap:6px; padding:10px 12px; cursor:grab; min-width:150px;
+  }
+  .board-th-inner:active{cursor:grabbing;}
+  .board-th-inner .drag-handle{color:var(--slate-dim); font-size:12px; letter-spacing:-1px;}
+  .board-th-inner .th-team{
+    font-family:'Teko',sans-serif; font-size:17px; letter-spacing:0.03em; text-transform:uppercase; line-height:1.1;
+  }
+  .board-table thead th.dragging{opacity:0.35;}
+  .board-table thead th.drop-target{background:rgba(60,203,127,0.15);}
+  .board-cell{padding:8px 12px; min-height:44px; vertical-align:top;}
+  .board-cell-empty{color:var(--slate-dim); font-size:12px;}
+  .board-cell-player{display:flex; flex-direction:column; gap:2px;}
+  .board-cell-player .bp-name{font-size:12.5px; font-weight:500;}
+  .board-cell-player .bp-meta{font-size:10.5px; color:var(--slate); display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
+  .board-cell.has-player{background:rgba(60,203,127,0.05);}
+  .board-warn{color:#ff9b9e; font-size:10px;}
+
+  .footer-note{max-width:1400px; margin:0 auto; padding:0 28px 40px; color:var(--slate-dim); font-size:12px; line-height:1.6;}
+
+  @media (max-width:640px){
+    .scoreboard{padding:14px 16px;}
+    .tabs{padding:0 16px;}
+    .panel{padding:18px 16px 48px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP SCREEN ============ -->
+<div class="setup-wrap" id="setupScreen">
+  <div class="setup-card">
+    <div class="eyebrow">Local · Sleeper API</div>
+    <h1 class="display">Keeper Draft Board</h1>
+    <p class="sub">Pull your league's rosters straight from Sleeper, pick two keepers per team, and see who's left on the board — ranked by average draft position.</p>
+
+    <div class="setup-error" id="setupError"></div>
+
+    <div class="field">
+      <label for="leagueIdInput">Sleeper League ID</label>
+      <input type="text" id="leagueIdInput" placeholder="e.g. 918876462123456789" inputmode="numeric">
+    </div>
+    <div class="setup-hint">Find this in your league's Sleeper URL: sleeper.com/leagues/<b>THIS_NUMBER</b>/team</div>
+
+    <div class="field">
+      <label for="seasonInput">Season</label>
+      <select id="seasonInput"></select>
+    </div>
+
+    <button class="btn btn-primary btn-icon" id="loadLeagueBtn" style="justify-content:center;">
+      <span>Load League</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <div class="scoreboard">
+    <div class="scoreboard-left">
+      <div class="scoreboard-badge">🏈</div>
+      <div class="scoreboard-title">
+        <h1 class="display" id="leagueName">League</h1>
+        <div class="meta" id="leagueMeta">— teams · — season</div>
+      </div>
+    </div>
+    <div class="scoreboard-right">
+      <button class="btn btn-ghost" id="changeLeagueBtn">Change league</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="rosters">Rosters &amp; Keepers</button>
+    <button class="tab-btn" data-tab="draft">Draft List</button>
+    <button class="tab-btn" data-tab="board">Draft Board</button>
+  </div>
+
+  <!-- ROSTERS PANEL -->
+  <div class="panel active" id="panel-rosters">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshRosters">
+          <span class="spin-icon" id="rostersSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="rostersUpdated">never</b></div>
+      </div>
+    </div>
+    <div id="rostersNote"></div>
+    <div id="rostersContent">
+      <div class="roster-grid">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT LIST PANEL -->
+  <div class="panel" id="panel-draft">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshDraft">
+          <span class="spin-icon" id="draftSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="draftUpdated">never</b></div>
+      </div>
+      <div class="toolbar-controls">
+        <input type="search" id="draftSearch" placeholder="Search players…">
+        <select id="draftPosFilter">
+          <option value="">All positions</option>
+          <option value="QB">QB</option>
+          <option value="RB">RB</option>
+          <option value="WR">WR</option>
+          <option value="TE">TE</option>
+          <option value="K">K</option>
+          <option value="DEF">DEF</option>
+        </select>
+      </div>
+    </div>
+    <div class="draft-note" id="draftNote"></div>
+    <div id="draftContent">
+      <div class="table-scroll">
+        <table class="draft-table"><tbody>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT BOARD (GRID) PANEL -->
+  <div class="panel" id="panel-board">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshBoard">
+          <span class="spin-icon" id="boardSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="boardUpdated">never</b></div>
+      </div>
+    </div>
+    <div class="draft-note">Drag a column header to reorder teams. Only keeper picks are filled in — everything else opens up on draft day.</div>
+    <div id="boardContent">
+      <div class="empty-state">Loading draft board…</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Data is fetched live from Sleeper's public API each time you refresh. Your keeper picks are saved only in this browser (localStorage) — nothing is uploaded anywhere.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const LS_LEAGUE_ID = 'kdb_league_id';
+  const LS_SEASON = 'kdb_season';
+  const LS_KEEPERS_PREFIX = 'kdb_keepers_';
+  const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
+  const LS_PLAYERS_CACHE = 'kdb_players_cache_v1';
+  const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v1_';
+  const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
+
+  const POSITION_ORDER = { QB:0, RB:1, WR:2, TE:3, K:4, DEF:5 };
+
+  // ---- Keeper value metric ----
+  // Surplus value = pickValue(marketPick) - pickValue(costPick), where
+  // pickValue(pick) = 100 * VALUE_DECAY^(pick-1). Tune VALUE_DECAY in one place.
+  // ~0.965 keeps a strong early-round premium while leaving late rounds non-zero.
+  const VALUE_DECAY = 0.965;
+  const NO_ADP_VALUE = -99;   // players not being drafted this year get an absurd score
+  function pickValue(pick){ return 100 * Math.pow(VALUE_DECAY, pick - 1); }
+
+  let state = {
+    leagueId:null,
+    season:null,
+    league:null,
+    users:[],
+    rosters:[],
+    playersMap:null,
+    adpMap:null,
+    adpSource:null,
+    keepers:{},
+    prevDraftMap:null,       // {player_id: {round, rosterId, wasKeeper}}
+    prevDraftLoaded:false,
+    boardRounds:null,
+    boardOrder:null,         // array of roster_id (string) controlling column order
+    rostersLoadedAt:null,
+    draftLoadedAt:null,
+    boardLoadedAt:null
+  };
+
+  // ---------- helpers ----------
+  function $(sel){ return document.querySelector(sel); }
+  function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+  function el(tag, attrs, ...children){
+    const e = document.createElement(tag);
+    if(attrs) for(const k in attrs){
+      if(k === 'class') e.className = attrs[k];
+      else if(k === 'html') e.innerHTML = attrs[k];
+      else if(k.startsWith('on') && typeof attrs[k] === 'function') e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    }
+    children.flat().forEach(c=>{
+      if(c === null || c === undefined) return;
+      if(typeof c === 'string') e.appendChild(document.createTextNode(c));
+      else e.appendChild(c);
+    });
+    return e;
+  }
+  async function fetchJSON(url){
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    return res.json();
+  }
+  function formatTime(d){
+    return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  function displayNameFor(user){
+    return (user && user.metadata && user.metadata.team_name) || (user && user.display_name) || 'Unnamed Team';
+  }
+
+  // ---------- setup screen ----------
+  function initSeasonOptions(){
+    const sel = $('#seasonInput');
+    const now = new Date();
+    const currentGuess = now.getFullYear();
+    for(let y = currentGuess + 1; y >= currentGuess - 3; y--){
+      const opt = el('option', {value:String(y)}, String(y));
+      sel.appendChild(opt);
+    }
+    sel.value = String(currentGuess);
+  }
+
+  function showSetupError(msg){
+    const box = $('#setupError');
+    box.textContent = msg;
+    box.style.display = 'block';
+  }
+  function hideSetupError(){ $('#setupError').style.display = 'none'; }
+
+  async function handleLoadLeague(){
+    const idRaw = $('#leagueIdInput').value.trim();
+    const season = $('#seasonInput').value;
+    hideSetupError();
+    if(!/^[0-9]+$/.test(idRaw)){
+      showSetupError('League ID should be a numeric ID from your Sleeper league URL.');
+      return;
+    }
+    const btn = $('#loadLeagueBtn');
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Checking league…';
+    try{
+      const league = await fetchJSON(`https://api.sleeper.app/v1/league/${idRaw}`);
+      if(!league || !league.league_id){
+        throw new Error('not found');
+      }
+      localStorage.setItem(LS_LEAGUE_ID, idRaw);
+      localStorage.setItem(LS_SEASON, season);
+      state.leagueId = idRaw;
+      state.season = season;
+      enterApp();
+    }catch(err){
+      showSetupError("Couldn't find that league. Double check the ID and that the league is public/accessible.");
+    }finally{
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Load League';
+    }
+  }
+
+  function showSetupScreen(){
+    $('#app').style.display = 'none';
+    $('#setupScreen').style.display = 'flex';
+    const savedId = localStorage.getItem(LS_LEAGUE_ID);
+    if(savedId) $('#leagueIdInput').value = savedId;
+    const savedSeason = localStorage.getItem(LS_SEASON);
+    if(savedSeason) $('#seasonInput').value = savedSeason;
+  }
+
+  function enterApp(){
+    $('#setupScreen').style.display = 'none';
+    $('#app').style.display = 'flex';
+    loadKeepersFromStorage();
+    loadRosters(false);
+  }
+
+  // ---------- keepers persistence ----------
+  function keepersKey(){ return LS_KEEPERS_PREFIX + state.leagueId; }
+  function loadKeepersFromStorage(){
+    try{
+      const raw = localStorage.getItem(keepersKey());
+      state.keepers = raw ? JSON.parse(raw) : {};
+    }catch(e){ state.keepers = {}; }
+  }
+  function saveKeepers(){
+    localStorage.setItem(keepersKey(), JSON.stringify(state.keepers));
+  }
+  function keeperListFor(rosterId){
+    return state.keepers[rosterId] || [];
+  }
+  function isKeeper(rosterId, playerId){
+    return keeperListFor(rosterId).includes(playerId);
+  }
+  function toggleKeeper(rosterId, playerId){
+    const list = keeperListFor(rosterId).slice();
+    const idx = list.indexOf(playerId);
+    if(idx >= 0){
+      list.splice(idx, 1);
+    } else {
+      if(list.length >= 2) return false;
+      list.push(playerId);
+    }
+    state.keepers[rosterId] = list;
+    saveKeepers();
+    return true;
+  }
+  function allKeeperIdsWithTeam(){
+    const map = new Map();
+    for(const roster of state.rosters){
+      const list = keeperListFor(roster.roster_id);
+      const user = state.users.find(u => u.user_id === roster.owner_id);
+      const teamName = displayNameFor(user);
+      list.forEach(pid => map.set(pid, teamName));
+    }
+    return map;
+  }
+
+  // ---------- players map (cached, slimmed) ----------
+  async function ensurePlayersLoaded(force){
+    if(state.playersMap && !force) return state.playersMap;
+    if(!force){
+      try{
+        const cached = JSON.parse(localStorage.getItem(LS_PLAYERS_CACHE) || 'null');
+        if(cached && (Date.now() - cached.ts) < PLAYERS_MAX_AGE_MS){
+          state.playersMap = cached.data;
+          return state.playersMap;
+        }
+      }catch(e){ /* ignore, refetch */ }
+    }
+    const full = await fetchJSON('https://api.sleeper.app/v1/players/nfl');
+    const slim = {};
+    for(const pid in full){
+      const p = full[pid];
+      if(!p) continue;
+      slim[pid] = {
+        id: pid,
+        first: p.first_name || '',
+        last: p.last_name || '',
+        pos: (p.fantasy_positions && p.fantasy_positions[0]) || p.position || '—',
+        team: p.team || 'FA',
+        rank: (typeof p.search_rank === 'number') ? p.search_rank : 9999
+      };
+    }
+    state.playersMap = slim;
+    try{
+      localStorage.setItem(LS_PLAYERS_CACHE, JSON.stringify({ts:Date.now(), data:slim}));
+    }catch(e){ /* storage full — proceed without caching */ }
+    return slim;
+  }
+
+  // ---------- ADP (best-effort; Sleeper has no official public ADP endpoint) ----------
+  function extractAdp(statsObj){
+    if(!statsObj) return null;
+    const preferredKeys = ['adp_std','adp_ppr','adp_half_ppr','adp_2qb','adp_dynasty','adp_dd_ppr','adp_dd_std','adp_dd_half_ppr','adp_rookie'];
+    for(const k of preferredKeys){
+      if(typeof statsObj[k] === 'number' && statsObj[k] > 0) return statsObj[k];
+    }
+    for(const k in statsObj){
+      if(k.toLowerCase().startsWith('adp') && typeof statsObj[k] === 'number' && statsObj[k] > 0){
+        return statsObj[k];
+      }
+    }
+    return null;
+  }
+
+  async function tryFetchAdpFromProjections(season, week){
+    const posParams = ['QB','RB','WR','TE','K','DEF','FLEX'].map(p=>`position[]=${p}`).join('&');
+    const url = `https://api.sleeper.app/projections/nfl/${season}/${week}?season_type=regular&${posParams}`;
+    const data = await fetchJSON(url);
+    const adpMap = {};
+    let count = 0;
+    if(Array.isArray(data)){
+      for(const item of data){
+        const pid = item.player_id || (item.metadata && item.metadata.player_id);
+        const stats = item.stats || item;
+        const adp = extractAdp(stats);
+        if(pid && adp){ adpMap[pid] = adp; count++; }
+      }
+    } else if(data && typeof data === 'object'){
+      for(const pid in data){
+        const entry = data[pid];
+        const stats = (entry && entry.stats) || entry;
+        const adp = extractAdp(stats);
+        if(adp){ adpMap[pid] = adp; count++; }
+      }
+    }
+    return {adpMap, count};
+  }
+
+  async function ensureAdpLoaded(force){
+    if(state.adpMap && !force) return {adpMap: state.adpMap, source: state.adpSource};
+    const cacheKey = LS_ADP_CACHE_PREFIX + state.season;
+    if(!force){
+      try{
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        if(cached && (Date.now() - cached.ts) < PLAYERS_MAX_AGE_MS){
+          state.adpMap = cached.data;
+          state.adpSource = cached.source;
+          return {adpMap: state.adpMap, source: state.adpSource};
+        }
+      }catch(e){ /* ignore */ }
+    }
+
+    let result = null;
+    for(const week of [1, 2]){
+      try{
+        const r = await tryFetchAdpFromProjections(state.season, week);
+        if(r.count >= 20){ result = r; break; }
+      }catch(e){ /* try next */ }
+    }
+
+    if(result){
+      state.adpMap = result.adpMap;
+      state.adpSource = 'adp';
+    } else {
+      const players = await ensurePlayersLoaded(false);
+      const rankMap = {};
+      for(const pid in players) rankMap[pid] = players[pid].rank;
+      state.adpMap = rankMap;
+      state.adpSource = 'rank';
+    }
+    try{
+      localStorage.setItem(cacheKey, JSON.stringify({ts:Date.now(), data:state.adpMap, source:state.adpSource}));
+    }catch(e){ /* storage full — proceed without caching */ }
+    return {adpMap: state.adpMap, source: state.adpSource};
+  }
+
+  // ---------- previous season draft (for keeper cost) ----------
+  // Keeper "same team last year" must be matched on the manager's user_id, which is stable
+  // across seasons — roster_id can change year to year. We map each previous-season pick's
+  // roster_id -> previous owner user_id, then store that user_id on the pick record. Callers
+  // compare against the CURRENT roster's owner_id.
+  async function ensurePrevDraftLoaded(force){
+    if(state.prevDraftLoaded && !force) return state.prevDraftMap;
+    state.prevDraftMap = {};
+    state.prevDraftLoaded = true;
+    if(!state.league || !state.league.previous_league_id){
+      return state.prevDraftMap; // likely the league's first season
+    }
+    try{
+      const prevLeagueId = state.league.previous_league_id;
+      const prevLeague = await fetchJSON(`https://api.sleeper.app/v1/league/${prevLeagueId}`);
+      if(!prevLeague || !prevLeague.draft_id) return state.prevDraftMap;
+
+      // build prev-season roster_id -> owner user_id map (best-effort; may be empty)
+      let prevRosterOwner = {};
+      try{
+        const prevRosters = await fetchJSON(`https://api.sleeper.app/v1/league/${prevLeagueId}/rosters`);
+        prevRosters.forEach(r => { prevRosterOwner[String(r.roster_id)] = r.owner_id; });
+      }catch(e){ /* fall back to raw roster_id matching below */ }
+
+      const picks = await fetchJSON(`https://api.sleeper.app/v1/draft/${prevLeague.draft_id}/picks`);
+      const map = {};
+      for(const pick of picks){
+        if(!pick.player_id) continue;
+        const prevRid = String(pick.roster_id);
+        map[pick.player_id] = {
+          round: pick.round,
+          rosterId: pick.roster_id,               // raw prev-season roster_id (fallback only)
+          ownerId: prevRosterOwner[prevRid] || null, // stable manager id (preferred)
+          wasKeeper: pick.is_keeper === true
+        };
+      }
+      state.prevDraftMap = map;
+    }catch(e){
+      state.prevDraftMap = {};
+    }
+    return state.prevDraftMap;
+  }
+
+  // Current roster's owner user_id, for cross-season "same team" matching.
+  function ownerIdOfRoster(rosterId){
+    const r = state.rosters.find(x => x.roster_id === rosterId);
+    return r ? r.owner_id : null;
+  }
+
+  // Did the manager now holding `rosterId` also hold `playerId` last year?
+  // Prefer stable user_id matching; fall back to raw roster_id if owner ids are unavailable.
+  function sameManagerLastYear(prev, rosterId){
+    if(!prev) return false;
+    const currentOwner = ownerIdOfRoster(rosterId);
+    if(prev.ownerId && currentOwner) return prev.ownerId === currentOwner;
+    return prev.rosterId === rosterId; // fallback
+  }
+
+  // Last round of the draft — used as the keeper cost for players who went undrafted
+  // last year (league rule: they can be kept for the final pick of the draft).
+  function lastDraftRound(){
+    return state.boardRounds || (state.league && Array.isArray(state.league.roster_positions)
+      ? state.league.roster_positions.length : 14);
+  }
+
+  // Cost if `rosterId` keeps `playerId`, based on last year's draft alone (no same-team collision logic yet).
+  // Returns a round number always: undrafted-last-year players cost the final round.
+  function potentialKeeperCost(playerId, rosterId){
+    const prev = state.prevDraftMap ? state.prevDraftMap[playerId] : null;
+    if(!prev) return lastDraftRound();
+    let cost = prev.round;
+    if(sameManagerLastYear(prev, rosterId) && prev.wasKeeper && cost > 1){
+      cost = cost - 1;
+    }
+    return cost;
+  }
+
+  // Does this player have real prior-season draft data? (drives the "undrafted last yr" label)
+  function hasPrevDraft(playerId){
+    return !!(state.prevDraftMap && state.prevDraftMap[playerId]);
+  }
+
+  // True if THIS roster kept THIS player last year, so keeping again inflates the cost
+  // by one round. Floored at round 1 — a round-1 keeper can't inflate further.
+  function isInflatedForRoster(playerId, rosterId){
+    const prev = state.prevDraftMap ? state.prevDraftMap[playerId] : null;
+    return !!(prev && sameManagerLastYear(prev, rosterId) && prev.wasKeeper && prev.round > 1);
+  }
+
+  // Market pick number from current ADP. Returns null if the player isn't being drafted this year.
+  function marketPickFor(playerId){
+    const adpMap = state.adpMap || {};
+    if(!(playerId in adpMap)) return null;
+    const v = adpMap[playerId];
+    if(!(v > 0) || v >= 9999) return null;
+    return v;
+  }
+
+  // Surplus value for keeping `playerId` on `rosterId` at a given resolved cost round.
+  // Returns { value, hasAdp }. No current ADP => absurdly low value so it never gets recommended.
+  function keeperSurplusValue(playerId, costRound){
+    const marketPick = marketPickFor(playerId);
+    if(marketPick === null){
+      return { value: NO_ADP_VALUE, hasAdp: false };
+    }
+    const teams = state.rosters.length || 10;
+    const costPick = Math.round(costRound * teams - teams / 2); // round midpoint
+    const val = pickValue(marketPick) - pickValue(costPick);
+    return { value: +val.toFixed(1), hasAdp: true };
+  }
+
+  // Final costs for a roster's *selected* keepers, with same-team round-collision resolved.
+  // Tie-break rule (not specified by the league, so applied consistently here): if both
+  // keepers land on the same round, the better-ranked player's cost increases by one round.
+  function getRosterKeeperCosts(rosterId){
+    const ids = keeperListFor(rosterId);
+    const playersMap = state.playersMap || {};
+    const items = ids.map(pid => {
+      const prev = state.prevDraftMap ? state.prevDraftMap[pid] : null;
+      const base = prev ? prev.round : lastDraftRound();
+      const cost = potentialKeeperCost(pid, rosterId);
+      return { playerId: pid, base, cost, bumped:false, hasData: !!prev };
+    });
+    // Same-round collision: two keepers landing on the same cost round. The better-ranked
+    // one bumps up a round. (Tie-break rule not defined by the league — applied consistently.)
+    if(items.length === 2 && items[0].cost === items[1].cost){
+      const rankOf = pid => (playersMap[pid] ? playersMap[pid].rank : 9999);
+      const bumpIdx = rankOf(items[0].playerId) <= rankOf(items[1].playerId) ? 0 : 1;
+      if(items[bumpIdx].cost > 1){
+        items[bumpIdx].cost -= 1;
+        items[bumpIdx].bumped = true;
+      }
+    }
+    // attach surplus value using each item's resolved cost round
+    items.forEach(it => {
+      const sv = keeperSurplusValue(it.playerId, it.cost);
+      it.value = sv.value;
+      it.hasAdp = sv.hasAdp;
+    });
+    return items;
+  }
+
+  // ---------- league / rosters loading ----------
+  async function loadRosters(force){
+    setSpin('rostersSpin', true);
+    $('#refreshRosters').disabled = true;
+    try{
+      const [league, users, rosters] = await Promise.all([
+        fetchJSON(`https://api.sleeper.app/v1/league/${state.leagueId}`),
+        fetchJSON(`https://api.sleeper.app/v1/league/${state.leagueId}/users`),
+        fetchJSON(`https://api.sleeper.app/v1/league/${state.leagueId}/rosters`)
+      ]);
+      await ensurePlayersLoaded(force);
+
+      state.league = league;
+      state.users = users;
+      state.rosters = rosters.sort((a,b)=> a.roster_id - b.roster_id);
+
+      await ensurePrevDraftLoaded(force);
+      await ensureBoardRoundsLoaded(force);  // needed for last-round keeper cost
+      ensureBoardOrder();
+      // ADP powers the value metric; fetch it here but don't fail the whole roster
+      // render if it's unavailable — costs still show, values just read "—".
+      try{ await ensureAdpLoaded(force); }catch(e){ /* value badges will show as unavailable */ }
+
+      $('#leagueName').textContent = league.name || 'League';
+      $('#leagueMeta').textContent = `${rosters.length} teams · ${league.season} season`;
+
+      renderRostersNote();
+      renderRosters();
+      state.rostersLoadedAt = new Date();
+      $('#rostersUpdated').textContent = formatTime(state.rostersLoadedAt);
+
+      if(state.adpMap){ renderDraft(); }
+      if($('#panel-board').classList.contains('active')){ renderBoard(); }
+    }catch(err){
+      $('#rostersContent').innerHTML = '';
+      $('#rostersContent').appendChild(
+        el('div', {class:'error-banner'},
+          el('strong', null, 'Could not load this league. '),
+          document.createTextNode('Check your connection and that the league ID is correct, then hit refresh.')
+        )
+      );
+    }finally{
+      setSpin('rostersSpin', false);
+      $('#refreshRosters').disabled = false;
+    }
+  }
+
+  function renderRostersNote(){
+    const note = $('#rostersNote');
+    note.innerHTML = '';
+    if(state.prevDraftLoaded && Object.keys(state.prevDraftMap || {}).length === 0){
+      note.appendChild(el('div', {class:'info-note'},
+        'No prior-season draft was found for this league, so undrafted-cost logic applies to everyone (final round). This is likely the league\u2019s first season.'));
+    }
+    const adpLabel = state.adpSource === 'rank'
+      ? 'Sleeper has no public ADP endpoint right now, so value uses Sleeper\u2019s overall ranking as an ADP proxy. '
+      : (state.adpSource === 'adp' ? 'Market value comes from current Sleeper ADP. ' : '');
+    note.appendChild(el('div', {class:'info-note'},
+      `Value = surplus between a player\u2019s market round and their keeper cost round, with early-round surplus weighted more heavily (exponential curve). ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn\u2019t being drafted this year.`));
+  }
+
+  function renderRosters(){
+    const container = $('#rostersContent');
+    container.innerHTML = '';
+    if(!state.rosters.length){
+      container.appendChild(el('div', {class:'empty-state'}, 'No rosters found for this league yet.'));
+      return;
+    }
+    const grid = el('div', {class:'roster-grid'});
+    const sortedRosters = state.rosters.slice().sort((a, b) => {
+      const va = bestRosterKeeperValue(a);
+      const vb = bestRosterKeeperValue(b);
+      if(vb !== va) return vb - va;         // highest best-keeper value first
+      return a.roster_id - b.roster_id;      // stable fallback
+    });
+    for(const roster of sortedRosters){
+      grid.appendChild(renderTeamCard(roster));
+    }
+    container.appendChild(grid);
+  }
+
+  // Best single keeper surplus available to a roster (ignoring collisions), used to
+  // order the team cards. Players with no current ADP contribute NO_ADP_VALUE.
+  function bestRosterKeeperValue(roster){
+    const ids = (roster.players || []);
+    let best = -Infinity;
+    for(const pid of ids){
+      const cr = potentialKeeperCost(pid, roster.roster_id);
+      const sv = keeperSurplusValue(pid, cr);
+      if(sv.value > best) best = sv.value;
+    }
+    return best === -Infinity ? NO_ADP_VALUE : best;
+  }
+
+  function renderTeamCard(roster){
+    const user = state.users.find(u => u.user_id === roster.owner_id);
+    const teamName = displayNameFor(user);
+    const ownerHandle = user ? '@' + user.display_name : 'Unclaimed team';
+    const avatarUrl = user && user.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : null;
+
+    const keeperList = keeperListFor(roster.roster_id);
+    const finalCosts = getRosterKeeperCosts(roster.roster_id);
+    const costByPlayer = {};
+    finalCosts.forEach(c => costByPlayer[c.playerId] = c);
+
+    const countBadge = el('div', {class:'keeper-count' + (keeperList.length >= 2 ? ' full' : '')},
+      `Keepers ${keeperList.length}/2`);
+
+    const head = el('div', {class:'team-card-head'},
+      el('div', {class:'team-avatar'}, avatarUrl ? el('img', {src:avatarUrl, alt:''}) : (teamName[0] || '?')),
+      el('div', null,
+        el('div', {class:'team-name'}, teamName),
+        el('div', {class:'team-owner'}, ownerHandle)
+      ),
+      countBadge
+    );
+
+    const playerIds = (roster.players || []).slice();
+    const playersMap = state.playersMap || {};
+    playerIds.sort((a,b)=>{
+      const pa = playersMap[a], pb = playersMap[b];
+      const oa = pa ? (POSITION_ORDER[pa.pos] ?? 6) : 6;
+      const ob = pb ? (POSITION_ORDER[pb.pos] ?? 6) : 6;
+      if(oa !== ob) return oa - ob;
+      return (pa ? pa.rank : 9999) - (pb ? pb.rank : 9999);
+    });
+
+    // Per-player potential value (if this team kept them alone, ignoring collisions).
+    // Used to surface the best keeper candidates on each roster.
+    const potentialValue = {};
+    playerIds.forEach(pid => {
+      const cr = potentialKeeperCost(pid, roster.roster_id);
+      potentialValue[pid] = keeperSurplusValue(pid, cr);
+    });
+    // top-2 value candidates that actually have an ADP (positive-value, real market)
+    const rankedCandidates = playerIds
+      .filter(pid => potentialValue[pid].hasAdp)
+      .sort((a,b) => potentialValue[b].value - potentialValue[a].value)
+      .slice(0, 2);
+    const bestSet = new Set(rankedCandidates);
+
+    const list = el('div', null);
+    if(!playerIds.length){
+      list.appendChild(el('div', {class:'player-row'}, el('span', {class:'player-sub'}, 'No players on this roster.')));
+    }
+    for(const pid of playerIds){
+      const p = playersMap[pid];
+      const name = p ? `${p.first} ${p.last}`.trim() : `Player ${pid}`;
+      const pos = p ? p.pos : '—';
+      const team = p ? p.team : '';
+      const active = isKeeper(roster.roster_id, pid);
+      const maxedOut = !active && keeperList.length >= 2;
+
+      // cost tag: use the resolved (collision-aware) cost if this player is an active
+      // keeper for this roster, otherwise show the plain potential cost.
+      const undrafted = !hasPrevDraft(pid);
+      const inflated = isInflatedForRoster(pid, roster.roster_id);
+      const prevRound = (state.prevDraftMap && state.prevDraftMap[pid]) ? state.prevDraftMap[pid].round : null;
+      let costTag;
+      let resolvedCostRound;
+      if(active && costByPlayer[pid]){
+        const c = costByPlayer[pid];
+        resolvedCostRound = c.cost;
+        costTag = el('span', {class:'cost-tag active' + (c.bumped ? ' bumped' : '') + (inflated ? ' inflated' : ''),
+          title: c.bumped ? 'Bumped one round due to a same-round keeper collision on this team'
+            : (undrafted ? 'Undrafted last year \u2014 kept at the final round'
+            : (inflated ? `Cost inflated: you kept this player last year (Rd ${prevRound}), so it climbs one round` : 'Keeper cost'))},
+          `Rd ${c.cost}`);
+      } else {
+        resolvedCostRound = potentialKeeperCost(pid, roster.roster_id);
+        costTag = el('span', {class:'cost-tag' + (inflated ? ' inflated' : ''),
+          title: undrafted ? 'Undrafted last year \u2014 kept at the final round'
+            : (inflated ? `Cost inflated: you kept this player last year (Rd ${prevRound}), so it climbs one round` : 'Round this player would cost as a keeper')},
+          `Rd ${resolvedCostRound}`);
+      }
+
+      // "kept last yr" marker when this team's repeat-keep inflates the cost.
+      const inflatedMark = inflated
+        ? el('span', {class:'inflate-mark', title:`Kept by this team last year at Rd ${prevRound} \u2014 cost climbs a round`}, `\u2191 Rd ${prevRound}`)
+        : null;
+
+      // value badge: surplus value at the resolved cost round.
+      const sv = active && costByPlayer[pid]
+        ? { value: costByPlayer[pid].value, hasAdp: costByPlayer[pid].hasAdp }
+        : keeperSurplusValue(pid, resolvedCostRound);
+      let valueBadge;
+      if(!sv.hasAdp){
+        valueBadge = el('span', {class:'val-tag na', title:'Not being drafted this year \u2014 no market value'}, 'no ADP');
+      } else {
+        const sign = sv.value > 0 ? '+' : '';
+        const cls = 'val-tag' + (sv.value > 0 ? ' pos' : (sv.value < 0 ? ' neg' : '')) + (bestSet.has(pid) ? ' best' : '');
+        valueBadge = el('span', {class:cls, title:'Keeper surplus value (market vs. cost, early rounds weighted heavier)'},
+          `${sign}${sv.value.toFixed(1)}`);
+      }
+
+      const toggle = el('button', {
+        class: 'keeper-toggle' + (active ? ' active' : '') + (maxedOut ? ' disabled' : ''),
+        title: active ? 'Remove keeper' : (maxedOut ? 'Max 2 keepers selected' : 'Mark as keeper'),
+        onclick: (e)=>{
+          if(maxedOut){
+            e.currentTarget.classList.add('shake');
+            setTimeout(()=>e.currentTarget.classList.remove('shake'), 300);
+            return;
+          }
+          toggleKeeper(roster.roster_id, pid);
+          renderRosters();
+          if(state.adpMap) renderDraft();
+          if($('#panel-board').classList.contains('active')) renderBoard();
+        }
+      }, active ? '★' : '☆');
+
+      list.appendChild(el('div', {class:'player-row' + (active ? ' is-keeper' : '') + (inflated ? ' is-inflated' : '')},
+        el('span', {class:'pos-tag pos-' + pos}, pos),
+        el('div', {class:'player-info'},
+          el('div', {class:'player-name'}, name),
+          el('div', {class:'player-sub'}, team, inflatedMark)
+        ),
+        valueBadge,
+        costTag,
+        toggle
+      ));
+    }
+
+    return el('div', {class:'team-card'}, head, list);
+  }
+
+  // ---------- Draft List (ADP) ----------
+  async function loadDraft(force){
+    setSpin('draftSpin', true);
+    $('#refreshDraft').disabled = true;
+    try{
+      await ensurePlayersLoaded(force);
+      await ensureAdpLoaded(force);
+      renderDraft();
+      state.draftLoadedAt = new Date();
+      $('#draftUpdated').textContent = formatTime(state.draftLoadedAt);
+    }catch(err){
+      $('#draftContent').innerHTML = '';
+      $('#draftContent').appendChild(
+        el('div', {class:'error-banner'},
+          el('strong', null, 'Could not load draft data. '),
+          document.createTextNode('Check your connection, then hit refresh.')
+        )
+      );
+    }finally{
+      setSpin('draftSpin', false);
+      $('#refreshDraft').disabled = false;
+    }
+  }
+
+  function renderDraft(){
+    const note = $('#draftNote');
+    if(state.adpSource === 'adp'){
+      note.textContent = 'Ordered by average draft position pulled from Sleeper\u2019s draft/projection data.';
+    } else if(state.adpSource === 'rank'){
+      note.textContent = 'Sleeper does not expose a dedicated ADP endpoint right now, so this list falls back to Sleeper\u2019s overall player ranking as an ADP proxy.';
+    } else {
+      note.textContent = '';
+    }
+
+    const search = $('#draftSearch').value.trim().toLowerCase();
+    const posFilter = $('#draftPosFilter').value;
+    const playersMap = state.playersMap || {};
+    const adpMap = state.adpMap || {};
+    const keeperMap = allKeeperIdsWithTeam();
+
+    let rows = Object.keys(playersMap).map(pid => {
+      const p = playersMap[pid];
+      return { pid, p, adp: (pid in adpMap) ? adpMap[pid] : 9999 };
+    });
+
+    rows = rows.filter(r => r.p.pos && r.p.pos !== '—');
+    if(posFilter) rows = rows.filter(r => r.p.pos === posFilter);
+    if(search){
+      rows = rows.filter(r => `${r.p.first} ${r.p.last}`.toLowerCase().includes(search));
+    }
+    rows.sort((a,b)=> a.adp - b.adp);
+    rows = rows.slice(0, 400);
+
+    const container = $('#draftContent');
+    container.innerHTML = '';
+    const wrap = el('div', {class:'table-scroll'});
+    const table = el('table', {class:'draft-table'});
+    table.appendChild(el('thead', null, el('tr', null,
+      el('th', null, state.adpSource === 'rank' ? 'Rank' : 'ADP'),
+      el('th', null, 'Player'),
+      el('th', null, 'Pos'),
+      el('th', null, 'Team')
+    )));
+    const tbody = el('tbody');
+    if(!rows.length){
+      tbody.appendChild(el('tr', null, el('td', {colspan:'4'}, 'No players match your filters.')));
+    }
+    for(const r of rows){
+      const keptBy = keeperMap.get(r.pid);
+      const tr = el('tr', {class: keptBy ? 'kept' : ''},
+        el('td', {class:'rank-cell'}, r.adp >= 9999 ? '—' : r.adp.toFixed(1)),
+        el('td', null,
+          `${r.p.first} ${r.p.last}`.trim(),
+          keptBy ? el('span', {style:'margin-left:8px;'}, el('span', {class:'kept-tag'}, `KEPT · ${keptBy}`)) : null
+        ),
+        el('td', null, el('span', {class:'pos-tag pos-' + r.p.pos}, r.p.pos)),
+        el('td', null, r.p.team)
+      );
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    container.appendChild(wrap);
+  }
+
+  // ---------- Draft Board (grid) ----------
+  function boardOrderKey(){ return LS_BOARD_ORDER_PREFIX + state.leagueId; }
+  function ensureBoardOrder(){
+    const currentIds = state.rosters.map(r => String(r.roster_id));
+    let order = null;
+    try{ order = JSON.parse(localStorage.getItem(boardOrderKey()) || 'null'); }catch(e){ order = null; }
+    if(!Array.isArray(order)) order = [];
+    // keep any known ids in their saved order, then append new ones, drop stale ones
+    const kept = order.filter(id => currentIds.includes(id));
+    const missing = currentIds.filter(id => !kept.includes(id));
+    state.boardOrder = kept.concat(missing);
+    saveBoardOrder();
+  }
+  function saveBoardOrder(){
+    localStorage.setItem(boardOrderKey(), JSON.stringify(state.boardOrder));
+  }
+  function reorderBoardColumns(draggedId, targetId){
+    if(draggedId === targetId) return;
+    const order = state.boardOrder.slice();
+    const from = order.indexOf(draggedId);
+    const to = order.indexOf(targetId);
+    if(from === -1 || to === -1) return;
+    order.splice(from, 1);
+    order.splice(to, 0, draggedId);
+    state.boardOrder = order;
+    saveBoardOrder();
+    renderBoard();
+  }
+
+  async function ensureBoardRoundsLoaded(force){
+    if(state.boardRounds && !force) return state.boardRounds;
+    let rounds = null;
+    try{
+      if(state.league && state.league.draft_id){
+        const draft = await fetchJSON(`https://api.sleeper.app/v1/draft/${state.league.draft_id}`);
+        if(draft && draft.settings && draft.settings.rounds){
+          rounds = draft.settings.rounds;
+        }
+      }
+    }catch(e){ /* fall through to estimate */ }
+    if(!rounds){
+      rounds = (state.league && Array.isArray(state.league.roster_positions))
+        ? state.league.roster_positions.length
+        : 15;
+    }
+    state.boardRounds = rounds;
+    return rounds;
+  }
+
+  async function loadBoard(force){
+    setSpin('boardSpin', true);
+    $('#refreshBoard').disabled = true;
+    try{
+      await ensurePlayersLoaded(force);
+      await ensurePrevDraftLoaded(force);
+      await ensureBoardRoundsLoaded(force);
+      try{ await ensureAdpLoaded(force); }catch(e){ /* values will read as unavailable */ }
+      ensureBoardOrder();
+      renderBoard();
+      state.boardLoadedAt = new Date();
+      $('#boardUpdated').textContent = formatTime(state.boardLoadedAt);
+    }catch(err){
+      $('#boardContent').innerHTML = '';
+      $('#boardContent').appendChild(
+        el('div', {class:'error-banner'},
+          el('strong', null, 'Could not build the draft board. '),
+          document.createTextNode('Check your connection, then hit refresh.')
+        )
+      );
+    }finally{
+      setSpin('boardSpin', false);
+      $('#refreshBoard').disabled = false;
+    }
+  }
+
+  function renderBoard(){
+    const container = $('#boardContent');
+    container.innerHTML = '';
+    if(!state.rosters.length || !state.boardOrder){
+      container.appendChild(el('div', {class:'empty-state'}, 'Load the Rosters tab first, then come back here.'));
+      return;
+    }
+    const playersMap = state.playersMap || {};
+    const rosterById = {};
+    state.rosters.forEach(r => rosterById[String(r.roster_id)] = r);
+    const rounds = state.boardRounds || 15;
+
+    // pre-compute each roster's keeper placements: round -> {playerId, bumped}
+    const placements = {}; // rosterId(str) -> { round: {playerId,bumped} }
+    state.rosters.forEach(r => {
+      const rid = String(r.roster_id);
+      const costs = getRosterKeeperCosts(r.roster_id);
+      const byRound = {};
+      costs.forEach(c => {
+        if(c.cost !== null){
+          byRound[c.cost] = byRound[c.cost] || { players: [] };
+          byRound[c.cost].players.push(c);
+        }
+      });
+      placements[rid] = byRound;
+    });
+
+    const table = el('table', {class:'board-table'});
+    const thead = el('thead');
+    const headRow = el('tr');
+    headRow.appendChild(el('th', {class:'round-col'}, 'Rd'));
+    for(const rid of state.boardOrder){
+      const roster = rosterById[rid];
+      if(!roster) continue;
+      const user = state.users.find(u => u.user_id === roster.owner_id);
+      const teamName = displayNameFor(user);
+      const th = el('th', {
+        draggable:'true',
+        'data-roster-id': rid,
+        ondragstart: (e)=>{
+          e.dataTransfer.setData('text/plain', rid);
+          e.currentTarget.classList.add('dragging');
+        },
+        ondragend: (e)=> e.currentTarget.classList.remove('dragging'),
+        ondragover: (e)=>{ e.preventDefault(); e.currentTarget.classList.add('drop-target'); },
+        ondragleave: (e)=> e.currentTarget.classList.remove('drop-target'),
+        ondrop: (e)=>{
+          e.preventDefault();
+          e.currentTarget.classList.remove('drop-target');
+          const draggedId = e.dataTransfer.getData('text/plain');
+          reorderBoardColumns(draggedId, rid);
+        }
+      },
+        el('div', {class:'board-th-inner'},
+          el('span', {class:'drag-handle'}, '⋮⋮'),
+          el('span', {class:'th-team'}, teamName)
+        )
+      );
+      headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = el('tbody');
+    for(let round = 1; round <= rounds; round++){
+      const tr = el('tr');
+      tr.appendChild(el('td', {class:'round-col'}, String(round)));
+      for(const rid of state.boardOrder){
+        const roster = rosterById[rid];
+        if(!roster) continue;
+        const cellData = placements[rid] && placements[rid][round];
+        let cellContent;
+        if(cellData && cellData.players && cellData.players.length){
+          const parts = cellData.players.map(c => {
+            const p = playersMap[c.playerId];
+            const name = p ? `${p.first} ${p.last}`.trim() : c.playerId;
+            const pos = p ? p.pos : '';
+            let valEl = null;
+            if(c.hasAdp === false){
+              valEl = el('span', {class:'val-tag na', title:'Not being drafted this year'}, 'no ADP');
+            } else if(typeof c.value === 'number'){
+              const sign = c.value > 0 ? '+' : '';
+              valEl = el('span', {class:'val-tag' + (c.value > 0 ? ' pos' : (c.value < 0 ? ' neg' : '')), title:'Keeper surplus value'}, `${sign}${c.value.toFixed(1)}`);
+            }
+            return el('div', {class:'board-cell-player'},
+              el('div', {class:'bp-name'}, name),
+              el('div', {class:'bp-meta'},
+                pos ? el('span', {class:'pos-tag pos-' + pos}, pos) : null,
+                valEl,
+                c.bumped ? el('span', {class:'board-warn'}, 'bumped') : null
+              )
+            );
+          });
+          const collisionWarn = cellData.players.length > 1
+            ? el('div', {class:'board-warn'}, 'Same-round collision — resolve manually')
+            : null;
+          cellContent = el('div', null, parts, collisionWarn);
+        } else {
+          cellContent = el('span', {class:'board-cell-empty'}, '—');
+        }
+        tr.appendChild(el('td', {class:'board-cell' + (cellData ? ' has-player' : '')}, cellContent));
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+
+    const wrap = el('div', {class:'table-scroll'}, table);
+    container.appendChild(wrap);
+  }
+
+  function setSpin(id, on){
+    const elx = document.getElementById(id);
+    if(!elx) return;
+    elx.classList.toggle('spinning', !!on);
+  }
+
+  // ---------- tabs ----------
+  function switchTab(tab){
+    $all('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $('#panel-rosters').classList.toggle('active', tab === 'rosters');
+    $('#panel-draft').classList.toggle('active', tab === 'draft');
+    $('#panel-board').classList.toggle('active', tab === 'board');
+    if(tab === 'draft' && !state.adpMap){
+      loadDraft(false);
+    }
+    if(tab === 'board' && !state.boardLoadedAt){
+      loadBoard(false);
+    }
+  }
+
+  // ---------- wire up ----------
+  function init(){
+    initSeasonOptions();
+    showSetupScreen();
+
+    $('#loadLeagueBtn').addEventListener('click', handleLoadLeague);
+    $('#leagueIdInput').addEventListener('keydown', e => { if(e.key === 'Enter') handleLoadLeague(); });
+
+    $('#changeLeagueBtn').addEventListener('click', ()=>{
+      showSetupScreen();
+    });
+
+    $all('.tab-btn').forEach(b => b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
+
+    $('#refreshRosters').addEventListener('click', ()=> loadRosters(true));
+    $('#refreshDraft').addEventListener('click', ()=> loadDraft(true));
+    $('#refreshBoard').addEventListener('click', ()=> loadBoard(true));
+
+    $('#draftSearch').addEventListener('input', ()=> { if(state.adpMap) renderDraft(); });
+    $('#draftPosFilter').addEventListener('change', ()=> { if(state.adpMap) renderDraft(); });
+
+    const savedId = localStorage.getItem(LS_LEAGUE_ID);
+    const savedSeason = localStorage.getItem(LS_SEASON);
+    if(savedId){
+      state.leagueId = savedId;
+      state.season = savedSeason || String(new Date().getFullYear());
+      enterApp();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

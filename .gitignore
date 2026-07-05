@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+.vite/
+coverage/
+
+# Machine-local Claude Code settings (keep launch.json tracked)
+.claude/settings.local.json

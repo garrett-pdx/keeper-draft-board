@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keeper Draft Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<!-- ============ SETUP SCREEN ============ -->
+<div class="setup-wrap" id="setupScreen">
+  <div class="setup-card">
+    <div class="eyebrow">Local · Sleeper API</div>
+    <h1 class="display">Keeper Draft Board</h1>
+    <p class="sub">Pull your league's rosters straight from Sleeper, pick two keepers per team, and see who's left on the board — ranked by average draft position.</p>
+
+    <div class="setup-error" id="setupError"></div>
+
+    <div class="field">
+      <label for="leagueIdInput">Sleeper League ID</label>
+      <input type="text" id="leagueIdInput" placeholder="e.g. 918876462123456789" inputmode="numeric">
+    </div>
+    <div class="setup-hint">Find this in your league's Sleeper URL: sleeper.com/leagues/<b>THIS_NUMBER</b>/team</div>
+
+    <div class="field">
+      <label for="seasonInput">Season</label>
+      <select id="seasonInput"></select>
+    </div>
+
+    <button class="btn btn-primary btn-icon" id="loadLeagueBtn" style="justify-content:center;">
+      <span>Load League</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <div class="scoreboard">
+    <div class="scoreboard-left">
+      <div class="scoreboard-badge">🏈</div>
+      <div class="scoreboard-title">
+        <h1 class="display" id="leagueName">League</h1>
+        <div class="meta" id="leagueMeta">— teams · — season</div>
+      </div>
+    </div>
+    <div class="scoreboard-right">
+      <button class="btn btn-ghost" id="changeLeagueBtn">Change league</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="rosters">Rosters &amp; Keepers</button>
+    <button class="tab-btn" data-tab="draft">Draft List</button>
+    <button class="tab-btn" data-tab="board">Draft Board</button>
+  </div>
+
+  <!-- ROSTERS PANEL -->
+  <div class="panel active" id="panel-rosters">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshRosters">
+          <span class="spin-icon" id="rostersSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="rostersUpdated">never</b></div>
+      </div>
+    </div>
+    <div id="rostersNote"></div>
+    <div id="rostersContent">
+      <div class="roster-grid">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT LIST PANEL -->
+  <div class="panel" id="panel-draft">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshDraft">
+          <span class="spin-icon" id="draftSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="draftUpdated">never</b></div>
+      </div>
+      <div class="toolbar-controls">
+        <input type="search" id="draftSearch" placeholder="Search players…">
+        <select id="draftPosFilter">
+          <option value="">All positions</option>
+          <option value="QB">QB</option>
+          <option value="RB">RB</option>
+          <option value="WR">WR</option>
+          <option value="TE">TE</option>
+          <option value="K">K</option>
+          <option value="DEF">DEF</option>
+        </select>
+      </div>
+    </div>
+    <div class="draft-note" id="draftNote"></div>
+    <div id="draftContent">
+      <div class="table-scroll">
+        <table class="draft-table"><tbody>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT BOARD (GRID) PANEL -->
+  <div class="panel" id="panel-board">
+    <div class="panel-toolbar">
+      <div class="sync-readout">
+        <button class="refresh-btn" id="refreshBoard">
+          <span class="spin-icon" id="boardSpin">⟳</span> Refresh
+        </button>
+        <div class="last-updated mono">Last updated: <b id="boardUpdated">never</b></div>
+      </div>
+    </div>
+    <div class="draft-note">Drag a column header to reorder teams. Only keeper picks are filled in — everything else opens up on draft day.</div>
+    <div id="boardContent">
+      <div class="empty-state">Loading draft board…</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Data is fetched live from Sleeper's public API each time you refresh. Your keeper picks are saved only in this browser (localStorage) — nothing is uploaded anywhere.
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

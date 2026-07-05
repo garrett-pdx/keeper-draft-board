@@ -1,0 +1,190 @@
+// Stateful, cache-aware data loaders. Each honors a `force` flag to bypass cache.
+import { fetchJSON, sleeper, tryFetchAdpFromProjections } from './api/sleeper';
+import {
+  LS_ADP_CACHE_PREFIX,
+  LS_PLAYERS_CACHE,
+  PLAYERS_MAX_AGE_MS,
+  state,
+} from './state';
+import type { PlayersMap, PrevDraftMap, SleeperLeague } from './types';
+
+// ---------- players map (cached, slimmed) ----------
+export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> {
+  if (state.playersMap && !force) return state.playersMap;
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(LS_PLAYERS_CACHE) || 'null');
+      if (cached && Date.now() - cached.ts < PLAYERS_MAX_AGE_MS) {
+        state.playersMap = cached.data;
+        return state.playersMap!;
+      }
+    } catch {
+      /* ignore, refetch */
+    }
+  }
+  const full = await sleeper.players();
+  const slim: PlayersMap = {};
+  for (const pid in full) {
+    const p = full[pid];
+    if (!p) continue;
+    const fantasyPositions = p.fantasy_positions as string[] | undefined;
+    const searchRank = p.search_rank;
+    slim[pid] = {
+      id: pid,
+      first: (p.first_name as string) || '',
+      last: (p.last_name as string) || '',
+      pos: (fantasyPositions && fantasyPositions[0]) || (p.position as string) || '—',
+      team: (p.team as string) || 'FA',
+      rank: typeof searchRank === 'number' ? searchRank : 9999,
+    };
+  }
+  state.playersMap = slim;
+  try {
+    localStorage.setItem(LS_PLAYERS_CACHE, JSON.stringify({ ts: Date.now(), data: slim }));
+  } catch {
+    /* storage full — proceed without caching */
+  }
+  return slim;
+}
+
+// ---------- ADP (best-effort; Sleeper has no official public ADP endpoint) ----------
+export async function ensureAdpLoaded(force?: boolean) {
+  if (state.adpMap && !force) return { adpMap: state.adpMap, source: state.adpSource };
+  const cacheKey = LS_ADP_CACHE_PREFIX + state.season;
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      if (cached && Date.now() - cached.ts < PLAYERS_MAX_AGE_MS) {
+        state.adpMap = cached.data;
+        state.adpSource = cached.source;
+        return { adpMap: state.adpMap, source: state.adpSource };
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  let result = null;
+  for (const week of [1, 2]) {
+    try {
+      const r = await tryFetchAdpFromProjections(state.season!, week);
+      if (r.count >= 20) {
+        result = r;
+        break;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+
+  if (result) {
+    state.adpMap = result.adpMap;
+    state.adpSource = 'adp';
+  } else {
+    const players = await ensurePlayersLoaded(false);
+    const rankMap: Record<string, number> = {};
+    for (const pid in players) rankMap[pid] = players[pid].rank;
+    state.adpMap = rankMap;
+    state.adpSource = 'rank';
+  }
+  try {
+    localStorage.setItem(
+      cacheKey,
+      JSON.stringify({ ts: Date.now(), data: state.adpMap, source: state.adpSource }),
+    );
+  } catch {
+    /* storage full — proceed without caching */
+  }
+  return { adpMap: state.adpMap, source: state.adpSource };
+}
+
+// ---------- previous season draft (for keeper cost) ----------
+// Keeper "same team last year" is matched on the manager's user_id, which is
+// stable across seasons — roster_id can change year to year. We map each
+// previous-season pick's roster_id -> previous owner user_id, storing that on
+// the pick record; callers compare against the CURRENT roster's owner_id.
+export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftMap> {
+  if (state.prevDraftLoaded && !force) return state.prevDraftMap!;
+  state.prevDraftMap = {};
+  state.prevDraftLoaded = true;
+  const league = state.league;
+  if (!league || !league.previous_league_id) {
+    return state.prevDraftMap; // likely the league's first season
+  }
+  try {
+    const prevLeagueId = league.previous_league_id;
+    const prevLeague = (await sleeper.league(prevLeagueId)) as unknown as SleeperLeague;
+    if (!prevLeague || !prevLeague.draft_id) return state.prevDraftMap;
+
+    // build prev-season roster_id -> owner user_id map (best-effort; may be empty)
+    const prevRosterOwner: Record<string, string> = {};
+    try {
+      const prevRosters = await sleeper.rosters(prevLeagueId);
+      prevRosters.forEach((r) => {
+        prevRosterOwner[String(r.roster_id)] = r.owner_id as string;
+      });
+    } catch {
+      /* fall back to raw roster_id matching */
+    }
+
+    const picks = await sleeper.draftPicks(prevLeague.draft_id);
+    const map: PrevDraftMap = {};
+    for (const pick of picks) {
+      if (!pick.player_id) continue;
+      const prevRid = String(pick.roster_id);
+      map[pick.player_id as string] = {
+        round: pick.round as number,
+        rosterId: pick.roster_id as number, // raw prev-season roster_id (fallback only)
+        ownerId: prevRosterOwner[prevRid] || null, // stable manager id (preferred)
+        wasKeeper: pick.is_keeper === true,
+      };
+    }
+    state.prevDraftMap = map;
+  } catch {
+    state.prevDraftMap = {};
+  }
+  return state.prevDraftMap;
+}
+
+// ---------- draft round count ----------
+export async function ensureBoardRoundsLoaded(force?: boolean): Promise<number> {
+  if (state.boardRounds && !force) return state.boardRounds;
+  let rounds: number | null = null;
+  try {
+    if (state.league && state.league.draft_id) {
+      const draft = await sleeper.draft(state.league.draft_id);
+      const settings = draft.settings as { rounds?: number } | undefined;
+      if (settings && settings.rounds) {
+        rounds = settings.rounds;
+      }
+    }
+  } catch {
+    /* fall through to estimate */
+  }
+  if (!rounds) {
+    rounds =
+      state.league && Array.isArray(state.league.roster_positions)
+        ? state.league.roster_positions.length
+        : 15;
+  }
+  state.boardRounds = rounds;
+  return rounds;
+}
+
+// Last round of the draft — keeper cost for players undrafted last year.
+export function lastDraftRound(): number {
+  return (
+    state.boardRounds ||
+    (state.league && Array.isArray(state.league.roster_positions)
+      ? state.league.roster_positions.length
+      : 14)
+  );
+}
+
+// Does this player have real prior-season draft data?
+export function hasPrevDraft(playerId: string): boolean {
+  return !!(state.prevDraftMap && state.prevDraftMap[playerId]);
+}
+
+// re-export so callers have one data entrypoint
+export { fetchJSON };
