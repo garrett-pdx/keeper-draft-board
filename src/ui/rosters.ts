@@ -21,11 +21,12 @@ import {
   state,
   toggleKeeper,
 } from '../state';
-import type { SleeperLeague, SleeperRoster, SleeperUser, SurplusValue } from '../types';
+import type { SleeperRoster, SurplusValue } from '../types';
 import { displayNameFor, formatTime } from '../util';
 import { $, el, setSpin } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
+import { updateAdpSourceBadge } from './header';
 
 export async function loadRosters(force?: boolean): Promise<void> {
   setSpin('rostersSpin', true);
@@ -38,9 +39,9 @@ export async function loadRosters(force?: boolean): Promise<void> {
     ]);
     await ensurePlayersLoaded(force);
 
-    state.league = league as unknown as SleeperLeague;
-    state.users = users as unknown as SleeperUser[];
-    state.rosters = (rosters as unknown as SleeperRoster[]).sort((a, b) => a.roster_id - b.roster_id);
+    state.league = league;
+    state.users = users;
+    state.rosters = rosters.sort((a, b) => a.roster_id - b.roster_id);
 
     await ensurePrevDraftLoaded(force);
     await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost
@@ -52,6 +53,7 @@ export async function loadRosters(force?: boolean): Promise<void> {
     } catch {
       /* value badges will show as unavailable */
     }
+    updateAdpSourceBadge();
 
     $('#leagueName')!.textContent = state.league.name || 'League';
     $('#leagueMeta')!.textContent = `${state.rosters.length} teams · ${state.league.season} season`;

@@ -25,6 +25,8 @@ pick keepers, computes a keeper "value" metric, and renders a draggable draft bo
 - **Keep runtime dependencies near-zero.** Dev tooling (Vite, Vitest, ESLint, Prettier,
   TypeScript) is welcome; think hard before adding a *runtime* dependency — prefer writing
   it by hand. The only external runtime requests are Google Fonts and the Sleeper API.
+  The one sanctioned runtime dep is **zod**, used only to validate Sleeper responses at the
+  fetch boundary (`src/api/schemas.ts`). Don't reach for more without a similarly strong reason.
 - **Vanilla DOM, no UI framework.** Build DOM with the local `el(tag, attrs, ...children)`
   helper (`src/ui/dom.ts`), not innerHTML string concatenation (except the deliberate
   `html:` escape hatch in `el`). Keep using `el`.
@@ -44,7 +46,9 @@ src/
   util.ts             # formatTime, displayNameFor
   types.ts            # shared data shapes + (loosely-typed) Sleeper payloads
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
-  api/sleeper.ts      # fetchJSON + endpoint helpers + the ADP-from-projections fetch
+  api/
+    sleeper.ts        # fetchJSON + endpoint helpers (each validates its response)
+    schemas.ts        # zod schemas for Sleeper responses; inferred payload types
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
     keeperCost.ts     #   sameManagerLastYear, potentialKeeperCost, isInflatedForRoster,
@@ -52,6 +56,7 @@ src/
     adp.ts            #   extractAdp
   ui/
     dom.ts            # $, $all, el, setSpin
+    header.ts         # updateAdpSourceBadge (visible ADP-source indicator)
     setup.ts          # setup screen: handleLoadLeague, enterApp, showSetupScreen
     rosters.ts        # loadRosters + renderRosters + renderTeamCard
     draft.ts          # loadDraft + renderDraft

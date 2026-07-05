@@ -1,5 +1,17 @@
 import { extractAdp } from '../domain/adp';
 import type { AdpMap } from '../types';
+import {
+  DraftSchema,
+  LeagueSchema,
+  PicksSchema,
+  RostersSchema,
+  UsersSchema,
+  type PlayersResponse,
+  type SleeperDraft,
+  type SleeperLeague,
+  type SleeperRoster,
+  type SleeperUser,
+} from './schemas';
 
 const BASE = 'https://api.sleeper.app';
 
@@ -9,15 +21,20 @@ export async function fetchJSON<T = unknown>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ---- endpoint helpers (all public, read-only GETs) ----
+// ---- endpoint helpers (all public, read-only GETs; responses validated) ----
 export const sleeper = {
-  league: (id: string) => fetchJSON<Record<string, unknown>>(`${BASE}/v1/league/${id}`),
-  users: (id: string) => fetchJSON<Record<string, unknown>[]>(`${BASE}/v1/league/${id}/users`),
-  rosters: (id: string) => fetchJSON<Record<string, unknown>[]>(`${BASE}/v1/league/${id}/rosters`),
-  players: () => fetchJSON<Record<string, Record<string, unknown>>>(`${BASE}/v1/players/nfl`),
-  draft: (draftId: string) => fetchJSON<Record<string, unknown>>(`${BASE}/v1/draft/${draftId}`),
-  draftPicks: (draftId: string) =>
-    fetchJSON<Record<string, unknown>[]>(`${BASE}/v1/draft/${draftId}/picks`),
+  league: async (id: string): Promise<SleeperLeague> =>
+    LeagueSchema.parse(await fetchJSON(`${BASE}/v1/league/${id}`)),
+  users: async (id: string): Promise<SleeperUser[]> =>
+    UsersSchema.parse(await fetchJSON(`${BASE}/v1/league/${id}/users`)),
+  rosters: async (id: string): Promise<SleeperRoster[]> =>
+    RostersSchema.parse(await fetchJSON(`${BASE}/v1/league/${id}/rosters`)),
+  players: async (): Promise<PlayersResponse> =>
+    fetchJSON<PlayersResponse>(`${BASE}/v1/players/nfl`),
+  draft: async (draftId: string): Promise<SleeperDraft> =>
+    DraftSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}`)),
+  draftPicks: async (draftId: string) =>
+    PicksSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}/picks`)),
 };
 
 export interface AdpFetchResult {
@@ -26,6 +43,8 @@ export interface AdpFetchResult {
 }
 
 // UNDOCUMENTED endpoint — Sleeper exposes no official ADP. See README "ADP data source".
+// Left intentionally loose (no schema) because the payload shape is unofficial and
+// varies; extractAdp scans whatever stats object it finds.
 export async function tryFetchAdpFromProjections(
   season: string,
   week: number,

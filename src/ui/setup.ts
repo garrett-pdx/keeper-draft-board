@@ -34,7 +34,7 @@ export async function handleLoadLeague(): Promise<void> {
   btn.disabled = true;
   btn.querySelector('span')!.textContent = 'Checking league…';
   try {
-    const league = (await sleeper.league(idRaw)) as { league_id?: string };
+    const league = await sleeper.league(idRaw);
     if (!league || !league.league_id) {
       throw new Error('not found');
     }

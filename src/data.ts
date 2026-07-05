@@ -6,7 +6,7 @@ import {
   PLAYERS_MAX_AGE_MS,
   state,
 } from './state';
-import type { PlayersMap, PrevDraftMap, SleeperLeague } from './types';
+import type { PlayersMap, PrevDraftMap } from './types';
 
 // ---------- players map (cached, slimmed) ----------
 export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> {
@@ -27,14 +27,14 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
   for (const pid in full) {
     const p = full[pid];
     if (!p) continue;
-    const fantasyPositions = p.fantasy_positions as string[] | undefined;
+    const fantasyPositions = p.fantasy_positions;
     const searchRank = p.search_rank;
     slim[pid] = {
       id: pid,
-      first: (p.first_name as string) || '',
-      last: (p.last_name as string) || '',
-      pos: (fantasyPositions && fantasyPositions[0]) || (p.position as string) || '—',
-      team: (p.team as string) || 'FA',
+      first: p.first_name || '',
+      last: p.last_name || '',
+      pos: (fantasyPositions && fantasyPositions[0]) || p.position || '—',
+      team: p.team || 'FA',
       rank: typeof searchRank === 'number' ? searchRank : 9999,
     };
   }
@@ -113,7 +113,7 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
   }
   try {
     const prevLeagueId = league.previous_league_id;
-    const prevLeague = (await sleeper.league(prevLeagueId)) as unknown as SleeperLeague;
+    const prevLeague = await sleeper.league(prevLeagueId);
     if (!prevLeague || !prevLeague.draft_id) return state.prevDraftMap;
 
     // build prev-season roster_id -> owner user_id map (best-effort; may be empty)
@@ -121,7 +121,7 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
     try {
       const prevRosters = await sleeper.rosters(prevLeagueId);
       prevRosters.forEach((r) => {
-        prevRosterOwner[String(r.roster_id)] = r.owner_id as string;
+        if (r.owner_id) prevRosterOwner[String(r.roster_id)] = r.owner_id;
       });
     } catch {
       /* fall back to raw roster_id matching */
@@ -132,9 +132,9 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
     for (const pick of picks) {
       if (!pick.player_id) continue;
       const prevRid = String(pick.roster_id);
-      map[pick.player_id as string] = {
-        round: pick.round as number,
-        rosterId: pick.roster_id as number, // raw prev-season roster_id (fallback only)
+      map[pick.player_id] = {
+        round: pick.round,
+        rosterId: pick.roster_id, // raw prev-season roster_id (fallback only)
         ownerId: prevRosterOwner[prevRid] || null, // stable manager id (preferred)
         wasKeeper: pick.is_keeper === true,
       };
@@ -153,9 +153,8 @@ export async function ensureBoardRoundsLoaded(force?: boolean): Promise<number> 
   try {
     if (state.league && state.league.draft_id) {
       const draft = await sleeper.draft(state.league.draft_id);
-      const settings = draft.settings as { rounds?: number } | undefined;
-      if (settings && settings.rounds) {
-        rounds = settings.rounds;
+      if (draft.settings && draft.settings.rounds) {
+        rounds = draft.settings.rounds;
       }
     }
   } catch {

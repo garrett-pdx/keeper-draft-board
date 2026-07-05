@@ -2,6 +2,7 @@ import { ensureAdpLoaded, ensurePlayersLoaded } from '../data';
 import { allKeeperIdsWithTeam, state } from '../state';
 import { formatTime } from '../util';
 import { $, el, setSpin } from './dom';
+import { updateAdpSourceBadge } from './header';
 
 export async function loadDraft(force?: boolean): Promise<void> {
   setSpin('draftSpin', true);
@@ -9,6 +10,7 @@ export async function loadDraft(force?: boolean): Promise<void> {
   try {
     await ensurePlayersLoaded(force);
     await ensureAdpLoaded(force);
+    updateAdpSourceBadge();
     renderDraft();
     state.draftLoadedAt = new Date();
     $('#draftUpdated')!.textContent = formatTime(state.draftLoadedAt);

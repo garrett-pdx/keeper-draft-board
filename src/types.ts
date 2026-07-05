@@ -40,23 +40,6 @@ export interface KeeperCostItem {
   hasAdp: boolean;
 }
 
-// --- Loosely-typed Sleeper payloads (tightened later) ---
-export interface SleeperUser {
-  user_id: string;
-  display_name?: string;
-  avatar?: string | null;
-  metadata?: { team_name?: string } | null;
-}
-export interface SleeperRoster {
-  roster_id: number;
-  owner_id: string;
-  players?: string[] | null;
-}
-export interface SleeperLeague {
-  league_id: string;
-  name?: string;
-  season?: string;
-  draft_id?: string | null;
-  previous_league_id?: string | null;
-  roster_positions?: string[];
-}
+// Sleeper payload types are inferred from the zod schemas that validate them at
+// the fetch boundary, so the runtime check and the compile-time type can't drift.
+export type { SleeperLeague, SleeperRoster, SleeperUser } from './api/schemas';
