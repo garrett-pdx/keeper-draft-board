@@ -1,5 +1,6 @@
 import { sleeper } from '../api/sleeper';
-import { loadKeepersFromStorage, LS_LEAGUE_ID, LS_SEASON, state } from '../state';
+import type { SleeperLeague } from '../api/schemas';
+import { loadKeepersFromStorage, LS_LEAGUE_ID, LS_SEASON, LS_USERNAME, state } from '../state';
 import { $, el } from './dom';
 import { loadRosters } from './rosters';
 
@@ -22,6 +23,32 @@ function hideSetupError(): void {
   $('#setupError')!.style.display = 'none';
 }
 
+export function toggleManualEntry(show?: boolean): void {
+  const manual = $('#manualIdField')!;
+  const isHidden = manual.hasAttribute('hidden');
+  const next = show ?? isHidden;
+  manual.toggleAttribute('hidden', !next);
+}
+
+// Shared by the picker's "Load League" button and the manual-entry "Load League"
+// button, so both paths validate/persist/enter identically.
+async function commitLeagueAndEnter(leagueId: string, season: string): Promise<void> {
+  hideSetupError();
+  try {
+    const league = await sleeper.league(leagueId);
+    if (!league || !league.league_id) {
+      throw new Error('not found');
+    }
+    localStorage.setItem(LS_LEAGUE_ID, leagueId);
+    localStorage.setItem(LS_SEASON, season);
+    state.leagueId = leagueId;
+    state.season = season;
+    enterApp();
+  } catch {
+    showSetupError("Couldn't load that league. Double check it's public/accessible.");
+  }
+}
+
 export async function handleLoadLeague(): Promise<void> {
   const idRaw = ($('#leagueIdInput') as HTMLInputElement).value.trim();
   const season = ($('#seasonInput') as HTMLSelectElement).value;
@@ -33,24 +60,69 @@ export async function handleLoadLeague(): Promise<void> {
   const btn = $('#loadLeagueBtn') as HTMLButtonElement;
   btn.disabled = true;
   btn.querySelector('span')!.textContent = 'Checking league…';
+  await commitLeagueAndEnter(idRaw, season);
+  btn.disabled = false;
+  btn.querySelector('span')!.textContent = 'Load League';
+}
+
+function populateLeaguePicker(leagues: SleeperLeague[]): void {
+  const sel = $('#leaguePickerSelect') as HTMLSelectElement;
+  sel.replaceChildren();
+  leagues.forEach((lg) => {
+    const label = lg.total_rosters
+      ? `${lg.name || 'Unnamed League'} (${lg.total_rosters} teams)`
+      : lg.name || 'Unnamed League';
+    sel.appendChild(el('option', { value: lg.league_id }, label));
+  });
+}
+
+export async function handleFindLeagues(): Promise<void> {
+  const username = ($('#usernameInput') as HTMLInputElement).value.trim();
+  const season = ($('#seasonInput') as HTMLSelectElement).value;
+  hideSetupError();
+  $('#leaguePickerField')!.setAttribute('hidden', '');
+  if (!username) {
+    showSetupError('Enter your Sleeper username.');
+    return;
+  }
+  const btn = $('#findLeaguesBtn') as HTMLButtonElement;
+  btn.disabled = true;
+  btn.querySelector('span')!.textContent = 'Looking up…';
   try {
-    const league = await sleeper.league(idRaw);
-    if (!league || !league.league_id) {
-      throw new Error('not found');
+    const user = await sleeper.userByUsername(username);
+    if (!user) {
+      showSetupError(
+        `No Sleeper user found for "${username}". Check the spelling, or paste a league ID directly below.`,
+      );
+      toggleManualEntry(true);
+      return;
     }
-    localStorage.setItem(LS_LEAGUE_ID, idRaw);
-    localStorage.setItem(LS_SEASON, season);
-    state.leagueId = idRaw;
-    state.season = season;
-    enterApp();
+    const leagues = await sleeper.leaguesForUser(user.user_id, season);
+    if (leagues.length === 0) {
+      showSetupError(
+        `No ${season} leagues found for "${username}". Try a different season, or paste a league ID directly below.`,
+      );
+      toggleManualEntry(true);
+      return;
+    }
+    populateLeaguePicker(leagues);
+    localStorage.setItem(LS_USERNAME, username);
+    $('#leaguePickerField')!.removeAttribute('hidden');
   } catch {
-    showSetupError(
-      "Couldn't find that league. Double check the ID and that the league is public/accessible.",
-    );
+    showSetupError('Could not reach Sleeper. Check your connection and try again.');
+    toggleManualEntry(true);
   } finally {
     btn.disabled = false;
-    btn.querySelector('span')!.textContent = 'Load League';
+    btn.querySelector('span')!.textContent = 'Find My Leagues';
   }
+}
+
+export async function handleConfirmLeague(): Promise<void> {
+  const sel = $('#leaguePickerSelect') as HTMLSelectElement;
+  const leagueId = sel.value;
+  const season = ($('#seasonInput') as HTMLSelectElement).value;
+  if (!leagueId) return;
+  await commitLeagueAndEnter(leagueId, season);
 }
 
 export function showSetupScreen(): void {
@@ -60,6 +132,8 @@ export function showSetupScreen(): void {
   if (savedId) ($('#leagueIdInput') as HTMLInputElement).value = savedId;
   const savedSeason = localStorage.getItem(LS_SEASON);
   if (savedSeason) ($('#seasonInput') as HTMLSelectElement).value = savedSeason;
+  const savedUsername = localStorage.getItem(LS_USERNAME);
+  if (savedUsername) ($('#usernameInput') as HTMLInputElement).value = savedUsername;
 }
 
 export function enterApp(): void {

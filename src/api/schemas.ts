@@ -12,8 +12,14 @@ export const LeagueSchema = z.object({
   draft_id: z.string().nullish(),
   previous_league_id: z.string().nullish(),
   roster_positions: z.array(z.string()).optional(),
+  total_rosters: z.number().optional(), // team count; used by the username→league picker list
 });
 export type SleeperLeague = z.infer<typeof LeagueSchema>;
+
+// GET /v1/user/<user_id>/leagues/nfl/<season> returns the same shape as a
+// single league fetch (verified live against the Sleeper API), so this is a
+// plain alias rather than a distinct schema.
+export const LeaguesForUserSchema = z.array(LeagueSchema);
 
 export const UserSchema = z.object({
   user_id: z.string(),
@@ -23,6 +29,17 @@ export const UserSchema = z.object({
 });
 export type SleeperUser = z.infer<typeof UserSchema>;
 export const UsersSchema = z.array(UserSchema);
+
+// GET /v1/user/<username> — the single-user lookup used by the username→league
+// picker. Distinct from UserSchema above: that one models a league member (has
+// `metadata.team_name`), this models the standalone account lookup response.
+export const UserLookupSchema = z.object({
+  user_id: z.string(),
+  username: z.string().optional(),
+  display_name: z.string().optional(),
+  avatar: z.string().nullish(),
+});
+export type SleeperUserLookup = z.infer<typeof UserLookupSchema>;
 
 export const RosterSchema = z.object({
   roster_id: z.number(),

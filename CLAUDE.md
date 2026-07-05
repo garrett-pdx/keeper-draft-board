@@ -57,7 +57,10 @@ src/
   ui/
     dom.ts            # $, $all, el, setSpin
     header.ts         # updateAdpSourceBadge (visible ADP-source indicator)
-    setup.ts          # setup screen: handleLoadLeague, enterApp, showSetupScreen
+    setup.ts          # setup screen: username→league picker (handleFindLeagues,
+                      #   handleConfirmLeague, toggleManualEntry) + manual league-ID
+                      #   fallback (handleLoadLeague), both routed through the shared
+                      #   commitLeagueAndEnter(); enterApp, showSetupScreen
     rosters.ts        # loadRosters + renderRosters + renderTeamCard
     draft.ts          # loadDraft + renderDraft
     board.ts          # loadBoard + renderBoard (draggable grid)

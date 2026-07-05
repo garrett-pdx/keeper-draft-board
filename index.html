@@ -19,19 +19,39 @@
     <div class="setup-error" id="setupError"></div>
 
     <div class="field">
-      <label for="leagueIdInput">Sleeper League ID</label>
-      <input type="text" id="leagueIdInput" placeholder="e.g. 918876462123456789" inputmode="numeric">
+      <label for="usernameInput">Sleeper Username</label>
+      <input type="text" id="usernameInput" placeholder="e.g. garrett_pdx" autocomplete="off">
     </div>
-    <div class="setup-hint">Find this in your league's Sleeper URL: sleeper.com/leagues/<b>THIS_NUMBER</b>/team</div>
+    <div class="setup-hint">We'll look up your public leagues for the season below — this is not a login, Sleeper has no sign-in for third-party apps.</div>
 
     <div class="field">
       <label for="seasonInput">Season</label>
       <select id="seasonInput"></select>
     </div>
 
-    <button class="btn btn-primary btn-icon" id="loadLeagueBtn" style="justify-content:center;">
-      <span>Load League</span>
+    <button class="btn btn-primary btn-icon" id="findLeaguesBtn" style="justify-content:center;">
+      <span>Find My Leagues</span>
     </button>
+
+    <div class="field" id="leaguePickerField" hidden>
+      <label for="leaguePickerSelect">Choose a league</label>
+      <select id="leaguePickerSelect"></select>
+      <button class="btn btn-primary btn-icon" id="confirmLeagueBtn" style="justify-content:center; margin-top:10px;">
+        <span>Load League</span>
+      </button>
+    </div>
+
+    <div class="setup-advanced-toggle">
+      <a href="#" id="toggleManualEntry">Or paste a league ID directly →</a>
+    </div>
+    <div class="field" id="manualIdField" hidden>
+      <label for="leagueIdInput">Sleeper League ID</label>
+      <input type="text" id="leagueIdInput" placeholder="e.g. 918876462123456789" inputmode="numeric">
+      <div class="setup-hint">Find this in your league's Sleeper URL: sleeper.com/leagues/<b>THIS_NUMBER</b>/team</div>
+      <button class="btn btn-primary btn-icon" id="loadLeagueBtn" style="justify-content:center; margin-top:10px;">
+        <span>Load League</span>
+      </button>
+    </div>
   </div>
 </div>
 

@@ -4,7 +4,15 @@ import { $, $all } from './ui/dom';
 import { loadBoard } from './ui/board';
 import { loadDraft, renderDraft } from './ui/draft';
 import { loadRosters } from './ui/rosters';
-import { enterApp, handleLoadLeague, initSeasonOptions, showSetupScreen } from './ui/setup';
+import {
+  enterApp,
+  handleConfirmLeague,
+  handleFindLeagues,
+  handleLoadLeague,
+  initSeasonOptions,
+  showSetupScreen,
+  toggleManualEntry,
+} from './ui/setup';
 
 type TabName = 'rosters' | 'draft' | 'board';
 
@@ -28,6 +36,16 @@ function init(): void {
   $('#loadLeagueBtn')!.addEventListener('click', handleLoadLeague);
   $('#leagueIdInput')!.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') handleLoadLeague();
+  });
+
+  $('#findLeaguesBtn')!.addEventListener('click', handleFindLeagues);
+  $('#usernameInput')!.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') handleFindLeagues();
+  });
+  $('#confirmLeagueBtn')!.addEventListener('click', handleConfirmLeague);
+  $('#toggleManualEntry')!.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleManualEntry();
   });
 
   $('#changeLeagueBtn')!.addEventListener('click', () => {

@@ -12,6 +12,7 @@ import { displayNameFor } from './util';
 // ---- localStorage keys ----
 export const LS_LEAGUE_ID = 'kdb_league_id';
 export const LS_SEASON = 'kdb_season';
+export const LS_USERNAME = 'kdb_username';
 export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
 export const LS_PLAYERS_CACHE = 'kdb_players_cache_v1';

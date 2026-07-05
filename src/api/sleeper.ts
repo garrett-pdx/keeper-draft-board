@@ -3,14 +3,17 @@ import type { AdpMap } from '../types';
 import {
   DraftSchema,
   LeagueSchema,
+  LeaguesForUserSchema,
   PicksSchema,
   RostersSchema,
+  UserLookupSchema,
   UsersSchema,
   type PlayersResponse,
   type SleeperDraft,
   type SleeperLeague,
   type SleeperRoster,
   type SleeperUser,
+  type SleeperUserLookup,
 } from './schemas';
 
 const BASE = 'https://api.sleeper.app';
@@ -35,6 +38,18 @@ export const sleeper = {
     DraftSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}`)),
   draftPicks: async (draftId: string) =>
     PicksSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}/picks`)),
+  // Sleeper returns HTTP 200 with a literal `null` body for an unknown username
+  // (not a 404), so this is special-cased rather than always-parse-and-throw
+  // like the other endpoints.
+  userByUsername: async (username: string): Promise<SleeperUserLookup | null> => {
+    const raw = await fetchJSON<unknown>(`${BASE}/v1/user/${encodeURIComponent(username)}`);
+    if (raw === null) return null;
+    return UserLookupSchema.parse(raw);
+  },
+  leaguesForUser: async (userId: string, season: string): Promise<SleeperLeague[]> =>
+    LeaguesForUserSchema.parse(
+      await fetchJSON(`${BASE}/v1/user/${userId}/leagues/nfl/${season}`),
+    ),
 };
 
 export interface AdpFetchResult {

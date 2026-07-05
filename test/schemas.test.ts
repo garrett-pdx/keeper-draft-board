@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   LeagueSchema,
+  LeaguesForUserSchema,
   PicksSchema,
   RostersSchema,
+  UserLookupSchema,
   UsersSchema,
 } from '../src/api/schemas';
 
 describe('LeagueSchema', () => {
-  it('parses a valid league and strips unknown keys', () => {
+  it('parses a valid league, keeps total_rosters, and strips truly unknown keys', () => {
     const parsed = LeagueSchema.parse({
       league_id: '123',
       name: 'My League',
@@ -15,11 +17,13 @@ describe('LeagueSchema', () => {
       draft_id: 'd1',
       previous_league_id: null,
       roster_positions: ['QB', 'RB', 'RB', 'WR'],
-      total_rosters: 10, // unknown-to-us key
+      total_rosters: 10,
+      bracket_id: 'unknown-to-us-field', // genuinely unmodeled key
     });
     expect(parsed.league_id).toBe('123');
     expect(parsed.roster_positions).toHaveLength(4);
-    expect('total_rosters' in parsed).toBe(false);
+    expect(parsed.total_rosters).toBe(10);
+    expect('bracket_id' in parsed).toBe(false);
   });
 
   it('rejects a payload missing the required league_id', () => {
@@ -28,6 +32,41 @@ describe('LeagueSchema', () => {
 
   it('tolerates a missing/undocumented draft_id', () => {
     expect(LeagueSchema.parse({ league_id: '123' }).draft_id).toBeUndefined();
+  });
+
+  it('tolerates a missing total_rosters (optional)', () => {
+    expect(LeagueSchema.parse({ league_id: '123' }).total_rosters).toBeUndefined();
+  });
+});
+
+describe('LeaguesForUserSchema', () => {
+  it('parses an array of leagues for a user, matching the real endpoint shape', () => {
+    const parsed = LeaguesForUserSchema.parse([
+      { league_id: '1312235880743706624', name: 'Mudd Keeper League', season: '2026', total_rosters: 10 },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].total_rosters).toBe(10);
+  });
+
+  it('parses an empty array (user has no leagues that season)', () => {
+    expect(LeaguesForUserSchema.parse([])).toEqual([]);
+  });
+});
+
+describe('UserLookupSchema', () => {
+  it('parses a real-shaped single-user lookup response', () => {
+    const parsed = UserLookupSchema.parse({
+      user_id: '483459259485384704',
+      username: 'sleeperuser',
+      display_name: 'SleeperUser',
+      avatar: null,
+    });
+    expect(parsed.user_id).toBe('483459259485384704');
+    expect(parsed.avatar).toBeNull();
+  });
+
+  it('rejects a payload missing the required user_id', () => {
+    expect(() => UserLookupSchema.parse({ username: 'no-id' })).toThrow();
   });
 });
 
