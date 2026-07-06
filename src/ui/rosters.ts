@@ -105,9 +105,9 @@ export function renderRostersNote(): void {
   }
   const adpLabel =
     state.adpSource === 'rank'
-      ? 'Sleeper has no public ADP endpoint right now, so value uses Sleeper’s overall ranking as an ADP proxy. '
+      ? 'No ADP snapshot was available for this format, so value uses Sleeper’s overall ranking as a proxy. '
       : state.adpSource === 'adp'
-        ? 'Market value comes from current Sleeper ADP. '
+        ? 'Market value comes from real ADP data from Fantasy Football Calculator. '
         : '';
   note.appendChild(
     el(

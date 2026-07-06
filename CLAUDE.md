@@ -9,9 +9,10 @@ the Sleeper API. It is built with **Vite + TypeScript**, vanilla DOM (no UI fram
 and ships as a static site (deployable to GitHub Pages). `npm run dev` to develop,
 `npm run build` to produce a static `dist/`.
 
-The user's league is on **Sleeper** (10-team keeper league). The app pulls rosters, ADP,
-and last season's draft results live from Sleeper's public read-only API, lets the user
-pick keepers, computes a keeper "value" metric, and renders a draggable draft board.
+The user's league is on **Sleeper** (10-team keeper league). The app pulls rosters and
+last season's draft results live from Sleeper's public read-only API, plus a real ADP
+snapshot refreshed twice weekly (see "ADP data pipeline" below), lets the user pick
+keepers, computes a keeper "value" metric, and renders a draggable draft board.
 
 > History: this started as a single self-contained `keeper-draft-board.html`. It was
 > migrated to the modular Vite/TS structure below (the pure logic extracted and covered
@@ -21,12 +22,15 @@ pick keepers, computes a keeper "value" metric, and renders a draggable draft bo
 
 - **Static, no backend.** All persistence is `localStorage`. Never introduce a server
   component, and never send the user's data anywhere except read-only GETs to Sleeper.
-  The build output must be a static site.
+  The build output must be a static site. The one exception is ADP: it's fetched at
+  **CI/build time** (never at runtime, never in the browser) from Fantasy Football
+  Calculator and baked into a static asset — see "ADP data pipeline" below for why.
 - **Keep runtime dependencies near-zero.** Dev tooling (Vite, Vitest, ESLint, Prettier,
   TypeScript) is welcome; think hard before adding a _runtime_ dependency — prefer writing
-  it by hand. The only external runtime requests are Google Fonts and the Sleeper API.
-  The one sanctioned runtime dep is **zod**, used only to validate Sleeper responses at the
-  fetch boundary (`src/api/schemas.ts`). Don't reach for more without a similarly strong reason.
+  it by hand. The only external runtime requests are Google Fonts and the Sleeper API (ADP
+  is same-origin at runtime — see below). The one sanctioned runtime dep is **zod**, used
+  only to validate Sleeper responses and our own generated ADP snapshot at the fetch
+  boundary (`src/api/schemas.ts`). Don't reach for more without a similarly strong reason.
 - **Vanilla DOM, no UI framework.** Build DOM with the local `el(tag, attrs, ...children)`
   helper (`src/ui/dom.ts`), not innerHTML string concatenation (except the deliberate
   `html:` escape hatch in `el`). Keep using `el`.
@@ -38,6 +42,13 @@ pick keepers, computes a keeper "value" metric, and renders a draggable draft bo
 
 ```
 index.html            # markup only (setup screen + app shell); loads src/main.ts
+scripts/
+  fetch-adp.mjs       # CI-only Node script: pulls real ADP from Fantasy Football
+                      #   Calculator, writes public/adp-snapshot.json (run by
+                      #   .github/workflows/refresh-adp.yml, Mon + Fri)
+public/
+  adp-snapshot.json   # generated, committed — served same-origin, matched at
+                      #   runtime against Sleeper's player dictionary
 src/
   main.ts             # bootstrap: tab switching + init() wiring
   state.ts            # the single `state` object, constants, localStorage persistence
@@ -48,7 +59,8 @@ src/
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
   api/
     sleeper.ts        # fetchJSON + endpoint helpers (each validates its response)
-    schemas.ts        # zod schemas for Sleeper responses; inferred payload types
+    adpSnapshot.ts    # fetchAdpSnapshot — reads public/adp-snapshot.json (same-origin)
+    schemas.ts        # zod schemas for Sleeper responses + our own ADP snapshot
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
@@ -61,7 +73,9 @@ src/
                       #   exactPickForRoster — snake-draft exact pick number math
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
                       #   actually holds per round, adjusted by trades
-    adp.ts            #   extractAdp
+    adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
+                      #   matching against Sleeper's player dict), pickAdpEntry (closest
+                      #   team-count + scoring-format snapshot entry for this league)
   ui/
     dom.ts            # $, $all, el, setSpin
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge (visible data-source
@@ -130,6 +144,35 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   was _not_ specified by the league and was chosen by us — the rule itself is fixed (not
   user-configurable), only the _capacity per round_ (affected by `maxKeepers` and trades)
   changes how many keepers can collide.
+
+## ADP data pipeline
+
+Real ADP was investigated thoroughly (see git history) — Sleeper has no official ADP
+endpoint, and every free real-ADP source we found (Fantasy Football Calculator, MyFantasy­
+League) sends no CORS headers a browser will accept from this app's origin (confirmed
+live: direct `fetch()` calls fail with `net::ERR_FAILED`). Paid sources (FantasyPros)
+were ruled out — no paid API keys in a static, no-backend app with no way to keep them
+secret. So real ADP can only be fetched **server-side, at CI/build time**, never at
+runtime:
+
+- `scripts/fetch-adp.mjs` pulls a small matrix (`teams` × `8,10,12,14`, `format` ×
+  `standard,half-ppr,ppr`) from Fantasy Football Calculator's public REST API (free for
+  personal/commercial use, attribution requested — see the footer credit in `index.html`)
+  and writes `public/adp-snapshot.json`.
+- `.github/workflows/refresh-adp.yml` runs it on a schedule (Monday + Friday) and
+  `workflow_dispatch`, committing the snapshot to `main` if it changed — which then
+  triggers the normal `deploy.yml` (any push to `main`) to rebuild and redeploy.
+- At runtime, `ensureAdpLoaded` (`src/data.ts`) fetches this snapshot same-origin (no
+  CORS problem — it's our own static asset), picks the closest entry via
+  `pickAdpEntry` (nearest team count, then nearest scoring format from the league's
+  `scoring_settings.rec`), and matches FFC's name-keyed players against Sleeper's
+  id-keyed player dictionary via `matchAdpToPlayers`. Two confirmed real-data quirks
+  handled there: FFC uses `"PK"` where Sleeper uses `"K"`, and team defenses can't be
+  name-matched at all (FFC: "Denver Defense"; Sleeper: first/last = city/nickname) so
+  those are matched by team abbreviation instead. Ambiguous name+position collisions
+  are skipped, not guessed at. If fewer than 20 players end up matched, this falls back
+  to Sleeper's overall player rank as a proxy (`state.adpSource === 'rank'`), same as
+  before.
 
 ## The value metric
 

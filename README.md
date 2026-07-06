@@ -8,7 +8,8 @@ computed keeper **value** metric, and lay it all out on a draggable draft board.
 
 - **No backend.** Everything runs in the browser. Your keeper picks are saved only in
   `localStorage` — nothing is uploaded anywhere. The only network calls are read-only GETs
-  to Sleeper's public API (plus Google Fonts).
+  to Sleeper's public API (plus Google Fonts). ADP data is the one exception — it's
+  fetched at build time, not runtime; see "ADP data source" below.
 - **Static.** Builds to a plain `dist/` you can host anywhere (e.g. GitHub Pages).
 - **Vanilla + typed.** Vite + TypeScript, vanilla DOM, near-zero runtime dependencies.
 
@@ -24,15 +25,16 @@ directly — see "Or paste a league ID directly" on the setup screen) and a seas
 
 ### Scripts
 
-| Command             | What it does                                      |
-| ------------------- | ------------------------------------------------- |
-| `npm run dev`       | Start the Vite dev server                         |
-| `npm run build`     | Type-check and build the static site into `dist/` |
-| `npm run preview`   | Serve the production build locally                |
-| `npm test`          | Run the Vitest unit tests                         |
-| `npm run typecheck` | `tsc --noEmit`                                    |
-| `npm run lint`      | ESLint                                            |
-| `npm run format`    | Prettier (write)                                  |
+| Command             | What it does                                                        |
+| ------------------- | ------------------------------------------------------------------- |
+| `npm run dev`       | Start the Vite dev server                                           |
+| `npm run build`     | Type-check and build the static site into `dist/`                   |
+| `npm run preview`   | Serve the production build locally                                  |
+| `npm test`          | Run the Vitest unit tests                                           |
+| `npm run typecheck` | `tsc --noEmit`                                                      |
+| `npm run lint`      | ESLint                                                              |
+| `npm run format`    | Prettier (write)                                                    |
+| `npm run fetch-adp` | Refresh `public/adp-snapshot.json` from Fantasy Football Calculator |
 
 ## The four tabs
 
@@ -93,20 +95,25 @@ Encoded in `src/domain/` and covered by tests in `test/`:
 - Players with no current ADP get a sentinel value so they're never recommended, and
   render as a dashed "no ADP" badge.
 
-## ADP data source (important caveat)
+## ADP data source
 
-**Sleeper has no official public ADP endpoint.** ADP is derived from an _undocumented_
-projections endpoint (`/projections/nfl/<season>/<week>`), reading a dropoff-adjusted PPR
-field — directionally reasonable, but not a true consensus ADP. If fewer than 20 players
-resolve, the app falls back to Sleeper's overall player ranking as a proxy and says so in
-the UI.
+Real, crowd-sourced ADP comes from [Fantasy Football
+Calculator](https://fantasyfootballcalculator.com) — Sleeper has no official ADP
+endpoint, and every free real-ADP API we could find (including FFC's) sends no CORS
+headers, so it can't be called live from a browser. Instead, a scheduled GitHub Actions
+workflow (`.github/workflows/refresh-adp.yml`, Monday + Friday) runs
+`scripts/fetch-adp.mjs` server-side and commits a static snapshot
+(`public/adp-snapshot.json`) that the app fetches same-origin and matches against
+Sleeper's player dictionary by name (see `src/domain/adp.ts`). If fewer than 20 players
+match for your league's format, the app falls back to Sleeper's overall player ranking
+as a proxy and says so in the UI.
 
 ## Project layout
 
 See `CLAUDE.md` for the module map and contributor conventions. In short: pure,
 state-free, unit-tested logic lives in `src/domain/`; `src/ui/` renders it; `src/state.ts`
-holds the single source of truth; `src/api/sleeper.ts` is the only place that talks to the
-network.
+holds the single source of truth; `src/api/` is the only place that talks to the network
+(`sleeper.ts` for Sleeper, `adpSnapshot.ts` for the same-origin ADP asset).
 
 ## License
 

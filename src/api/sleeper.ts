@@ -1,5 +1,3 @@
-import { extractAdp } from '../domain/adp';
-import type { AdpMap } from '../types';
 import {
   DraftSchema,
   LeagueSchema,
@@ -53,46 +51,3 @@ export const sleeper = {
   tradedPicks: async (draftId: string): Promise<SleeperTradedPick[]> =>
     TradedPicksSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}/traded_picks`)),
 };
-
-export interface AdpFetchResult {
-  adpMap: AdpMap;
-  count: number;
-}
-
-// UNDOCUMENTED endpoint — Sleeper exposes no official ADP. See README "ADP data source".
-// Left intentionally loose (no schema) because the payload shape is unofficial and
-// varies; extractAdp scans whatever stats object it finds.
-export async function tryFetchAdpFromProjections(
-  season: string,
-  week: number,
-): Promise<AdpFetchResult> {
-  const posParams = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FLEX']
-    .map((p) => `position[]=${p}`)
-    .join('&');
-  const url = `${BASE}/projections/nfl/${season}/${week}?season_type=regular&${posParams}`;
-  const data = await fetchJSON<unknown>(url);
-  const adpMap: AdpMap = {};
-  let count = 0;
-  if (Array.isArray(data)) {
-    for (const item of data) {
-      const pid = item.player_id || (item.metadata && item.metadata.player_id);
-      const stats = item.stats || item;
-      const adp = extractAdp(stats);
-      if (pid && adp) {
-        adpMap[pid] = adp;
-        count++;
-      }
-    }
-  } else if (data && typeof data === 'object') {
-    for (const pid in data as Record<string, { stats?: Record<string, unknown> }>) {
-      const entry = (data as Record<string, { stats?: Record<string, unknown> }>)[pid];
-      const stats = (entry && entry.stats) || entry;
-      const adp = extractAdp(stats);
-      if (adp) {
-        adpMap[pid] = adp;
-        count++;
-      }
-    }
-  }
-  return { adpMap, count };
-}

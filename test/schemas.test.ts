@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AdpSnapshotSchema,
   DraftSchema,
   LeagueSchema,
   LeaguesForUserSchema,
@@ -38,6 +39,14 @@ describe('LeagueSchema', () => {
 
   it('tolerates a missing total_rosters (optional)', () => {
     expect(LeagueSchema.parse({ league_id: '123' }).total_rosters).toBeUndefined();
+  });
+
+  it('captures scoring_settings.rec for ADP format selection, and tolerates its absence', () => {
+    expect(
+      LeagueSchema.parse({ league_id: '123', scoring_settings: { rec: 0.5, pass_td: 4 } })
+        .scoring_settings?.rec,
+    ).toBe(0.5);
+    expect(LeagueSchema.parse({ league_id: '123' }).scoring_settings).toBeUndefined();
   });
 });
 
@@ -158,6 +167,44 @@ describe('TradedPickSchema', () => {
 
   it('parses an empty array (no trades this season)', () => {
     expect(TradedPicksSchema.parse([])).toEqual([]);
+  });
+});
+
+describe('AdpSnapshotSchema', () => {
+  it('parses the shape written by scripts/fetch-adp.mjs', () => {
+    const parsed = AdpSnapshotSchema.parse({
+      fetchedAt: '2026-07-06T00:00:00.000Z',
+      attribution: 'Average Draft Position data provided by Fantasy Football Calculator',
+      entries: [
+        {
+          teams: 10,
+          format: 'half-ppr',
+          meta: { totalDrafts: 394, startDate: '2026-06-30', endDate: '2026-07-05' },
+          players: [{ name: 'Bijan Robinson', position: 'RB', team: 'ATL', adp: 1.5 }],
+        },
+      ],
+    });
+    expect(parsed.entries[0].players[0].adp).toBe(1.5);
+  });
+
+  it('tolerates a missing meta block and a null team', () => {
+    const parsed = AdpSnapshotSchema.parse({
+      fetchedAt: '2026-07-06T00:00:00.000Z',
+      entries: [
+        { teams: 10, format: 'ppr', players: [{ name: 'Free Agent', position: 'WR', adp: 200 }] },
+      ],
+    });
+    expect(parsed.entries[0].meta).toBeUndefined();
+    expect(parsed.entries[0].players[0].team).toBeUndefined();
+  });
+
+  it('rejects an entry missing the required players array', () => {
+    expect(() =>
+      AdpSnapshotSchema.parse({
+        fetchedAt: '2026-07-06T00:00:00.000Z',
+        entries: [{ teams: 10, format: 'ppr' }],
+      }),
+    ).toThrow();
   });
 });
 

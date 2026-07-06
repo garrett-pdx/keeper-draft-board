@@ -1,0 +1,29 @@
+name: Refresh ADP data
+
+on:
+  schedule:
+    # Monday and Friday, 13:00 UTC (~6am Pacific / 9am Eastern).
+    - cron: '0 13 * * 1,5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run fetch-adp
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/adp-snapshot.json
+          git diff --cached --quiet && echo "No ADP changes." || git commit -m "Refresh ADP snapshot"
+          git push

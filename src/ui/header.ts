@@ -14,13 +14,14 @@ export function updateAdpSourceBadge(): void {
   badge.removeAttribute('hidden');
   if (state.adpSource === 'adp') {
     badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'ADP · Sleeper projections';
-    badge.title = 'Market value comes from Sleeper’s projection-derived ADP.';
+    badge.textContent = 'ADP · Fantasy Football Calculator';
+    badge.title =
+      'Real average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed twice weekly.';
   } else {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'ADP · rank proxy';
     badge.title =
-      'No ADP endpoint was available, so value uses Sleeper’s overall player ranking as a proxy.';
+      'No ADP snapshot was available for this format, so value uses Sleeper’s overall player ranking as a proxy.';
   }
 }
 

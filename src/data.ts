@@ -1,7 +1,9 @@
 // Stateful, cache-aware data loaders. Each honors a `force` flag to bypass cache.
-import { fetchJSON, sleeper, tryFetchAdpFromProjections } from './api/sleeper';
+import { fetchAdpSnapshot } from './api/adpSnapshot';
+import { fetchJSON, sleeper } from './api/sleeper';
 import { LS_ADP_CACHE_PREFIX, LS_PLAYERS_CACHE, PLAYERS_MAX_AGE_MS, state } from './state';
 import type { SleeperDraft } from './api/schemas';
+import { matchAdpToPlayers, pickAdpEntry } from './domain/adp';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { PlayersMap, PrevDraftMap } from './types';
 
@@ -44,7 +46,7 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
   return slim;
 }
 
-// ---------- ADP (best-effort; Sleeper has no official public ADP endpoint) ----------
+// ---------- ADP (real data, snapshotted at build time — see domain/adp.ts) ----------
 export async function ensureAdpLoaded(force?: boolean) {
   if (state.adpMap && !force) return { adpMap: state.adpMap, source: state.adpSource };
   const cacheKey = LS_ADP_CACHE_PREFIX + state.season;
@@ -61,21 +63,23 @@ export async function ensureAdpLoaded(force?: boolean) {
     }
   }
 
-  let result = null;
-  for (const week of [1, 2]) {
-    try {
-      const r = await tryFetchAdpFromProjections(state.season!, week);
-      if (r.count >= 20) {
-        result = r;
-        break;
-      }
-    } catch {
-      /* try next */
+  let adpMap: Record<string, number> | null = null;
+  try {
+    const snapshot = await fetchAdpSnapshot();
+    const teamCount = state.rosters.length || 10;
+    const recPoints = state.league?.scoring_settings?.rec;
+    const entry = pickAdpEntry(snapshot.entries, teamCount, recPoints);
+    if (entry) {
+      const players = await ensurePlayersLoaded(false);
+      const matched = matchAdpToPlayers(entry.players, players);
+      if (Object.keys(matched).length >= 20) adpMap = matched;
     }
+  } catch {
+    /* fall through to rank proxy */
   }
 
-  if (result) {
-    state.adpMap = result.adpMap;
+  if (adpMap) {
+    state.adpMap = adpMap;
     state.adpSource = 'adp';
   } else {
     const players = await ensurePlayersLoaded(false);

@@ -15,4 +15,15 @@ export default tseslint.config(
     files: ['test/**/*.ts'],
     languageOptions: { globals: { describe: 'readonly', it: 'readonly', expect: 'readonly' } },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        fetch: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
 );
