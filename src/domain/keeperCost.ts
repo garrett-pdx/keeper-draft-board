@@ -1,4 +1,6 @@
+import type { SleeperDraft } from '../api/schemas';
 import type { AdpMap, KeeperCostItem, PlayersMap, PrevDraftEntry, PrevDraftMap } from '../types';
+import { exactPickForRoster } from './draftOrder';
 import { keeperSurplusValue } from './value';
 
 // Keeper cost rules for this league (see README "Domain rules"):
@@ -72,6 +74,7 @@ export interface RosterKeeperContext {
   lastRound: number;
   teamCount: number;
   inflationRounds: number;
+  draft?: SleeperDraft | null;
 }
 
 /**
@@ -125,6 +128,7 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
     lastRound,
     teamCount,
     inflationRounds,
+    draft,
   } = ctx;
 
   const items: KeeperCostItem[] = keeperIds.map((pid) => {
@@ -145,9 +149,11 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
 
   resolveCollisions(items, playersMap);
 
-  // Attach surplus value using each item's resolved cost round.
+  // Attach surplus value using each item's resolved cost round, preferring the
+  // roster's exact pick number when this season's draft order is known.
   items.forEach((it) => {
-    const sv = keeperSurplusValue(it.playerId, it.cost, adpMap, teamCount);
+    const exactCostPick = exactPickForRoster(draft, rosterId, it.cost, teamCount);
+    const sv = keeperSurplusValue(it.playerId, it.cost, adpMap, teamCount, exactCostPick);
     it.value = sv.value;
     it.hasAdp = sv.hasAdp;
   });

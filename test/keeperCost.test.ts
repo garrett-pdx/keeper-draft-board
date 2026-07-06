@@ -210,4 +210,41 @@ describe('getRosterKeeperCosts (collision handling)', () => {
     expect(role.cost).toBe(1);
     expect(role.unresolvedCollision).toBe(false);
   });
+
+  it('uses the exact pick number when a known draft order is passed via ctx.draft', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 5, ownerId: 'ownerA' }) };
+    const draft = {
+      type: 'snake',
+      draft_order: { u1: 1 },
+      slot_to_roster_id: { '1': 1 },
+    };
+    const withoutDraft = getRosterKeeperCosts({
+      keeperIds: ['star'],
+      prevDraftMap,
+      playersMap: players,
+      adpMap: { star: 8 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+    });
+    const withDraft = getRosterKeeperCosts({
+      keeperIds: ['star'],
+      prevDraftMap,
+      playersMap: players,
+      adpMap: { star: 8 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+      draft,
+    });
+    // same cost round in both cases, but value differs because the exact
+    // pick (round 4, slot 1 -> pick 31 in a 10-team snake) differs from the
+    // round-midpoint approximation used when no draft order is supplied.
+    expect(withoutDraft[0].cost).toBe(withDraft[0].cost);
+    expect(withoutDraft[0].value).not.toBe(withDraft[0].value);
+  });
 });

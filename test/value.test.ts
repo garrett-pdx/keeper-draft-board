@@ -69,4 +69,22 @@ describe('keeperSurplusValue', () => {
     const b = keeperSurplusValue('p', 5, { p: 10 }, 10);
     expect(a.value).toBe(b.value);
   });
+
+  it('matches the round-midpoint approximation when exactCostPick is omitted (regression)', () => {
+    const withoutExact = keeperSurplusValue('p', 5, { p: 10 }, teams);
+    const withUndefined = keeperSurplusValue('p', 5, { p: 10 }, teams, undefined);
+    const withNull = keeperSurplusValue('p', 5, { p: 10 }, teams, null);
+    expect(withUndefined).toEqual(withoutExact);
+    expect(withNull).toEqual(withoutExact);
+  });
+
+  it('uses the exact pick number instead of the midpoint when provided', () => {
+    // round 5 midpoint pick would be round*teams - teams/2 = 45; an exact
+    // pick of 41 (this team picks earlier in the round) should be cheaper
+    // to keep, i.e. a lower surplus value than the midpoint approximation.
+    const approx = keeperSurplusValue('p', 5, { p: 10 }, teams);
+    const exact = keeperSurplusValue('p', 5, { p: 10 }, teams, 41);
+    expect(exact.value).not.toBe(approx.value);
+    expect(exact.hasAdp).toBe(true);
+  });
 });

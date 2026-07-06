@@ -26,7 +26,7 @@ import { displayNameFor, formatTime } from '../util';
 import { $, el, setSpin } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
-import { updateAdpSourceBadge } from './header';
+import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
 export async function loadRosters(force?: boolean): Promise<void> {
   setSpin('rostersSpin', true);
@@ -44,7 +44,8 @@ export async function loadRosters(force?: boolean): Promise<void> {
     state.rosters = rosters.sort((a, b) => a.roster_id - b.roster_id);
 
     await ensurePrevDraftLoaded(force);
-    await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost
+    await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost; also loads state.draft
+    updatePickSourceBadge();
     ensureBoardOrder();
     // ADP powers the value metric; fetch it here but don't fail the whole roster
     // render if it's unavailable — costs still show, values just read "—".
@@ -137,7 +138,7 @@ function bestRosterKeeperValue(roster: SleeperRoster): number {
   let best = -Infinity;
   for (const pid of ids) {
     const cr = potentialKeeperCostFor(pid, roster.roster_id);
-    const sv = keeperSurplusValueFor(pid, cr);
+    const sv = keeperSurplusValueFor(pid, cr, roster.roster_id);
     if (sv.value > best) best = sv.value;
   }
   return best === -Infinity ? NO_ADP_VALUE : best;
@@ -184,7 +185,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
   const potentialValue: Record<string, SurplusValue> = {};
   playerIds.forEach((pid) => {
     const cr = potentialKeeperCostFor(pid, roster.roster_id);
-    potentialValue[pid] = keeperSurplusValueFor(pid, cr);
+    potentialValue[pid] = keeperSurplusValueFor(pid, cr, roster.roster_id);
   });
   // top maxKeepers value candidates that actually have an ADP (positive-value, real market)
   const rankedCandidates = playerIds
@@ -258,7 +259,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     const sv =
       active && costByPlayer[pid]
         ? { value: costByPlayer[pid].value, hasAdp: costByPlayer[pid].hasAdp }
-        : keeperSurplusValueFor(pid, resolvedCostRound);
+        : keeperSurplusValueFor(pid, resolvedCostRound, roster.roster_id);
     let valueBadge: HTMLElement;
     if (!sv.hasAdp) {
       valueBadge = el('span', { class: 'val-tag na', title: 'Not being drafted this year — no market value' }, 'no ADP');

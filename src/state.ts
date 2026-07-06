@@ -1,3 +1,4 @@
+import type { SleeperDraft } from './api/schemas';
 import type {
   AdpMap,
   AdpSource,
@@ -39,6 +40,7 @@ interface AppState {
   boardRounds: number | null;
   boardOrder: string[] | null;
   rules: LeagueRules;
+  draft: SleeperDraft | null;
   rostersLoadedAt: Date | null;
   draftLoadedAt: Date | null;
   boardLoadedAt: Date | null;
@@ -60,6 +62,7 @@ export const state: AppState = {
   boardRounds: null,
   boardOrder: null,
   rules: { ...DEFAULT_LEAGUE_RULES },
+  draft: null,
   rostersLoadedAt: null,
   draftLoadedAt: null,
   boardLoadedAt: null,

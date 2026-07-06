@@ -9,7 +9,7 @@ import { ensureBoardOrder, saveBoardOrder, state } from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
 import { displayNameFor, formatTime } from '../util';
 import { $, el, setSpin } from './dom';
-import { updateAdpSourceBadge } from './header';
+import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
 function reorderBoardColumns(draggedId: string, targetId: string): void {
   if (draggedId === targetId) return;
@@ -30,13 +30,14 @@ export async function loadBoard(force?: boolean): Promise<void> {
   try {
     await ensurePlayersLoaded(force);
     await ensurePrevDraftLoaded(force);
-    await ensureBoardRoundsLoaded(force);
+    await ensureBoardRoundsLoaded(force); // also loads state.draft
     try {
       await ensureAdpLoaded(force);
     } catch {
       /* values will read as unavailable */
     }
     updateAdpSourceBadge();
+    updatePickSourceBadge();
     ensureBoardOrder();
     renderBoard();
     state.boardLoadedAt = new Date();

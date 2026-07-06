@@ -22,19 +22,26 @@ export function marketPickFor(playerId: string, adpMap: AdpMap): number | null {
 /**
  * Surplus value for keeping `playerId` at a given resolved cost round.
  * No current ADP => absurdly low value so it never gets recommended.
+ *
+ * `exactCostPick`, when known (this season's real draft order has been set),
+ * is the roster's actual overall pick number in `costRound` — more accurate
+ * than the round-midpoint approximation used otherwise. Omit/pass null when
+ * the order isn't known; this always degrades to the approximation, never a
+ * wrong number.
  */
 export function keeperSurplusValue(
   playerId: string,
   costRound: number,
   adpMap: AdpMap,
   teamCount: number,
+  exactCostPick?: number | null,
 ): SurplusValue {
   const marketPick = marketPickFor(playerId, adpMap);
   if (marketPick === null) {
     return { value: NO_ADP_VALUE, hasAdp: false };
   }
   const teams = teamCount || 10;
-  const costPick = Math.round(costRound * teams - teams / 2); // round midpoint
+  const costPick = exactCostPick != null ? exactCostPick : Math.round(costRound * teams - teams / 2);
   const val = pickValue(marketPick) - pickValue(costPick);
   return { value: +val.toFixed(1), hasAdp: true };
 }

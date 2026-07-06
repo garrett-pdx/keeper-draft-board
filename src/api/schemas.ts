@@ -51,6 +51,12 @@ export const RostersSchema = z.array(RosterSchema);
 
 export const DraftSchema = z.object({
   draft_id: z.string().optional(),
+  type: z.string().optional(), // only trust pick math when this is 'snake'
+  // draft_order: user_id -> slot. Sleeper sets this to null (with a default
+  // identity slot_to_roster_id) until the commissioner actually sets the
+  // order — see hasKnownDraftOrder in domain/draftOrder.ts.
+  draft_order: z.record(z.string(), z.number()).nullish(),
+  slot_to_roster_id: z.record(z.string(), z.number()).nullish(), // slot -> roster_id
   settings: z.object({ rounds: z.number().optional() }).nullish(),
 });
 export type SleeperDraft = z.infer<typeof DraftSchema>;

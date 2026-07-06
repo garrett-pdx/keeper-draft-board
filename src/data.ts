@@ -6,6 +6,7 @@ import {
   PLAYERS_MAX_AGE_MS,
   state,
 } from './state';
+import type { SleeperDraft } from './api/schemas';
 import type { PlayersMap, PrevDraftMap } from './types';
 
 // ---------- players map (cached, slimmed) ----------
@@ -146,16 +147,31 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
   return state.prevDraftMap;
 }
 
+// ---------- this season's draft (order + settings) ----------
+// Also used to derive exact keeper pick numbers once the order is known — see
+// domain/draftOrder.ts. Fetched once per session; failures leave state.draft
+// null, which callers treat as "order not known" rather than throwing.
+export async function ensureDraftOrderLoaded(force?: boolean): Promise<SleeperDraft | null> {
+  if (state.draft && !force) return state.draft;
+  state.draft = null;
+  try {
+    if (state.league && state.league.draft_id) {
+      state.draft = await sleeper.draft(state.league.draft_id);
+    }
+  } catch {
+    /* exact pick numbers unavailable; round-midpoint approximation used instead */
+  }
+  return state.draft;
+}
+
 // ---------- draft round count ----------
 export async function ensureBoardRoundsLoaded(force?: boolean): Promise<number> {
   if (state.boardRounds && !force) return state.boardRounds;
   let rounds: number | null = null;
   try {
-    if (state.league && state.league.draft_id) {
-      const draft = await sleeper.draft(state.league.draft_id);
-      if (draft.settings && draft.settings.rounds) {
-        rounds = draft.settings.rounds;
-      }
+    const draft = await ensureDraftOrderLoaded(force);
+    if (draft && draft.settings && draft.settings.rounds) {
+      rounds = draft.settings.rounds;
     }
   } catch {
     /* fall through to estimate */

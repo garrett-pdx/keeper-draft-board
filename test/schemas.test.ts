@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DraftSchema,
   LeagueSchema,
   LeaguesForUserSchema,
   PicksSchema,
@@ -90,6 +91,38 @@ describe('UsersSchema', () => {
     ]);
     expect(parsed[0].metadata?.team_name).toBe('The Team');
     expect(parsed[1].avatar).toBeNull();
+  });
+});
+
+describe('DraftSchema', () => {
+  it('parses a pre-draft payload with a null draft_order and identity slot_to_roster_id', () => {
+    const parsed = DraftSchema.parse({
+      draft_id: '1312235880760479744',
+      type: 'snake',
+      draft_order: null,
+      slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
+      settings: { rounds: 14 },
+    });
+    expect(parsed.draft_order).toBeNull();
+    expect(parsed.slot_to_roster_id).toEqual({ '1': 1, '2': 2, '3': 3 });
+  });
+
+  it('parses a completed draft with real draft_order and slot_to_roster_id maps', () => {
+    const parsed = DraftSchema.parse({
+      draft_id: '1257452519521517571',
+      type: 'snake',
+      draft_order: { user1: 6, user2: 8 },
+      slot_to_roster_id: { '1': 9, '2': 2 },
+      settings: { rounds: 14 },
+    });
+    expect(parsed.draft_order).toEqual({ user1: 6, user2: 8 });
+    expect(parsed.slot_to_roster_id).toEqual({ '1': 9, '2': 2 });
+  });
+
+  it('tolerates draft_order and slot_to_roster_id being entirely absent', () => {
+    const parsed = DraftSchema.parse({ draft_id: 'd1', settings: { rounds: 14 } });
+    expect(parsed.draft_order).toBeUndefined();
+    expect(parsed.slot_to_roster_id).toBeUndefined();
   });
 });
 

@@ -1,3 +1,4 @@
+import { hasKnownDraftOrder } from '../domain/draftOrder';
 import { state } from '../state';
 import { $ } from './dom';
 
@@ -21,4 +22,21 @@ export function updateAdpSourceBadge(): void {
     badge.title =
       'No ADP endpoint was available, so value uses Sleeper’s overall player ranking as a proxy.';
   }
+}
+
+// Hidden until this season's real draft order is actually known (most of the
+// season, it isn't — see hasKnownDraftOrder). Only then do keeper values use
+// exact pick numbers instead of the round-midpoint approximation.
+export function updatePickSourceBadge(): void {
+  const badge = $('#pickSourceBadge');
+  if (!badge) return;
+  if (!hasKnownDraftOrder(state.draft)) {
+    badge.setAttribute('hidden', '');
+    return;
+  }
+  badge.removeAttribute('hidden');
+  badge.className = 'adp-badge adp-badge-live';
+  badge.textContent = 'Pick #s · exact draft order';
+  badge.title =
+    'Keeper values use this team’s actual pick number in each round, from the set draft order.';
 }

@@ -71,7 +71,10 @@ Encoded in `src/domain/` and covered by tests in `test/`:
 `pickValue(pick) = 100 × 0.965^(pick−1)`.
 
 - `marketPick` = the player's current ADP pick number.
-- `costPick` = the midpoint pick of the keeper's cost round.
+- `costPick` = the keeper's **exact pick number**, once this season's real snake draft
+  order has been set by the commissioner — otherwise the **midpoint pick** of the
+  keeper's cost round, as a graceful fallback. A small badge next to the ADP source
+  ("Pick #s · exact draft order") appears once the exact order is in use.
 - Exponential decay weights early-round surplus more heavily. Tune `VALUE_DECAY` in
   `src/domain/value.ts`.
 - Players with no current ADP get a sentinel value so they're never recommended, and

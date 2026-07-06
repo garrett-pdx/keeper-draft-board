@@ -1,6 +1,7 @@
 // State-aware wrappers around the pure domain functions. These read the global
 // `state` and hand explicit arguments to the (testable, state-free) domain layer.
 import { lastDraftRound } from './data';
+import { exactPickForRoster } from './domain/draftOrder';
 import { getRosterKeeperCosts, isInflatedForRoster, potentialKeeperCost } from './domain/keeperCost';
 import { keeperSurplusValue } from './domain/value';
 import { keeperListFor, ownerIdOfRoster, state } from './state';
@@ -17,8 +18,14 @@ export function potentialKeeperCostFor(playerId: string, rosterId: number): numb
   );
 }
 
-export function keeperSurplusValueFor(playerId: string, costRound: number): SurplusValue {
-  return keeperSurplusValue(playerId, costRound, state.adpMap || {}, state.rosters.length || 10);
+export function keeperSurplusValueFor(
+  playerId: string,
+  costRound: number,
+  rosterId: number,
+): SurplusValue {
+  const teamCount = state.rosters.length || 10;
+  const exactCostPick = exactPickForRoster(state.draft, rosterId, costRound, teamCount);
+  return keeperSurplusValue(playerId, costRound, state.adpMap || {}, teamCount, exactCostPick);
 }
 
 export function isInflatedFor(playerId: string, rosterId: number): boolean {
@@ -37,5 +44,6 @@ export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {
     lastRound: lastDraftRound(),
     teamCount: state.rosters.length || 10,
     inflationRounds: state.rules.inflationRounds,
+    draft: state.draft,
   });
 }

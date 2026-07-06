@@ -51,12 +51,17 @@ src/
     schemas.ts        # zod schemas for Sleeper responses; inferred payload types
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
+                      #   (keeperSurplusValue takes an optional exact pick number that
+                      #   overrides the round-midpoint approximation when known)
     keeperCost.ts     #   sameManagerLastYear, potentialKeeperCost, isInflatedForRoster,
-                      #   getRosterKeeperCosts (collision handling)
+                      #   getRosterKeeperCosts (N-way collision handling)
+    draftOrder.ts     #   hasKnownDraftOrder, slotForRoster, exactPickNumber,
+                      #   exactPickForRoster — snake-draft exact pick number math
     adp.ts            #   extractAdp
   ui/
     dom.ts            # $, $all, el, setSpin
-    header.ts         # updateAdpSourceBadge (visible ADP-source indicator)
+    header.ts         # updateAdpSourceBadge, updatePickSourceBadge (visible data-source
+                      #   indicators; the pick badge is hidden until an exact order is known)
     setup.ts          # setup screen: username→league picker (handleFindLeagues,
                       #   handleConfirmLeague, toggleManualEntry) + manual league-ID
                       #   fallback (handleLoadLeague), both routed through the shared
@@ -111,7 +116,14 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
 `pickValue(pick) = 100 × VALUE_DECAY^(pick−1)`, `VALUE_DECAY = 0.965`.
 
 - `marketPick` = the player's current ADP pick number (real resolution).
-- `costPick` = midpoint pick of the keeper's cost round (`round×teams − teams/2`).
+- `costPick` = the keeper's **exact overall pick number**, when this season's real snake
+  draft order is known (`hasKnownDraftOrder`/`exactPickForRoster` in
+  `src/domain/draftOrder.ts`); otherwise the **round midpoint** approximation
+  (`round×teams − teams/2`). The exact-order signal is `draft_order !== null` on the
+  Sleeper draft object — `slot_to_roster_id` alone is not sufficient, since Sleeper
+  populates it with a default identity placeholder before the commissioner actually sets
+  the order. This must always degrade gracefully to the midpoint approximation, never
+  silently produce a wrong number.
 - Exponential decay chosen deliberately so early-round surplus outweighs late-round
   surplus (see HANDOFF.md for the curve comparison that led here). **Tune `VALUE_DECAY`
   in one place** — the top of `src/domain/value.ts`.
