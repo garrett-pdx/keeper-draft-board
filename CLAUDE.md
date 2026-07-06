@@ -74,8 +74,10 @@ src/
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
                       #   actually holds per round, adjusted by trades
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
-                      #   matching against Sleeper's player dict), pickAdpEntry (closest
-                      #   team-count + scoring-format snapshot entry for this league)
+                      #   matching against Sleeper's player dict, entries tried in
+                      #   priority order so a player missing from one format can still
+                      #   match from another), rankAdpEntries (snapshot entries ranked
+                      #   by closest team-count + scoring-format for this league)
   ui/
     dom.ts            # $, $all, el, setSpin
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge (visible data-source
@@ -163,16 +165,22 @@ runtime:
   `workflow_dispatch`, committing the snapshot to `main` if it changed — which then
   triggers the normal `deploy.yml` (any push to `main`) to rebuild and redeploy.
 - At runtime, `ensureAdpLoaded` (`src/data.ts`) fetches this snapshot same-origin (no
-  CORS problem — it's our own static asset), picks the closest entry via
-  `pickAdpEntry` (nearest team count, then nearest scoring format from the league's
+  CORS problem — it's our own static asset), ranks this league's entries via
+  `rankAdpEntries` (nearest team count, then nearest scoring format from the league's
   `scoring_settings.rec`), and matches FFC's name-keyed players against Sleeper's
-  id-keyed player dictionary via `matchAdpToPlayers`. Two confirmed real-data quirks
-  handled there: FFC uses `"PK"` where Sleeper uses `"K"`, and team defenses can't be
-  name-matched at all (FFC: "Denver Defense"; Sleeper: first/last = city/nickname) so
-  those are matched by team abbreviation instead. Ambiguous name+position collisions
-  are skipped, not guessed at. If fewer than 20 players end up matched, this falls back
-  to Sleeper's overall player rank as a proxy (`state.adpSource === 'rank'`), same as
-  before.
+  id-keyed player dictionary via `matchAdpToPlayers`, which tries the ranked entries in
+  priority order. **A lower-sample format can genuinely omit real players present in
+  another** — confirmed live: FFC's half-ppr set (394 drafts) is missing ~38 players,
+  including Alvin Kamara and Puka Nacua, that are present in its ppr set (995 drafts)
+  for the same league size. So a player missing from the closest-format entry still
+  gets matched from the next-closest one rather than showing "no ADP" — only a player
+  missing from *every* ranked entry falls through. Two other confirmed real-data
+  quirks handled in `matchAdpToPlayers`: FFC uses `"PK"` where Sleeper uses `"K"`, and
+  team defenses can't be name-matched at all (FFC: "Denver Defense"; Sleeper:
+  first/last = city/nickname) so those are matched by team abbreviation instead.
+  Ambiguous name+position collisions are skipped, not guessed at. If fewer than 20
+  players end up matched across all entries, this falls back to Sleeper's overall
+  player rank as a proxy (`state.adpSource === 'rank'`), same as before.
 
 ## The value metric
 

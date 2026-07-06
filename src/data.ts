@@ -3,7 +3,7 @@ import { fetchAdpSnapshot } from './api/adpSnapshot';
 import { fetchJSON, sleeper } from './api/sleeper';
 import { LS_ADP_CACHE_PREFIX, LS_PLAYERS_CACHE, PLAYERS_MAX_AGE_MS, state } from './state';
 import type { SleeperDraft } from './api/schemas';
-import { matchAdpToPlayers, pickAdpEntry } from './domain/adp';
+import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { PlayersMap, PrevDraftMap } from './types';
 
@@ -68,10 +68,10 @@ export async function ensureAdpLoaded(force?: boolean) {
     const snapshot = await fetchAdpSnapshot();
     const teamCount = state.rosters.length || 10;
     const recPoints = state.league?.scoring_settings?.rec;
-    const entry = pickAdpEntry(snapshot.entries, teamCount, recPoints);
-    if (entry) {
+    const ranked = rankAdpEntries(snapshot.entries, teamCount, recPoints);
+    if (ranked.length) {
       const players = await ensurePlayersLoaded(false);
-      const matched = matchAdpToPlayers(entry.players, players);
+      const matched = matchAdpToPlayers(ranked, players);
       if (Object.keys(matched).length >= 20) adpMap = matched;
     }
   } catch {

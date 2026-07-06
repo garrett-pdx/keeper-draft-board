@@ -28,16 +28,27 @@ function normalizePosition(pos: string): string {
 
 /**
  * Matches FFC's name-keyed players against Sleeper's id-keyed player
- * dictionary. Team defenses can't be matched by name at all — FFC names them
- * "<City> Defense" while Sleeper's DEF entries use the team nickname as
- * last_name (confirmed against live data) — so those are matched by team
- * abbreviation instead, which both sources share. Everyone else is matched
- * by normalized name + position. Ambiguous matches (two Sleeper players
- * sharing a key) are skipped rather than guessed at — an unmatched player
- * just falls back to "no ADP" upstream.
+ * dictionary, using `rankedEntries` in priority order (closest format first —
+ * see rankAdpEntries). A lower-sample-size format (e.g. half-ppr, which draws
+ * from far fewer real mock drafts than ppr) can genuinely omit real players
+ * who are present in another format's data (confirmed live: ~38 players,
+ * including Alvin Kamara and Cooper Kupp, are absent from FFC's half-ppr set
+ * but present in ppr for the same league size). Rather than showing "no ADP"
+ * for a player who clearly has real market data just one format over, each
+ * Sleeper player is matched against the first (highest-priority) entry that
+ * contains them, falling through lower-priority entries only when absent
+ * from every higher-priority one.
+ *
+ * Team defenses can't be matched by name at all — FFC names them "<City>
+ * Defense" while Sleeper's DEF entries use the team nickname as last_name
+ * (confirmed against live data) — so those are matched by team abbreviation
+ * instead, which both sources share. Everyone else is matched by normalized
+ * name + position. Ambiguous matches (two Sleeper players sharing a key) are
+ * skipped rather than guessed at — a player unmatched in every entry just
+ * falls back to "no ADP" upstream.
  */
 export function matchAdpToPlayers(
-  ffcPlayers: AdpSnapshotEntry['players'],
+  rankedEntries: AdpSnapshotEntry[],
   playersMap: PlayersMap,
 ): AdpMap {
   const nameIndex = new Map<string, string[]>();
@@ -59,44 +70,50 @@ export function matchAdpToPlayers(
 
   const adpMap: AdpMap = {};
   const assignIfUnambiguous = (candidates: string[] | undefined, adp: number) => {
-    if (candidates && candidates.length === 1) adpMap[candidates[0]] = adp;
-  };
-  for (const fp of ffcPlayers) {
-    if (!(fp.adp > 0)) continue;
-    const pos = normalizePosition(fp.position);
-    if (pos === 'DEF') {
-      assignIfUnambiguous(fp.team ? defByTeam.get(fp.team) : undefined, fp.adp);
-      continue;
+    if (candidates && candidates.length === 1 && !(candidates[0] in adpMap)) {
+      adpMap[candidates[0]] = adp;
     }
-    const key = `${normalizePlayerName(fp.name)}|${pos}`;
-    assignIfUnambiguous(nameIndex.get(key), fp.adp);
+  };
+  for (const entry of rankedEntries) {
+    for (const fp of entry.players) {
+      if (!(fp.adp > 0)) continue;
+      const pos = normalizePosition(fp.position);
+      if (pos === 'DEF') {
+        assignIfUnambiguous(fp.team ? defByTeam.get(fp.team) : undefined, fp.adp);
+        continue;
+      }
+      const key = `${normalizePlayerName(fp.name)}|${pos}`;
+      assignIfUnambiguous(nameIndex.get(key), fp.adp);
+    }
   }
   return adpMap;
 }
 
-// Reception points per format, for picking the closest scoring format below.
+// Reception points per format, for ranking scoring formats by closeness below.
 const FORMAT_REC: Record<string, number> = { standard: 0, 'half-ppr': 0.5, ppr: 1 };
 
 /**
- * Picks the snapshot entry closest to this league: nearest team count first,
- * then the scoring format nearest the league's reception points (0 =
- * standard, 0.5 = half-ppr, 1 = ppr). Defaults to half-ppr when scoring
- * isn't known — this app's primary calibration (see CLAUDE.md).
+ * Ranks this league's team-count entries by scoring-format closeness to the
+ * league's reception points (0 = standard, 0.5 = half-ppr, 1 = ppr) —
+ * defaults to half-ppr when scoring isn't known (this app's primary
+ * calibration, see CLAUDE.md). The full ranked list feeds matchAdpToPlayers
+ * so a player missing from the closest format can still be matched from the
+ * next-closest one, rather than showing "no ADP".
  */
-export function pickAdpEntry(
+export function rankAdpEntries(
   entries: AdpSnapshotEntry[],
   teamCount: number,
   recPoints: number | null | undefined,
-): AdpSnapshotEntry | null {
-  if (!entries.length) return null;
+): AdpSnapshotEntry[] {
+  if (!entries.length) return [];
   const closestTeamCount = entries
     .map((e) => e.teams)
     .reduce((best, t) => (Math.abs(t - teamCount) < Math.abs(best - teamCount) ? t : best));
   const atTeamCount = entries.filter((e) => e.teams === closestTeamCount);
   const targetRec = recPoints ?? 0.5;
-  return atTeamCount.reduce((best, e) => {
-    const rec = FORMAT_REC[e.format] ?? 0.5;
-    const bestRec = FORMAT_REC[best.format] ?? 0.5;
-    return Math.abs(rec - targetRec) < Math.abs(bestRec - targetRec) ? e : best;
-  }, atTeamCount[0]);
+  return atTeamCount.slice().sort((a, b) => {
+    const ra = FORMAT_REC[a.format] ?? 0.5;
+    const rb = FORMAT_REC[b.format] ?? 0.5;
+    return Math.abs(ra - targetRec) - Math.abs(rb - targetRec);
+  });
 }
