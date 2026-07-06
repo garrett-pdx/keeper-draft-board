@@ -21,6 +21,7 @@ import {
   POSITION_ORDER,
   state,
   toggleKeeper,
+  userForRoster,
 } from '../state';
 import type { SleeperRoster, SurplusValue } from '../types';
 import { displayNameFor, formatTime } from '../util';
@@ -121,7 +122,9 @@ export function renderRosters(): void {
   const container = $('#rostersContent')!;
   container.innerHTML = '';
   if (!state.rosters.length) {
-    container.appendChild(el('div', { class: 'empty-state' }, 'No rosters found for this league yet.'));
+    container.appendChild(
+      el('div', { class: 'empty-state' }, 'No rosters found for this league yet.'),
+    );
     return;
   }
   const grid = el('div', { class: 'roster-grid' });
@@ -151,10 +154,11 @@ function bestRosterKeeperValue(roster: SleeperRoster): number {
 }
 
 function renderTeamCard(roster: SleeperRoster): HTMLElement {
-  const user = state.users.find((u) => u.user_id === roster.owner_id);
+  const user = userForRoster(roster.roster_id);
   const teamName = displayNameFor(user);
   const ownerHandle = user ? '@' + user.display_name : 'Unclaimed team';
-  const avatarUrl = user && user.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : null;
+  const avatarUrl =
+    user && user.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : null;
 
   const keeperList = keeperListFor(roster.roster_id);
   const finalCosts = getRosterKeeperCostsFor(roster.roster_id);
@@ -171,8 +175,17 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
   const head = el(
     'div',
     { class: 'team-card-head' },
-    el('div', { class: 'team-avatar' }, avatarUrl ? el('img', { src: avatarUrl, alt: '' }) : teamName[0] || '?'),
-    el('div', null, el('div', { class: 'team-name' }, teamName), el('div', { class: 'team-owner' }, ownerHandle)),
+    el(
+      'div',
+      { class: 'team-avatar' },
+      avatarUrl ? el('img', { src: avatarUrl, alt: '' }) : teamName[0] || '?',
+    ),
+    el(
+      'div',
+      null,
+      el('div', { class: 'team-name' }, teamName),
+      el('div', { class: 'team-owner' }, ownerHandle),
+    ),
     countBadge,
   );
 
@@ -190,8 +203,8 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
   playerIds.sort((a, b) => {
     const pa = playersMap[a];
     const pb = playersMap[b];
-    const oa = pa ? POSITION_ORDER[pa.pos] ?? 6 : 6;
-    const ob = pb ? POSITION_ORDER[pb.pos] ?? 6 : 6;
+    const oa = pa ? (POSITION_ORDER[pa.pos] ?? 6) : 6;
+    const ob = pb ? (POSITION_ORDER[pb.pos] ?? 6) : 6;
     if (oa !== ob) return oa - ob;
     return potentialValue[b].value - potentialValue[a].value;
   });
@@ -204,7 +217,13 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
 
   const list = el('div', null);
   if (!playerIds.length) {
-    list.appendChild(el('div', { class: 'player-row' }, el('span', { class: 'player-sub' }, 'No players on this roster.')));
+    list.appendChild(
+      el(
+        'div',
+        { class: 'player-row' },
+        el('span', { class: 'player-sub' }, 'No players on this roster.'),
+      ),
+    );
   }
   for (const pid of playerIds) {
     const p = playersMap[pid];
@@ -287,9 +306,17 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
         : keeperSurplusValueFor(pid, resolvedCostRound, roster.roster_id);
     let valueBadge: HTMLElement;
     if (active && costByPlayer[pid]?.cannotBeKept) {
-      valueBadge = el('span', { class: 'val-tag na', title: 'This player cannot be kept — no meaningful value' }, '—');
+      valueBadge = el(
+        'span',
+        { class: 'val-tag na', title: 'This player cannot be kept — no meaningful value' },
+        '—',
+      );
     } else if (!sv.hasAdp) {
-      valueBadge = el('span', { class: 'val-tag na', title: 'Not being drafted this year — no market value' }, 'no ADP');
+      valueBadge = el(
+        'span',
+        { class: 'val-tag na', title: 'Not being drafted this year — no market value' },
+        'no ADP',
+      );
     } else {
       const sign = sv.value > 0 ? '+' : '';
       const cls =
@@ -298,7 +325,10 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
         (bestSet.has(pid) ? ' best' : '');
       valueBadge = el(
         'span',
-        { class: cls, title: 'Keeper surplus value (market vs. cost, early rounds weighted heavier)' },
+        {
+          class: cls,
+          title: 'Keeper surplus value (market vs. cost, early rounds weighted heavier)',
+        },
         `${sign}${sv.value.toFixed(1)}`,
       );
     }

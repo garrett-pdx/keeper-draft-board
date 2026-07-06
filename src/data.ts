@@ -1,11 +1,6 @@
 // Stateful, cache-aware data loaders. Each honors a `force` flag to bypass cache.
 import { fetchJSON, sleeper, tryFetchAdpFromProjections } from './api/sleeper';
-import {
-  LS_ADP_CACHE_PREFIX,
-  LS_PLAYERS_CACHE,
-  PLAYERS_MAX_AGE_MS,
-  state,
-} from './state';
+import { LS_ADP_CACHE_PREFIX, LS_PLAYERS_CACHE, PLAYERS_MAX_AGE_MS, state } from './state';
 import type { SleeperDraft } from './api/schemas';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { PlayersMap, PrevDraftMap } from './types';

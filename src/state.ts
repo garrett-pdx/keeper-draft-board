@@ -109,8 +109,7 @@ export function allKeeperIdsWithTeam(): Map<string, string> {
   const map = new Map<string, string>();
   for (const roster of state.rosters) {
     const list = keeperListFor(roster.roster_id);
-    const user = state.users.find((u) => u.user_id === roster.owner_id);
-    const teamName = displayNameFor(user);
+    const teamName = teamNameForRoster(roster.roster_id);
     list.forEach((pid) => map.set(pid, teamName));
   }
   return map;
@@ -146,6 +145,16 @@ export function ownerIdOfRoster(rosterId: number): string | null {
   return r ? r.owner_id : null;
 }
 
+// The Sleeper user who owns a roster, or null (unclaimed team / unknown roster).
+export function userForRoster(rosterId: number): SleeperUser | null {
+  const ownerId = ownerIdOfRoster(rosterId);
+  return (ownerId && state.users.find((u) => u.user_id === ownerId)) || null;
+}
+
+export function teamNameForRoster(rosterId: number): string {
+  return displayNameFor(userForRoster(rosterId));
+}
+
 // ---------- league rules persistence ----------
 function rulesKey(): string {
   return LS_RULES_PREFIX + state.leagueId;
@@ -153,7 +162,9 @@ function rulesKey(): string {
 export function loadRulesFromStorage(): void {
   try {
     const raw = localStorage.getItem(rulesKey());
-    state.rules = raw ? { ...DEFAULT_LEAGUE_RULES, ...JSON.parse(raw) } : { ...DEFAULT_LEAGUE_RULES };
+    state.rules = raw
+      ? { ...DEFAULT_LEAGUE_RULES, ...JSON.parse(raw) }
+      : { ...DEFAULT_LEAGUE_RULES };
   } catch {
     state.rules = { ...DEFAULT_LEAGUE_RULES };
   }

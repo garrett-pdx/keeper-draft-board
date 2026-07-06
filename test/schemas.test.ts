@@ -44,7 +44,12 @@ describe('LeagueSchema', () => {
 describe('LeaguesForUserSchema', () => {
   it('parses an array of leagues for a user, matching the real endpoint shape', () => {
     const parsed = LeaguesForUserSchema.parse([
-      { league_id: '1312235880743706624', name: 'Mudd Keeper League', season: '2026', total_rosters: 10 },
+      {
+        league_id: '1312235880743706624',
+        name: 'Mudd Keeper League',
+        season: '2026',
+        total_rosters: 10,
+      },
     ]);
     expect(parsed).toHaveLength(1);
     expect(parsed[0].total_rosters).toBe(10);
@@ -87,7 +92,12 @@ describe('RostersSchema', () => {
 describe('UsersSchema', () => {
   it('parses users with nested team_name metadata', () => {
     const parsed = UsersSchema.parse([
-      { user_id: 'u1', display_name: 'garrett', avatar: 'abc', metadata: { team_name: 'The Team' } },
+      {
+        user_id: 'u1',
+        display_name: 'garrett',
+        avatar: 'abc',
+        metadata: { team_name: 'The Team' },
+      },
       { user_id: 'u2', display_name: 'other', avatar: null, metadata: null },
     ]);
     expect(parsed[0].metadata?.team_name).toBe('The Team');

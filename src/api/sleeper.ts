@@ -49,9 +49,7 @@ export const sleeper = {
     return UserLookupSchema.parse(raw);
   },
   leaguesForUser: async (userId: string, season: string): Promise<SleeperLeague[]> =>
-    LeaguesForUserSchema.parse(
-      await fetchJSON(`${BASE}/v1/user/${userId}/leagues/nfl/${season}`),
-    ),
+    LeaguesForUserSchema.parse(await fetchJSON(`${BASE}/v1/user/${userId}/leagues/nfl/${season}`)),
   tradedPicks: async (draftId: string): Promise<SleeperTradedPick[]> =>
     TradedPicksSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}/traded_picks`)),
 };

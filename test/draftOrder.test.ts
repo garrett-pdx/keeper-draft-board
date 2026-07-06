@@ -12,7 +12,18 @@ const PRE_DRAFT: SleeperDraft = {
   draft_id: '1312235880760479744',
   type: 'snake',
   draft_order: null, // commissioner hasn't set the order yet
-  slot_to_roster_id: { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10 },
+  slot_to_roster_id: {
+    '1': 1,
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    '10': 10,
+  },
   settings: { rounds: 14 },
 };
 
@@ -31,7 +42,18 @@ const COMPLETE_DRAFT: SleeperDraft = {
     '870570674836656128': 4,
     '999190763323944960': 9,
   },
-  slot_to_roster_id: { '1': 9, '2': 2, '3': 4, '4': 5, '5': 1, '6': 3, '7': 10, '8': 7, '9': 8, '10': 6 },
+  slot_to_roster_id: {
+    '1': 9,
+    '2': 2,
+    '3': 4,
+    '4': 5,
+    '5': 1,
+    '6': 3,
+    '7': 10,
+    '8': 7,
+    '9': 8,
+    '10': 6,
+  },
   settings: { rounds: 14 },
 };
 
@@ -65,7 +87,9 @@ describe('slotForRoster', () => {
   });
 
   it('returns null for an unknown roster_id', () => {
-    expect(slotForRoster(COMPLETE_DRAFT.slot_to_roster_id as Record<string, number>, 999)).toBeNull();
+    expect(
+      slotForRoster(COMPLETE_DRAFT.slot_to_roster_id as Record<string, number>, 999),
+    ).toBeNull();
   });
 });
 

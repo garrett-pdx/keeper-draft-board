@@ -8,9 +8,9 @@ import {
 import { exactPickForRoster } from '../domain/draftOrder';
 import { pickCapacity } from '../domain/tradedPicks';
 import { getRosterKeeperCostsFor } from '../selectors';
-import { ensureBoardOrder, saveBoardOrder, state } from '../state';
+import { ensureBoardOrder, saveBoardOrder, state, teamNameForRoster } from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
-import { displayNameFor, formatTime } from '../util';
+import { formatTime } from '../util';
 import { $, el, setSpin } from './dom';
 import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
@@ -95,11 +95,6 @@ export function renderBoard(): void {
   const rounds = state.boardRounds || 15;
   const teamCount = state.rosters.length || 10;
   const trades = state.tradedPicks || [];
-  const teamNameForRoster = (rid: number): string => {
-    const roster = rosterById[String(rid)];
-    const user = roster ? state.users.find((u) => u.user_id === roster.owner_id) : null;
-    return user ? displayNameFor(user) : `Team ${rid}`;
-  };
 
   // pre-compute each roster's keeper placements: round -> { players: [...] }.
   // Keepers that cannotBeKept occupy no round — collected separately for the
@@ -128,8 +123,7 @@ export function renderBoard(): void {
   for (const rid of state.boardOrder) {
     const roster = rosterById[rid];
     if (!roster) continue;
-    const user = state.users.find((u) => u.user_id === roster.owner_id);
-    const teamName = displayNameFor(user);
+    const teamName = teamNameForRoster(roster.roster_id);
     const th = el(
       'th',
       {
@@ -271,9 +265,7 @@ export function renderBoard(): void {
 
   if (unkeepable.length) {
     const lines = unkeepable.map(({ rid, item }) => {
-      const roster = rosterById[rid];
-      const user = roster ? state.users.find((u) => u.user_id === roster.owner_id) : null;
-      const teamName = user ? displayNameFor(user) : `Team ${rid}`;
+      const teamName = teamNameForRoster(Number(rid));
       const p = playersMap[item.playerId];
       const name = p ? `${p.first} ${p.last}`.trim() : item.playerId;
       return el(

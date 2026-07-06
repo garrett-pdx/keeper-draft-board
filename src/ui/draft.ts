@@ -33,7 +33,8 @@ export async function loadDraft(force?: boolean): Promise<void> {
 export function renderDraft(): void {
   const note = $('#draftNote')!;
   if (state.adpSource === 'adp') {
-    note.textContent = 'Ordered by average draft position pulled from Sleeper’s draft/projection data.';
+    note.textContent =
+      'Ordered by average draft position pulled from Sleeper’s draft/projection data.';
   } else if (state.adpSource === 'rank') {
     note.textContent =
       'Sleeper does not expose a dedicated ADP endpoint right now, so this list falls back to Sleeper’s overall player ranking as an ADP proxy.';
@@ -93,7 +94,11 @@ export function renderDraft(): void {
         null,
         `${r.p.first} ${r.p.last}`.trim(),
         keptBy
-          ? el('span', { style: 'margin-left:8px;' }, el('span', { class: 'kept-tag' }, `KEPT · ${keptBy}`))
+          ? el(
+              'span',
+              { style: 'margin-left:8px;' },
+              el('span', { class: 'kept-tag' }, `KEPT · ${keptBy}`),
+            )
           : null,
       ),
       el('td', null, el('span', { class: 'pos-tag pos-' + r.p.pos }, r.p.pos)),

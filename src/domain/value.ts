@@ -41,7 +41,8 @@ export function keeperSurplusValue(
     return { value: NO_ADP_VALUE, hasAdp: false };
   }
   const teams = teamCount || 10;
-  const costPick = exactCostPick != null ? exactCostPick : Math.round(costRound * teams - teams / 2);
+  const costPick =
+    exactCostPick != null ? exactCostPick : Math.round(costRound * teams - teams / 2);
   const val = pickValue(marketPick) - pickValue(costPick);
   return { value: +val.toFixed(1), hasAdp: true };
 }

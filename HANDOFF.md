@@ -30,8 +30,8 @@ https://api.sleeper.app/projections/nfl/<season>/<week>?season_type=regular&posi
 ```
 
 `extractAdp()` scans each player's stats object for an ADP-like field. The field that
-actually exists there is **`adp_dd_ppr`** (and `pos_adp_dd_ppr`) — a *dropoff-adjusted PPR
-ADP* projection, confirmed via the `sleeper-go` type definitions. This is NOT a true
+actually exists there is **`adp_dd_ppr`** (and `pos_adp_dd_ppr`) — a _dropoff-adjusted PPR
+ADP_ projection, confirmed via the `sleeper-go` type definitions. This is NOT a true
 consensus/market ADP; it's Sleeper's own projected value metric. Implications:
 
 - The numbers are directionally reasonable but may not match what a manager sees as "ADP"
@@ -43,11 +43,12 @@ consensus/market ADP; it's Sleeper's own projected value metric. Implications:
 **Action for next agent:** verify against the live API with the real league what
 `projections/nfl/2026/1` actually returns for `adp_dd_ppr` coverage. If it's thin or
 absent for 2026, consider:
-  1. The `players/nfl/research/regular/<season>/<week>` endpoint (ownership/roster %, not
-     ADP, but another signal), or
-  2. Pulling ADP from an actual mock-draft ADP source, or
-  3. Making the ADP source explicit/user-selectable rather than silent fallback.
-Whatever you choose, keep the `adpSource` labeling honest in the UI.
+
+1. The `players/nfl/research/regular/<season>/<week>` endpoint (ownership/roster %, not
+   ADP, but another signal), or
+2. Pulling ADP from an actual mock-draft ADP source, or
+3. Making the ADP source explicit/user-selectable rather than silent fallback.
+   Whatever you choose, keep the `adpSource` labeling honest in the UI.
 
 ## Fixed during review (was a latent bug)
 
@@ -71,8 +72,7 @@ but hasn't been checked against live two-season data.
 3. **Draft List capped at 400 rows** for DOM performance (`renderDraft` slice). Deep
    sleepers past 400 are reachable only via search. Fine for now; revisit if needed.
 4. **Draft round count** comes from the prior draft's settings via
-   `ensureBoardRoundsLoaded`, falling back to `roster_positions.length` then a hardcoded
-   14. Confirm the real draft is 14 rounds; the "undrafted → last round" rule depends on it.
+   `ensureBoardRoundsLoaded`, falling back to `roster_positions.length` then a hardcoded 14. Confirm the real draft is 14 rounds; the "undrafted → last round" rule depends on it.
 5. **No handling for co-owned or orphan (unowned) teams** beyond showing "Unclaimed team".
 6. **Values recompute on every render** — cheap at this scale (10 teams) but not memoized.
 

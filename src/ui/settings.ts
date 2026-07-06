@@ -18,7 +18,10 @@ export function renderSettings(): void {
 
 function handleMaxKeepersChange(): void {
   const input = $('#maxKeepersInput') as HTMLInputElement;
-  const value = Math.min(4, Math.max(1, Math.round(Number(input.value) || DEFAULT_LEAGUE_RULES.maxKeepers)));
+  const value = Math.min(
+    4,
+    Math.max(1, Math.round(Number(input.value) || DEFAULT_LEAGUE_RULES.maxKeepers)),
+  );
   input.value = String(value);
   updateRules({ maxKeepers: value });
   rerenderLoadedTabs();

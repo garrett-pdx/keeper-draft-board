@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { pickCapacity, heldPickOriginalOwners, type TradedPicksList } from '../src/domain/tradedPicks';
+import {
+  pickCapacity,
+  heldPickOriginalOwners,
+  type TradedPicksList,
+} from '../src/domain/tradedPicks';
 
 // Captured live from the real Sleeper API (this test league's actual 2026
 // draft, draft_id 1312235880760479744): roster 1 and roster 8 swapped their

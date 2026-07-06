@@ -2,7 +2,11 @@
 // `state` and hand explicit arguments to the (testable, state-free) domain layer.
 import { lastDraftRound } from './data';
 import { exactPickForRoster } from './domain/draftOrder';
-import { getRosterKeeperCosts, isInflatedForRoster, potentialKeeperCost } from './domain/keeperCost';
+import {
+  getRosterKeeperCosts,
+  isInflatedForRoster,
+  potentialKeeperCost,
+} from './domain/keeperCost';
 import { keeperSurplusValue } from './domain/value';
 import { keeperListFor, ownerIdOfRoster, state } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';

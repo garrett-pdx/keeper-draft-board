@@ -23,7 +23,7 @@ pick keepers, computes a keeper "value" metric, and renders a draggable draft bo
   component, and never send the user's data anywhere except read-only GETs to Sleeper.
   The build output must be a static site.
 - **Keep runtime dependencies near-zero.** Dev tooling (Vite, Vitest, ESLint, Prettier,
-  TypeScript) is welcome; think hard before adding a *runtime* dependency — prefer writing
+  TypeScript) is welcome; think hard before adding a _runtime_ dependency — prefer writing
   it by hand. The only external runtime requests are Google Fonts and the Sleeper API.
   The one sanctioned runtime dep is **zod**, used only to validate Sleeper responses at the
   fetch boundary (`src/api/schemas.ts`). Don't reach for more without a similarly strong reason.
@@ -103,6 +103,7 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   change; re-renders every currently-loaded tab so numbers update immediately.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
+
 ## rules, since this app is built primarily for that league — see `DEFAULT_LEAGUE_RULES`)
 
 - Each team keeps **up to `state.rules.maxKeepers`** players (default 2, UI-capped 1–4).
@@ -110,7 +111,7 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
 - If the **same manager** keeps the **same player** two years running, the cost climbs
   **`state.rules.inflationRounds`** (default 1), floored at round 1. Matched on `owner_id`
   (user_id), NOT roster_id — roster_ids can shift between seasons. See `sameManagerLastYear`.
-- A player kept by a *different* team last year does NOT inflate.
+- A player kept by a _different_ team last year does NOT inflate.
 - **Undrafted last year** → cost = the **final round** of the draft (`lastDraftRound()`).
 - **Pick capacity, not a flat "1 slot per round."** A team's actual number of picks in a
   round defaults to 1 but is adjusted by traded picks (`src/domain/tradedPicks.ts`:
@@ -120,14 +121,14 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   (more expensive)**, cascading through rounds that are themselves over capacity, using the
   same rank-based tie-break either way (see below). **A keeper displaced past round 1 with
   no capacity left anywhere cannot be kept at all** — `KeeperCostItem.cannotBeKept`, a hard
-  failure surfaced in the UI (not just a warning). When a team holds *more than one* pick in
+  failure surfaced in the UI (not just a warning). When a team holds _more than one_ pick in
   a round, no bump happens at all as long as picks ≥ keepers wanting that round — the
   keeper(s) simply consume the worst (least valuable) of the held picks once the real draft
   order is known (`consumedPick`), leaving the better one open for the live draft.
 - **Same-round collision / capacity tie-break**: the better-ranked player(s) bump toward
   round 1 first (more expensive), worst-ranked keeps the round. NOTE: this tie-break rule
-  was *not* specified by the league and was chosen by us — the rule itself is fixed (not
-  user-configurable), only the *capacity per round* (affected by `maxKeepers` and trades)
+  was _not_ specified by the league and was chosen by us — the rule itself is fixed (not
+  user-configurable), only the _capacity per round_ (affected by `maxKeepers` and trades)
   changes how many keepers can collide.
 
 ## The value metric
@@ -156,7 +157,7 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   `npm run format` / `npm run lint`. `const`/`let`, never `var`.
 - Functions are small and single-purpose. Keep the "ensure*" loaders idempotent and
   cache-aware; they all honor the `force` flag.
-- Comments explain *why*, not *what*. Keep the domain-rule comments accurate if you
+- Comments explain _why_, not _what_. Keep the domain-rule comments accurate if you
   change the math — they're the spec.
 - When adding UI, reuse the CSS custom properties and existing badge/tag classes rather
   than introducing new colors.
