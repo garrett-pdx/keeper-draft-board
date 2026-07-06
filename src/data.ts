@@ -7,6 +7,7 @@ import {
   state,
 } from './state';
 import type { SleeperDraft } from './api/schemas';
+import type { TradedPicksList } from './domain/tradedPicks';
 import type { PlayersMap, PrevDraftMap } from './types';
 
 // ---------- players map (cached, slimmed) ----------
@@ -162,6 +163,26 @@ export async function ensureDraftOrderLoaded(force?: boolean): Promise<SleeperDr
     /* exact pick numbers unavailable; round-midpoint approximation used instead */
   }
   return state.draft;
+}
+
+// ---------- traded draft picks (this draft's season only) ----------
+// Draft-scoped endpoint, not the league-wide one — the league-wide endpoint
+// aggregates a league's entire multi-season trade history (confirmed live),
+// while this one is already correctly scoped to just this draft's picks.
+// Feeds keeper-cost resolution (a team's own round-N pick may have been
+// traded away), not just board display — used from both loadRosters and
+// loadBoard.
+export async function ensureTradedPicksLoaded(force?: boolean): Promise<TradedPicksList> {
+  if (state.tradedPicks && !force) return state.tradedPicks;
+  state.tradedPicks = [];
+  try {
+    if (state.league && state.league.draft_id) {
+      state.tradedPicks = await sleeper.tradedPicks(state.league.draft_id);
+    }
+  } catch {
+    /* keeper costs fall back to capacity=1 everywhere, as if untraded */
+  }
+  return state.tradedPicks;
 }
 
 // ---------- draft round count ----------

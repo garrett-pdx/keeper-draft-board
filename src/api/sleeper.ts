@@ -6,12 +6,14 @@ import {
   LeaguesForUserSchema,
   PicksSchema,
   RostersSchema,
+  TradedPicksSchema,
   UserLookupSchema,
   UsersSchema,
   type PlayersResponse,
   type SleeperDraft,
   type SleeperLeague,
   type SleeperRoster,
+  type SleeperTradedPick,
   type SleeperUser,
   type SleeperUserLookup,
 } from './schemas';
@@ -50,6 +52,8 @@ export const sleeper = {
     LeaguesForUserSchema.parse(
       await fetchJSON(`${BASE}/v1/user/${userId}/leagues/nfl/${season}`),
     ),
+  tradedPicks: async (draftId: string): Promise<SleeperTradedPick[]> =>
+    TradedPicksSchema.parse(await fetchJSON(`${BASE}/v1/draft/${draftId}/traded_picks`)),
 };
 
 export interface AdpFetchResult {

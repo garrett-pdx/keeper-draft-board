@@ -54,9 +54,13 @@ src/
                       #   (keeperSurplusValue takes an optional exact pick number that
                       #   overrides the round-midpoint approximation when known)
     keeperCost.ts     #   sameManagerLastYear, potentialKeeperCost, isInflatedForRoster,
-                      #   getRosterKeeperCosts (N-way collision handling)
+                      #   getRosterKeeperCosts (capacity-aware assignment: same-round
+                      #   collisions AND traded-away/acquired picks, cascading toward
+                      #   round 1, cannotBeKept on exhaustion)
     draftOrder.ts     #   hasKnownDraftOrder, slotForRoster, exactPickNumber,
                       #   exactPickForRoster — snake-draft exact pick number math
+    tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
+                      #   actually holds per round, adjusted by trades
     adp.ts            #   extractAdp
   ui/
     dom.ts            # $, $all, el, setSpin
@@ -103,13 +107,23 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   (user_id), NOT roster_id — roster_ids can shift between seasons. See `sameManagerLastYear`.
 - A player kept by a *different* team last year does NOT inflate.
 - **Undrafted last year** → cost = the **final round** of the draft (`lastDraftRound()`).
-- **Same-round collision** (two or more keepers land on the same cost round): the
-  better-ranked player(s) bump up a round each, cascading if that creates a new collision
-  one round up; the worst-ranked keeper in the group keeps the round. If a bump chain hits
-  round 1 while still colliding, it's marked `unresolvedCollision` rather than going
-  negative. NOTE: this tie-break rule was *not* specified by the league and was chosen by
-  us — the rule itself is fixed (not user-configurable), only the *number of keepers* that
-  can collide is affected by `maxKeepers`.
+- **Pick capacity, not a flat "1 slot per round."** A team's actual number of picks in a
+  round defaults to 1 but is adjusted by traded picks (`src/domain/tradedPicks.ts`:
+  `pickCapacity`) — down for a pick traded away, up for one acquired. If more keepers want
+  a round than the team has capacity for (including zero, i.e. their own pick was traded
+  away with nothing acquired), the better-ranked keeper(s) are displaced **toward round 1
+  (more expensive)**, cascading through rounds that are themselves over capacity, using the
+  same rank-based tie-break either way (see below). **A keeper displaced past round 1 with
+  no capacity left anywhere cannot be kept at all** — `KeeperCostItem.cannotBeKept`, a hard
+  failure surfaced in the UI (not just a warning). When a team holds *more than one* pick in
+  a round, no bump happens at all as long as picks ≥ keepers wanting that round — the
+  keeper(s) simply consume the worst (least valuable) of the held picks once the real draft
+  order is known (`consumedPick`), leaving the better one open for the live draft.
+- **Same-round collision / capacity tie-break**: the better-ranked player(s) bump toward
+  round 1 first (more expensive), worst-ranked keeps the round. NOTE: this tie-break rule
+  was *not* specified by the league and was chosen by us — the rule itself is fixed (not
+  user-configurable), only the *capacity per round* (affected by `maxKeepers` and trades)
+  changes how many keepers can collide.
 
 ## The value metric
 

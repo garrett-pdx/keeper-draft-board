@@ -1,6 +1,7 @@
 import type { SleeperDraft } from '../api/schemas';
 import type { AdpMap, KeeperCostItem, PlayersMap, PrevDraftEntry, PrevDraftMap } from '../types';
 import { exactPickForRoster } from './draftOrder';
+import { heldPickOriginalOwners, pickCapacity, type TradedPicksList } from './tradedPicks';
 import { keeperSurplusValue } from './value';
 
 // Keeper cost rules for this league (see README "Domain rules"):
@@ -9,9 +10,14 @@ import { keeperSurplusValue } from './value';
 //   configurable number of rounds (floored at 1). Matched on stable owner
 //   user_id, NOT roster_id.
 // - Undrafted last year: cost = the final round of the draft.
-// - Same-round collision between a team's keepers: the better-ranked player(s)
-//   bump up a round, cascading if that creates a new collision one round up
-//   (tie-break chosen by us, not specified by the league).
+// - Each round has a "capacity" of picks a roster actually holds that round
+//   (normally 1, adjusted by trades — see domain/tradedPicks.ts). If more
+//   keepers want a round than the roster has capacity for (including capacity
+//   0, i.e. their own pick was traded away with nothing acquired), the
+//   better-ranked keeper(s) are displaced to the next round toward round 1
+//   (more expensive), cascading if that round is also over capacity. A keeper
+//   displaced all the way past round 1 with nowhere left to go cannot be kept
+//   at all (tie-break chosen by us, not specified by the league).
 
 /**
  * Did the manager now holding `currentRosterId` (owner `currentOwnerId`) also
@@ -29,8 +35,9 @@ export function sameManagerLastYear(
 }
 
 /**
- * Cost if this roster keeps a player, from last year's draft alone (no same-team
- * collision logic yet). Undrafted-last-year players cost the final round.
+ * Cost if this roster keeps a player, from last year's draft alone (no
+ * capacity/collision resolution yet). Undrafted-last-year players cost the
+ * final round.
  */
 export function potentialKeeperCost(
   prev: PrevDraftEntry | null | undefined,
@@ -75,47 +82,96 @@ export interface RosterKeeperContext {
   teamCount: number;
   inflationRounds: number;
   draft?: SleeperDraft | null;
+  tradedPicks?: TradedPicksList;
 }
 
 /**
- * Resolve same-round collisions among a roster's selected keepers. Exactly one
- * item in each colliding group keeps its round; the rest bump up a round each,
- * best-ranked first, worst-ranked left holding the round. Re-checks after every
- * bump since it may create a new collision one round up. Items that hit the
- * round-1 floor while still colliding are marked `unresolvedCollision`.
+ * Assign each keeper a cost round given how many actual picks the roster
+ * holds per round (`capacityFor`, normally 1 but adjusted by trades). If a
+ * round holds more keepers than its capacity, the better-ranked keeper(s) are
+ * displaced toward round 1 (more expensive), cascading through rounds that are
+ * themselves over capacity. A keeper displaced past round 1 with no capacity
+ * left anywhere cannot be kept. Reduces to the original same-round collision
+ * behavior when capacity is 1 everywhere (the no-trades default).
  */
-function resolveCollisions(items: KeeperCostItem[], playersMap: PlayersMap): void {
+function assignKeeperCosts(
+  items: KeeperCostItem[],
+  playersMap: PlayersMap,
+  capacityFor: (round: number) => number,
+): void {
   const rankOf = (pid: string) => (playersMap[pid] ? playersMap[pid].rank : 9999);
+  let active = items.slice();
   let changed = true;
   while (changed) {
     changed = false;
     const buckets = new Map<number, KeeperCostItem[]>();
-    for (const item of items) {
+    for (const item of active) {
       const bucket = buckets.get(item.cost);
       if (bucket) bucket.push(item);
       else buckets.set(item.cost, [item]);
     }
-    for (const group of buckets.values()) {
-      if (group.length <= 1) continue;
-      const ordered = group.slice().sort((a, b) => rankOf(a.playerId) - rankOf(b.playerId));
-      // every item but the worst-ranked (last) must move up a round
-      for (let i = 0; i < ordered.length - 1; i++) {
-        const item = ordered[i];
+    for (const [round, group] of buckets) {
+      const capacity = capacityFor(round);
+      if (group.length <= capacity) continue; // fits — nothing to do
+      const sorted = group.slice().sort((a, b) => rankOf(a.playerId) - rankOf(b.playerId));
+      const keepCount = capacity; // may be 0
+      const excess = sorted.slice(0, sorted.length - keepCount); // best-ranked, displaced
+      for (const item of excess) {
         if (item.cost > 1) {
           item.cost -= 1;
           item.bumped = true;
-          changed = true;
         } else {
-          item.unresolvedCollision = true;
+          item.cannotBeKept = true;
         }
+        changed = true;
       }
     }
+    if (changed) active = active.filter((item) => !item.cannotBeKept);
   }
 }
 
 /**
- * Final costs for a roster's *selected* keepers, with same-round collisions
- * resolved, then surplus value attached at each resolved cost round.
+ * When a roster holds more than one pick in a round (via trade), decide which
+ * literal pick each occupying keeper consumes: the worst (highest-numbered)
+ * of the held picks, best-ranked keeper getting the best of those. Only
+ * resolvable once this season's real draft order is known; a no-op otherwise.
+ * Never affects `cost` — purely which specific pick is "spent" vs. left open.
+ */
+function attachConsumedPicks(
+  items: KeeperCostItem[],
+  tradedPicks: TradedPicksList,
+  rosterId: number,
+  draft: SleeperDraft | null | undefined,
+  teamCount: number,
+  playersMap: PlayersMap,
+): void {
+  const rankOf = (pid: string) => (playersMap[pid] ? playersMap[pid].rank : 9999);
+  const buckets = new Map<number, KeeperCostItem[]>();
+  for (const item of items) {
+    if (item.cannotBeKept) continue;
+    const bucket = buckets.get(item.cost);
+    if (bucket) bucket.push(item);
+    else buckets.set(item.cost, [item]);
+  }
+  for (const [round, group] of buckets) {
+    const owners = heldPickOriginalOwners(tradedPicks, round, rosterId);
+    if (owners.length <= 1) continue; // only one pick held — nothing to disambiguate
+    const pickNumbers = owners
+      .map((ownerRid) => exactPickForRoster(draft, ownerRid, round, teamCount))
+      .filter((n): n is number => n !== null)
+      .sort((a, b) => a - b);
+    if (pickNumbers.length < group.length) continue; // order not known yet
+    const worstN = pickNumbers.slice(pickNumbers.length - group.length);
+    const ordered = group.slice().sort((a, b) => rankOf(a.playerId) - rankOf(b.playerId));
+    ordered.forEach((item, i) => {
+      item.consumedPick = worstN[i];
+    });
+  }
+}
+
+/**
+ * Final costs for a roster's *selected* keepers, with capacity-aware
+ * collisions resolved, then surplus value attached at each resolved cost round.
  */
 export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[] {
   const {
@@ -129,7 +185,9 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
     teamCount,
     inflationRounds,
     draft,
+    tradedPicks,
   } = ctx;
+  const trades = tradedPicks || [];
 
   const items: KeeperCostItem[] = keeperIds.map((pid) => {
     const prev = prevDraftMap ? prevDraftMap[pid] : null;
@@ -140,14 +198,16 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
       base,
       cost,
       bumped: false,
-      unresolvedCollision: false,
+      cannotBeKept: false,
       hasData: !!prev,
       value: 0,
       hasAdp: false,
+      consumedPick: null,
     };
   });
 
-  resolveCollisions(items, playersMap);
+  assignKeeperCosts(items, playersMap, (round) => pickCapacity(trades, round, rosterId));
+  attachConsumedPicks(items, trades, rosterId, draft, teamCount, playersMap);
 
   // Attach surplus value using each item's resolved cost round, preferring the
   // roster's exact pick number when this season's draft order is known.

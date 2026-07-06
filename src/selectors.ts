@@ -45,5 +45,6 @@ export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {
     teamCount: state.rosters.length || 10,
     inflationRounds: state.rules.inflationRounds,
     draft: state.draft,
+    tradedPicks: state.tradedPicks || [],
   });
 }

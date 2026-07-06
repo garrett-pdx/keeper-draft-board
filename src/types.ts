@@ -32,13 +32,14 @@ export interface SurplusValue {
 /** A resolved keeper cost for one selected player, after collision handling. */
 export interface KeeperCostItem {
   playerId: string;
-  base: number; // cost before same-round collision bump
-  cost: number; // resolved cost round
-  bumped: boolean; // true if bumped by a same-round collision
-  unresolvedCollision: boolean; // still colliding after hitting the round-1 floor
+  base: number; // cost before same-round collision/capacity resolution
+  cost: number; // resolved cost round; not meaningful for display when cannotBeKept is true
+  bumped: boolean; // true if displaced to a more expensive round by collision/capacity
+  cannotBeKept: boolean; // no available pick at this round or any cheaper-round alternative
   hasData: boolean; // had real prior-season draft data
   value: number;
   hasAdp: boolean;
+  consumedPick: number | null; // exact pick number spent, when disambiguating multiple held picks
 }
 
 /** Per-league configurable rules. Persisted per-league; see state.ts LS_RULES_PREFIX. */

@@ -5,6 +5,7 @@ import {
   LeaguesForUserSchema,
   PicksSchema,
   RostersSchema,
+  TradedPicksSchema,
   UserLookupSchema,
   UsersSchema,
 } from '../src/api/schemas';
@@ -123,6 +124,30 @@ describe('DraftSchema', () => {
     const parsed = DraftSchema.parse({ draft_id: 'd1', settings: { rounds: 14 } });
     expect(parsed.draft_order).toBeUndefined();
     expect(parsed.slot_to_roster_id).toBeUndefined();
+  });
+});
+
+describe('TradedPickSchema', () => {
+  it('parses the real captured shape and maps to camelCase', () => {
+    const parsed = TradedPicksSchema.parse([
+      { round: 4, season: '2026', roster_id: 1, owner_id: 8, previous_owner_id: 1 },
+      { round: 7, season: '2026', roster_id: 8, owner_id: 1, previous_owner_id: 8 },
+    ]);
+    expect(parsed).toEqual([
+      { round: 4, season: '2026', rosterId: 1, ownerId: 8, previousOwnerId: 1 },
+      { round: 7, season: '2026', rosterId: 8, ownerId: 1, previousOwnerId: 8 },
+    ]);
+  });
+
+  it('tolerates a missing previous_owner_id', () => {
+    const parsed = TradedPicksSchema.parse([
+      { round: 4, season: '2026', roster_id: 1, owner_id: 8 },
+    ]);
+    expect(parsed[0].previousOwnerId).toBeNull();
+  });
+
+  it('parses an empty array (no trades this season)', () => {
+    expect(TradedPicksSchema.parse([])).toEqual([]);
   });
 });
 

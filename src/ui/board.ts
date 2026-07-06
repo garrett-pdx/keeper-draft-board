@@ -3,6 +3,7 @@ import {
   ensureBoardRoundsLoaded,
   ensurePlayersLoaded,
   ensurePrevDraftLoaded,
+  ensureTradedPicksLoaded,
 } from '../data';
 import { getRosterKeeperCostsFor } from '../selectors';
 import { ensureBoardOrder, saveBoardOrder, state } from '../state';
@@ -31,6 +32,11 @@ export async function loadBoard(force?: boolean): Promise<void> {
     await ensurePlayersLoaded(force);
     await ensurePrevDraftLoaded(force);
     await ensureBoardRoundsLoaded(force); // also loads state.draft
+    try {
+      await ensureTradedPicksLoaded(force);
+    } catch {
+      /* keeper costs assume untraded picks (capacity 1 everywhere) */
+    }
     try {
       await ensureAdpLoaded(force);
     } catch {
@@ -70,14 +76,19 @@ export function renderBoard(): void {
   state.rosters.forEach((r) => (rosterById[String(r.roster_id)] = r));
   const rounds = state.boardRounds || 15;
 
-  // pre-compute each roster's keeper placements: round -> { players: [...] }
+  // pre-compute each roster's keeper placements: round -> { players: [...] }.
+  // Keepers that cannotBeKept occupy no round — collected separately for the
+  // alert area below instead.
   const placements: Record<string, Record<number, { players: KeeperCostItem[] }>> = {};
+  const unkeepable: { rid: string; item: KeeperCostItem }[] = [];
   state.rosters.forEach((r) => {
     const rid = String(r.roster_id);
     const costs = getRosterKeeperCostsFor(r.roster_id);
     const byRound: Record<number, { players: KeeperCostItem[] }> = {};
     costs.forEach((c) => {
-      if (c.cost !== null) {
+      if (c.cannotBeKept) {
+        unkeepable.push({ rid, item: c });
+      } else if (c.cost !== null) {
         byRound[c.cost] = byRound[c.cost] || { players: [] };
         byRound[c.cost].players.push(c);
       }
@@ -167,15 +178,14 @@ export function renderBoard(): void {
               { class: 'bp-meta' },
               pos ? el('span', { class: 'pos-tag pos-' + pos }, pos) : null,
               valEl,
-              c.bumped ? el('span', { class: 'board-warn' }, 'bumped') : null,
+              c.bumped ? el('span', { class: 'board-warn bumped-tag' }, 'bumped') : null,
             ),
           );
         });
-        const collisionWarn =
-          cellData.players.length > 1
-            ? el('div', { class: 'board-warn' }, 'Collision at round 1 — resolve manually')
-            : null;
-        cellContent = el('div', null, parts, collisionWarn);
+        // Multiple players in one cell is a valid, non-alarming state now —
+        // it means this roster holds more than one pick that round (via
+        // trade), not a collision. No cell-level warning needed here.
+        cellContent = el('div', null, parts);
       } else {
         cellContent = el('span', { class: 'board-cell-empty' }, '—');
       }
@@ -184,6 +194,22 @@ export function renderBoard(): void {
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
+
+  if (unkeepable.length) {
+    const lines = unkeepable.map(({ rid, item }) => {
+      const roster = rosterById[rid];
+      const user = roster ? state.users.find((u) => u.user_id === roster.owner_id) : null;
+      const teamName = user ? displayNameFor(user) : `Team ${rid}`;
+      const p = playersMap[item.playerId];
+      const name = p ? `${p.first} ${p.last}`.trim() : item.playerId;
+      return el(
+        'div',
+        null,
+        `${teamName}: ${name} cannot be kept — no available pick at round ${item.base} or any cheaper round.`,
+      );
+    });
+    container.appendChild(el('div', { class: 'error-banner board-unkeepable' }, ...lines));
+  }
 
   const wrap = el('div', { class: 'table-scroll' }, table);
   container.appendChild(wrap);

@@ -4,6 +4,7 @@ import {
   potentialKeeperCost,
   isInflatedForRoster,
   getRosterKeeperCosts,
+  type RosterKeeperContext,
 } from '../src/domain/keeperCost';
 import type { PlayersMap, PrevDraftEntry, PrevDraftMap } from '../src/types';
 
@@ -184,10 +185,10 @@ describe('getRosterKeeperCosts (collision handling)', () => {
     });
     const costs = items.map((i) => i.cost).sort((a, b) => a - b);
     expect(costs).toEqual([2, 3, 4, 5]);
-    expect(items.every((i) => !i.unresolvedCollision)).toBe(true);
+    expect(items.every((i) => !i.cannotBeKept)).toBe(true);
   });
 
-  it('marks unresolvedCollision when a bump chain hits the round-1 floor', () => {
+  it('marks cannotBeKept when a bump chain hits the round-1 floor with no capacity', () => {
     const prevDraftMap: PrevDraftMap = {
       star: entry({ round: 1, ownerId: 'ownerA' }),
       role: entry({ round: 1, ownerId: 'ownerA' }),
@@ -206,9 +207,9 @@ describe('getRosterKeeperCosts (collision handling)', () => {
     const star = items.find((i) => i.playerId === 'star')!;
     const role = items.find((i) => i.playerId === 'role')!;
     expect(star.cost).toBe(1);
-    expect(star.unresolvedCollision).toBe(true);
+    expect(star.cannotBeKept).toBe(true);
     expect(role.cost).toBe(1);
-    expect(role.unresolvedCollision).toBe(false);
+    expect(role.cannotBeKept).toBe(false);
   });
 
   it('uses the exact pick number when a known draft order is passed via ctx.draft', () => {
@@ -246,5 +247,149 @@ describe('getRosterKeeperCosts (collision handling)', () => {
     // round-midpoint approximation used when no draft order is supplied.
     expect(withoutDraft[0].cost).toBe(withDraft[0].cost);
     expect(withoutDraft[0].value).not.toBe(withDraft[0].value);
+  });
+});
+
+describe('getRosterKeeperCosts (trade-aware capacity)', () => {
+  const players: PlayersMap = {
+    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5 },
+    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40 },
+  };
+
+  type PartialCtx = Partial<RosterKeeperContext> &
+    Pick<RosterKeeperContext, 'keeperIds' | 'prevDraftMap'>;
+
+  function buildCtx(overrides: PartialCtx): RosterKeeperContext {
+    return {
+      playersMap: players,
+      adpMap: { star: 8, role: 50 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+      ...overrides,
+    };
+  }
+
+  it('shifts one round toward round 1 when the nominal round has zero capacity', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 4, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star'],
+        prevDraftMap,
+        tradedPicks: [{ round: 4, season: '2026', rosterId: 1, ownerId: 8, previousOwnerId: 1 }],
+      }),
+    );
+    expect(items[0].cost).toBe(3);
+    expect(items[0].bumped).toBe(true);
+    expect(items[0].cannotBeKept).toBe(false);
+  });
+
+  it('cascades two rounds back when consecutive rounds also have zero capacity', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 4, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star'],
+        prevDraftMap,
+        tradedPicks: [
+          { round: 4, season: '2026', rosterId: 1, ownerId: 8, previousOwnerId: 1 },
+          { round: 3, season: '2026', rosterId: 1, ownerId: 8, previousOwnerId: 1 },
+        ],
+      }),
+    );
+    expect(items[0].cost).toBe(2);
+    expect(items[0].bumped).toBe(true);
+  });
+
+  it('marks cannotBeKept when every round down to 1 has zero capacity', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 4, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star'],
+        prevDraftMap,
+        tradedPicks: [1, 2, 3, 4].map((round) => ({
+          round,
+          season: '2026',
+          rosterId: 1,
+          ownerId: 8,
+          previousOwnerId: 1,
+        })),
+      }),
+    );
+    expect(items[0].cannotBeKept).toBe(true);
+  });
+
+  it('applies rank priority when multiple keepers cascade through a zero-capacity round', () => {
+    const acePlayers: PlayersMap = {
+      ace: { id: 'ace', first: 'A', last: 'Ace', pos: 'RB', team: 'X', rank: 5 },
+      grinder: { id: 'grinder', first: 'B', last: 'Grinder', pos: 'WR', team: 'Y', rank: 60 },
+    };
+    const prevDraftMap: PrevDraftMap = {
+      ace: entry({ round: 4, ownerId: 'ownerA' }),
+      grinder: entry({ round: 4, ownerId: 'ownerA' }),
+    };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['ace', 'grinder'],
+        prevDraftMap,
+        playersMap: acePlayers,
+        adpMap: { ace: 8, grinder: 90 },
+        tradedPicks: [{ round: 4, season: '2026', rosterId: 1, ownerId: 8, previousOwnerId: 1 }],
+      }),
+    );
+    const ace = items.find((i) => i.playerId === 'ace')!;
+    const grinder = items.find((i) => i.playerId === 'grinder')!;
+    expect(ace.cost).toBe(2);
+    expect(grinder.cost).toBe(3);
+  });
+
+  it('does not bump when a roster holds two picks and wants two keepers in that round', () => {
+    const prevDraftMap: PrevDraftMap = {
+      star: entry({ round: 5, ownerId: 'ownerA' }),
+      role: entry({ round: 5, ownerId: 'ownerA' }),
+    };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star', 'role'],
+        prevDraftMap,
+        tradedPicks: [{ round: 5, season: '2026', rosterId: 99, ownerId: 1, previousOwnerId: 99 }],
+      }),
+    );
+    expect(items.every((i) => i.cost === 5 && !i.bumped)).toBe(true);
+  });
+
+  it('does not bump when a roster holds two picks and wants only one keeper in that round', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 5, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star'],
+        prevDraftMap,
+        tradedPicks: [{ round: 5, season: '2026', rosterId: 99, ownerId: 1, previousOwnerId: 99 }],
+      }),
+    );
+    expect(items[0].cost).toBe(5);
+    expect(items[0].bumped).toBe(false);
+    expect(items[0].consumedPick).toBeNull(); // no draft order supplied
+  });
+
+  it('consumes the worse of two held picks once the draft order is known', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 5, ownerId: 'ownerA' }) };
+    const draft = {
+      type: 'snake',
+      draft_order: { u1: 1 },
+      slot_to_roster_id: { '1': 1, '2': 99 },
+    };
+    const items = getRosterKeeperCosts(
+      buildCtx({
+        keeperIds: ['star'],
+        prevDraftMap,
+        draft,
+        tradedPicks: [{ round: 5, season: '2026', rosterId: 99, ownerId: 1, previousOwnerId: 99 }],
+      }),
+    );
+    // round 5 (odd, no snake reversal), 10 teams: slot 1 -> pick 41, slot 2 -> pick 42.
+    // The keeper consumes the worse (higher-numbered) of the two: pick 42.
+    expect(items[0].consumedPick).toBe(42);
   });
 });

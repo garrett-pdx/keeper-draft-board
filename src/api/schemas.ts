@@ -69,6 +69,28 @@ export const PickSchema = z.object({
 });
 export const PicksSchema = z.array(PickSchema);
 
+// GET /v1/draft/<draft_id>/traded_picks — already scoped to that draft's
+// season (unlike the league-wide endpoint, which aggregates a league's entire
+// multi-season trade history). roster_id = original owner of this round's
+// pick, owner_id = current holder; absence from the list means untraded.
+export const TradedPickSchema = z
+  .object({
+    round: z.number(),
+    season: z.string(),
+    roster_id: z.number(),
+    owner_id: z.number(),
+    previous_owner_id: z.number().nullish(),
+  })
+  .transform((p) => ({
+    round: p.round,
+    season: p.season,
+    rosterId: p.roster_id,
+    ownerId: p.owner_id,
+    previousOwnerId: p.previous_owner_id ?? null,
+  }));
+export type SleeperTradedPick = z.infer<typeof TradedPickSchema>;
+export const TradedPicksSchema = z.array(TradedPickSchema);
+
 // The players dictionary is ~5MB / ~11k entries and is cached ~20h. We keep it
 // as a typed shape and slim it defensively rather than running per-entry schema
 // validation on every field (a needless per-load cost). See ensurePlayersLoaded.

@@ -4,6 +4,7 @@ import {
   ensureBoardRoundsLoaded,
   ensurePlayersLoaded,
   ensurePrevDraftLoaded,
+  ensureTradedPicksLoaded,
   hasPrevDraft,
 } from '../data';
 import { NO_ADP_VALUE } from '../domain/value';
@@ -45,6 +46,11 @@ export async function loadRosters(force?: boolean): Promise<void> {
 
     await ensurePrevDraftLoaded(force);
     await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost; also loads state.draft
+    try {
+      await ensureTradedPicksLoaded(force);
+    } catch {
+      /* keeper costs assume untraded picks (capacity 1 everywhere) */
+    }
     updatePickSourceBadge();
     ensureBoardOrder();
     // ADP powers the value metric; fetch it here but don't fail the whole roster
@@ -214,23 +220,40 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
       state.prevDraftMap && state.prevDraftMap[pid] ? state.prevDraftMap[pid].round : null;
     let costTag: HTMLElement;
     let resolvedCostRound: number;
+    let cannotBeKeptWarning: HTMLElement | null = null;
     if (active && costByPlayer[pid]) {
       const c = costByPlayer[pid];
       resolvedCostRound = c.cost;
-      costTag = el(
-        'span',
-        {
-          class: 'cost-tag active' + (c.bumped ? ' bumped' : '') + (inflated ? ' inflated' : ''),
-          title: c.bumped
-            ? 'Bumped one round due to a same-round keeper collision on this team'
-            : undrafted
-              ? 'Undrafted last year — kept at the final round'
-              : inflated
-                ? `Cost inflated: you kept this player last year (Rd ${prevRound}), so it climbs one round`
-                : 'Keeper cost',
-        },
-        `Rd ${c.cost}`,
-      );
+      if (c.cannotBeKept) {
+        costTag = el(
+          'span',
+          {
+            class: 'cost-tag error',
+            title: `No available pick at round ${c.base} or any cheaper round on this team — this player cannot be kept.`,
+          },
+          `Can't keep`,
+        );
+        cannotBeKeptWarning = el(
+          'div',
+          { class: 'keeper-warn' },
+          `No available pick at round ${c.base} or earlier — trades left this team without a pick to keep ${name} on. Deselect it or free up an earlier pick.`,
+        );
+      } else {
+        costTag = el(
+          'span',
+          {
+            class: 'cost-tag active' + (c.bumped ? ' bumped' : '') + (inflated ? ' inflated' : ''),
+            title: c.bumped
+              ? 'Bumped to a more expensive round due to a same-round collision or a traded-away pick on this team'
+              : undrafted
+                ? 'Undrafted last year — kept at the final round'
+                : inflated
+                  ? `Cost inflated: you kept this player last year (Rd ${prevRound}), so it climbs one round`
+                  : 'Keeper cost',
+          },
+          `Rd ${c.cost}`,
+        );
+      }
     } else {
       resolvedCostRound = potentialKeeperCostFor(pid, roster.roster_id);
       costTag = el(
@@ -263,7 +286,9 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
         ? { value: costByPlayer[pid].value, hasAdp: costByPlayer[pid].hasAdp }
         : keeperSurplusValueFor(pid, resolvedCostRound, roster.roster_id);
     let valueBadge: HTMLElement;
-    if (!sv.hasAdp) {
+    if (active && costByPlayer[pid]?.cannotBeKept) {
+      valueBadge = el('span', { class: 'val-tag na', title: 'This player cannot be kept — no meaningful value' }, '—');
+    } else if (!sv.hasAdp) {
       valueBadge = el('span', { class: 'val-tag na', title: 'Not being drafted this year — no market value' }, 'no ADP');
     } else {
       const sign = sv.value > 0 ? '+' : '';
@@ -319,6 +344,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
         toggle,
       ),
     );
+    if (cannotBeKeptWarning) list.appendChild(cannotBeKeptWarning);
   }
 
   return el('div', { class: 'team-card' }, head, list);

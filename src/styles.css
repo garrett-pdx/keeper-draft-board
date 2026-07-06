@@ -215,6 +215,11 @@
   .cost-tag.inflated{border-color:rgba(245,165,36,0.6); color:#f0b34a;}
   .cost-tag.active.inflated{border-color:rgba(245,165,36,0.8);}
   .cost-tag.none{visibility:hidden;}
+  .cost-tag.error{color:#ff9b9e; border-color:rgba(229,72,77,0.5); background:rgba(229,72,77,0.1); font-weight:600;}
+
+  .keeper-warn{
+    font-size:11px; color:#ff9b9e; padding:4px 16px 8px; line-height:1.4;
+  }
 
   .val-tag{
     font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 7px; border-radius:20px;
@@ -289,7 +294,9 @@
   .board-cell-player .bp-name{font-size:12.5px; font-weight:500;}
   .board-cell-player .bp-meta{font-size:10.5px; color:var(--slate); display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
   .board-cell.has-player{background:rgba(60,203,127,0.05);}
-  .board-warn{color:#ff9b9e; font-size:10px;}
+  .board-warn{font-size:10px;}
+  .bumped-tag{color:var(--flag);}
+  .board-unkeepable{margin-bottom:14px;}
 
   /* ---------- Settings panel ---------- */
   .settings-card{
