@@ -37,7 +37,21 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy1.outputs.page_url || steps.deploy2.outputs.page_url || steps.deploy3.outputs.page_url }}
     steps:
-      - id: deployment
+      # GitHub Pages occasionally fails a deployment instantly with
+      # "Deployment failed, try again later" for reasons opaque to the repo
+      # (confirmed: GitHub status page shows no incident, branch/environment
+      # config is correct, and a fresh attempt with a brand-new deployment
+      # record reliably succeeds within a few tries). Retry in-job instead of
+      # needing a human to notice and re-run the workflow.
+      - id: deploy1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
