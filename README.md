@@ -99,7 +99,7 @@ Encoded in `src/domain/` and covered by tests in `test/`:
 projections endpoint (`/projections/nfl/<season>/<week>`), reading a dropoff-adjusted PPR
 field — directionally reasonable, but not a true consensus ADP. If fewer than 20 players
 resolve, the app falls back to Sleeper's overall player ranking as a proxy and says so in
-the UI. See `HANDOFF.md` for detail.
+the UI.
 
 ## Project layout
 

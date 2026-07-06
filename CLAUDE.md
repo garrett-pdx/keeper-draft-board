@@ -146,8 +146,7 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   the order. This must always degrade gracefully to the midpoint approximation, never
   silently produce a wrong number.
 - Exponential decay chosen deliberately so early-round surplus outweighs late-round
-  surplus (see HANDOFF.md for the curve comparison that led here). **Tune `VALUE_DECAY`
-  in one place** — the top of `src/domain/value.ts`.
+  surplus. **Tune `VALUE_DECAY` in one place** — the top of `src/domain/value.ts`.
 - Players with no current ADP → `NO_ADP_VALUE` (−99), so they never get recommended and
   render as a dashed "no ADP" badge.
 
