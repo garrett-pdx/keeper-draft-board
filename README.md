@@ -24,15 +24,15 @@ directly — see "Or paste a league ID directly" on the setup screen) and a seas
 
 ### Scripts
 
-| Command             | What it does                                       |
-| ------------------- | -------------------------------------------------- |
-| `npm run dev`       | Start the Vite dev server                          |
-| `npm run build`     | Type-check and build the static site into `dist/`  |
-| `npm run preview`   | Serve the production build locally                 |
-| `npm test`          | Run the Vitest unit tests                          |
-| `npm run typecheck` | `tsc --noEmit`                                      |
-| `npm run lint`      | ESLint                                             |
-| `npm run format`    | Prettier (write)                                   |
+| Command             | What it does                                      |
+| ------------------- | ------------------------------------------------- |
+| `npm run dev`       | Start the Vite dev server                         |
+| `npm run build`     | Type-check and build the static site into `dist/` |
+| `npm run preview`   | Serve the production build locally                |
+| `npm test`          | Run the Vitest unit tests                         |
+| `npm run typecheck` | `tsc --noEmit`                                    |
+| `npm run lint`      | ESLint                                            |
+| `npm run format`    | Prettier (write)                                  |
 
 ## The four tabs
 
@@ -42,8 +42,12 @@ directly — see "Or paste a league ID directly" on the setup screen) and a seas
   same-manager repeat keepers are flagged.
 - **Draft List** — every draftable player sorted by ADP, with search + position filter.
   Keepers are greyed out and tagged with the keeping team.
-- **Draft Board** — a grid, one draggable column per team (order persisted), one row per
-  round. Keeper picks are placed at their cost round, with value + collision warnings.
+- **Draft Board** — a grid, one column per team (drag or arrow-key the header to reorder,
+  order persisted), one row per round. Keeper picks are placed at their cost round, tagged
+  with the exact overall pick number once this season's draft order is known, with value +
+  bumped-round warnings. Open cells flag rounds affected by a trade (`→ team` on the giving
+  side, `+N incoming from team` on the receiving side). Players who can't be kept at all
+  (see below) are excluded from the grid and listed in an alert underneath it.
 - **Settings** — configurable league rules (max keepers per team, same-manager inflation
   rounds), with a one-click "Reset to Mudd League defaults" shortcut back to this app's
   original, calibrated rules.
@@ -59,11 +63,20 @@ Encoded in `src/domain/` and covered by tests in `test/`:
   manager's stable `owner_id`, not `roster_id` (roster ids can change between seasons).
 - A player kept by a **different** team last year does **not** inflate.
 - **Undrafted last year** → cost = the **final round** of the draft.
-- **Same-round collision** (two or more of a team's keepers land on the same round) → the
-  better-ranked player(s) bump up a round each, cascading if that creates a new collision
-  one round up; the worst-ranked keeper in the group keeps the round. _This tie-break rule
-  itself was chosen by us, not specified by the league, and is fixed (not configurable) —
-  only how many keepers can collide changes with the max-keepers setting._
+- **Pick capacity, not a flat "1 slot per round."** A team's actual number of picks in a
+  round defaults to 1 but is adjusted by traded picks — down for a pick traded away, up for
+  one acquired. If more keepers want a round than the team has capacity for, the
+  better-ranked keeper(s) bump toward round 1 (more expensive), cascading through rounds
+  that are themselves over capacity. A keeper bumped past round 1 with no capacity left
+  anywhere **cannot be kept at all** — a hard failure surfaced in the UI, not just a
+  warning. When a team holds _more than one_ pick in a round, no bump happens as long as
+  picks ≥ keepers wanting that round — the keeper(s) simply consume the worst (least
+  valuable) of the held picks once the real draft order is known, leaving the better one
+  open for the live draft.
+- **Same-round collision / capacity tie-break** — the better-ranked player(s) bump toward
+  round 1 first (more expensive), worst-ranked keeps the round. _This tie-break rule itself
+  was chosen by us, not specified by the league, and is fixed (not configurable) — only how
+  many keepers can collide changes with the max-keepers setting and any trades._
 
 ## The value metric
 
@@ -82,7 +95,7 @@ Encoded in `src/domain/` and covered by tests in `test/`:
 
 ## ADP data source (important caveat)
 
-**Sleeper has no official public ADP endpoint.** ADP is derived from an *undocumented*
+**Sleeper has no official public ADP endpoint.** ADP is derived from an _undocumented_
 projections endpoint (`/projections/nfl/<season>/<week>`), reading a dropoff-adjusted PPR
 field — directionally reasonable, but not a true consensus ADP. If fewer than 20 players
 resolve, the app falls back to Sleeper's overall player ranking as a proxy and says so in
