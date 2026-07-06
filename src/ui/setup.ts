@@ -1,6 +1,13 @@
 import { sleeper } from '../api/sleeper';
 import type { SleeperLeague } from '../api/schemas';
-import { loadKeepersFromStorage, LS_LEAGUE_ID, LS_SEASON, LS_USERNAME, state } from '../state';
+import {
+  loadKeepersFromStorage,
+  loadRulesFromStorage,
+  LS_LEAGUE_ID,
+  LS_SEASON,
+  LS_USERNAME,
+  state,
+} from '../state';
 import { $, el } from './dom';
 import { loadRosters } from './rosters';
 
@@ -140,5 +147,6 @@ export function enterApp(): void {
   $('#setupScreen')!.style.display = 'none';
   $('#app')!.style.display = 'flex';
   loadKeepersFromStorage();
+  loadRulesFromStorage();
   loadRosters(false);
 }

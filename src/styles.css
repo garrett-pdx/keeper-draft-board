@@ -291,6 +291,14 @@
   .board-cell.has-player{background:rgba(60,203,127,0.05);}
   .board-warn{color:#ff9b9e; font-size:10px;}
 
+  /* ---------- Settings panel ---------- */
+  .settings-card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+    padding:24px; max-width:420px;
+  }
+  .settings-card .field input[type="number"]{width:100px;}
+  .settings-card .btn-ghost{margin-top:4px;}
+
   .footer-note{max-width:1400px; margin:0 auto; padding:0 28px 40px; color:var(--slate-dim); font-size:12px; line-height:1.6;}
 
   @media (max-width:640px){

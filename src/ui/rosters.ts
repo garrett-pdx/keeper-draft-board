@@ -154,10 +154,11 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
   const costByPlayer: Record<string, (typeof finalCosts)[number]> = {};
   finalCosts.forEach((c) => (costByPlayer[c.playerId] = c));
 
+  const maxKeepers = state.rules.maxKeepers;
   const countBadge = el(
     'div',
-    { class: 'keeper-count' + (keeperList.length >= 2 ? ' full' : '') },
-    `Keepers ${keeperList.length}/2`,
+    { class: 'keeper-count' + (keeperList.length >= maxKeepers ? ' full' : '') },
+    `Keepers ${keeperList.length}/${maxKeepers}`,
   );
 
   const head = el(
@@ -185,11 +186,11 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     const cr = potentialKeeperCostFor(pid, roster.roster_id);
     potentialValue[pid] = keeperSurplusValueFor(pid, cr);
   });
-  // top-2 value candidates that actually have an ADP (positive-value, real market)
+  // top maxKeepers value candidates that actually have an ADP (positive-value, real market)
   const rankedCandidates = playerIds
     .filter((pid) => potentialValue[pid].hasAdp)
     .sort((a, b) => potentialValue[b].value - potentialValue[a].value)
-    .slice(0, 2);
+    .slice(0, maxKeepers);
   const bestSet = new Set(rankedCandidates);
 
   const list = el('div', null);
@@ -202,7 +203,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     const pos = p ? p.pos : '—';
     const team = p ? p.team : '';
     const active = isKeeper(roster.roster_id, pid);
-    const maxedOut = !active && keeperList.length >= 2;
+    const maxedOut = !active && keeperList.length >= maxKeepers;
 
     const undrafted = !hasPrevDraft(pid);
     const inflated = isInflatedFor(pid, roster.roster_id);
@@ -278,7 +279,11 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
       'button',
       {
         class: 'keeper-toggle' + (active ? ' active' : '') + (maxedOut ? ' disabled' : ''),
-        title: active ? 'Remove keeper' : maxedOut ? 'Max 2 keepers selected' : 'Mark as keeper',
+        title: active
+          ? 'Remove keeper'
+          : maxedOut
+            ? `Max ${maxKeepers} keepers selected`
+            : 'Mark as keeper',
         onclick: (e: Event) => {
           const target = e.currentTarget as HTMLElement;
           if (maxedOut) {

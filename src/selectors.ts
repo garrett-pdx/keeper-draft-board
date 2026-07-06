@@ -8,7 +8,13 @@ import type { KeeperCostItem, SurplusValue } from './types';
 
 export function potentialKeeperCostFor(playerId: string, rosterId: number): number {
   const prev = state.prevDraftMap ? state.prevDraftMap[playerId] : null;
-  return potentialKeeperCost(prev, ownerIdOfRoster(rosterId), rosterId, lastDraftRound());
+  return potentialKeeperCost(
+    prev,
+    ownerIdOfRoster(rosterId),
+    rosterId,
+    lastDraftRound(),
+    state.rules.inflationRounds,
+  );
 }
 
 export function keeperSurplusValueFor(playerId: string, costRound: number): SurplusValue {
@@ -30,5 +36,6 @@ export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {
     rosterId,
     lastRound: lastDraftRound(),
     teamCount: state.rosters.length || 10,
+    inflationRounds: state.rules.inflationRounds,
   });
 }

@@ -172,7 +172,7 @@ export function renderBoard(): void {
         });
         const collisionWarn =
           cellData.players.length > 1
-            ? el('div', { class: 'board-warn' }, 'Same-round collision — resolve manually')
+            ? el('div', { class: 'board-warn' }, 'Collision at round 1 — resolve manually')
             : null;
         cellContent = el('div', null, parts, collisionWarn);
       } else {

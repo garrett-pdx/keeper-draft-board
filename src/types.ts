@@ -35,10 +35,20 @@ export interface KeeperCostItem {
   base: number; // cost before same-round collision bump
   cost: number; // resolved cost round
   bumped: boolean; // true if bumped by a same-round collision
+  unresolvedCollision: boolean; // still colliding after hitting the round-1 floor
   hasData: boolean; // had real prior-season draft data
   value: number;
   hasAdp: boolean;
 }
+
+/** Per-league configurable rules. Persisted per-league; see state.ts LS_RULES_PREFIX. */
+export interface LeagueRules {
+  maxKeepers: number; // default 2, UI-capped 1-4
+  inflationRounds: number; // default 1 — round bump for a same-manager repeat keep
+}
+// The Mudd Keeper League's actual rules, and this app's original calibration —
+// used both as the initial state and as the Settings tab's explicit reset target.
+export const DEFAULT_LEAGUE_RULES: LeagueRules = { maxKeepers: 2, inflationRounds: 1 };
 
 // Sleeper payload types are inferred from the zod schemas that validate them at
 // the fetch boundary, so the runtime check and the compile-time type can't drift.

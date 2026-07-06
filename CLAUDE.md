@@ -64,36 +64,46 @@ src/
     rosters.ts        # loadRosters + renderRosters + renderTeamCard
     draft.ts          # loadDraft + renderDraft
     board.ts          # loadBoard + renderBoard (draggable grid)
+    settings.ts       # renderSettings + wireSettingsEvents — the Settings tab
 test/                 # Vitest specs mirroring src/domain/
 ```
 
 Layering: `ui/*` and `data.ts` read/write `state`; `selectors.ts` bridges `state` into the
 pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import no state.
 
-## The three tabs
+## The four tabs
 
 - **Rosters & Keepers** (`#panel-rosters`): one card per team, players grouped by
   position. Each player shows a keeper-cost round tag, a surplus-value badge, and a
-  star toggle (max 2 keepers/team, enforced). Teams are sorted by their best available
-  keeper value, descending. Same-manager repeat keepers get an amber "inflated" highlight.
+  star toggle (max keepers/team per `state.rules.maxKeepers`, enforced). Teams are
+  sorted by their best available keeper value, descending. Same-manager repeat keepers
+  get an amber "inflated" highlight.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag headers to reorder,
   persisted), one row per round. Only keeper picks are filled in, placed at their cost
   round. Shows value + collision warnings per cell.
+- **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
+  rounds) with a "Reset to Mudd League defaults" shortcut. Auto-saves per league on
+  change; re-renders every currently-loaded tab so numbers update immediately.
 
-## Domain rules (this league's keeper rules — encoded in the math functions)
+## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
+## rules, since this app is built primarily for that league — see `DEFAULT_LEAGUE_RULES`)
 
-- Each team keeps **up to 2** players.
+- Each team keeps **up to `state.rules.maxKeepers`** players (default 2, UI-capped 1–4).
 - A kept player costs the **round they were drafted last year**.
 - If the **same manager** keeps the **same player** two years running, the cost climbs
-  **one round** (round 3 → round 2), floored at round 1. Matched on `owner_id` (user_id),
-  NOT roster_id — roster_ids can shift between seasons. See `sameManagerLastYear`.
+  **`state.rules.inflationRounds`** (default 1), floored at round 1. Matched on `owner_id`
+  (user_id), NOT roster_id — roster_ids can shift between seasons. See `sameManagerLastYear`.
 - A player kept by a *different* team last year does NOT inflate.
 - **Undrafted last year** → cost = the **final round** of the draft (`lastDraftRound()`).
-- **Same-round collision** (two keepers land on the same cost round): the better-ranked
-  player bumps up one round. NOTE: this tie-break rule was *not* specified by the league
-  and was chosen by us. Confirm with the user before treating it as final.
+- **Same-round collision** (two or more keepers land on the same cost round): the
+  better-ranked player(s) bump up a round each, cascading if that creates a new collision
+  one round up; the worst-ranked keeper in the group keeps the round. If a bump chain hits
+  round 1 while still colliding, it's marked `unresolvedCollision` rather than going
+  negative. NOTE: this tie-break rule was *not* specified by the league and was chosen by
+  us — the rule itself is fixed (not user-configurable), only the *number of keepers* that
+  can collide is affected by `maxKeepers`.
 
 ## The value metric
 

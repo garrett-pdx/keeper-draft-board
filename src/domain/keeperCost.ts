@@ -3,11 +3,13 @@ import { keeperSurplusValue } from './value';
 
 // Keeper cost rules for this league (see README "Domain rules"):
 // - Cost = the round the player was drafted last year.
-// - Same manager keeping the same player two years running: cost climbs one
-//   round (floored at 1). Matched on stable owner user_id, NOT roster_id.
+// - Same manager keeping the same player two years running: cost climbs a
+//   configurable number of rounds (floored at 1). Matched on stable owner
+//   user_id, NOT roster_id.
 // - Undrafted last year: cost = the final round of the draft.
-// - Same-round collision between a team's two keepers: the better-ranked player
-//   bumps up one round (tie-break chosen by us, not specified by the league).
+// - Same-round collision between a team's keepers: the better-ranked player(s)
+//   bump up a round, cascading if that creates a new collision one round up
+//   (tie-break chosen by us, not specified by the league).
 
 /**
  * Did the manager now holding `currentRosterId` (owner `currentOwnerId`) also
@@ -33,18 +35,19 @@ export function potentialKeeperCost(
   currentOwnerId: string | null,
   currentRosterId: number,
   lastRound: number,
+  inflationRounds: number,
 ): number {
   if (!prev) return lastRound;
   let cost = prev.round;
   if (sameManagerLastYear(prev, currentOwnerId, currentRosterId) && prev.wasKeeper && cost > 1) {
-    cost = cost - 1;
+    cost = Math.max(1, cost - inflationRounds);
   }
   return cost;
 }
 
 /**
  * True if THIS roster kept THIS player last year, so keeping again inflates the
- * cost by one round. Floored at round 1 — a round-1 keeper can't inflate further.
+ * cost. Floored at round 1 — a round-1 keeper can't inflate further.
  */
 export function isInflatedForRoster(
   prev: PrevDraftEntry | null | undefined,
@@ -68,33 +71,79 @@ export interface RosterKeeperContext {
   rosterId: number;
   lastRound: number;
   teamCount: number;
+  inflationRounds: number;
 }
 
 /**
- * Final costs for a roster's *selected* keepers, with same-round collision
+ * Resolve same-round collisions among a roster's selected keepers. Exactly one
+ * item in each colliding group keeps its round; the rest bump up a round each,
+ * best-ranked first, worst-ranked left holding the round. Re-checks after every
+ * bump since it may create a new collision one round up. Items that hit the
+ * round-1 floor while still colliding are marked `unresolvedCollision`.
+ */
+function resolveCollisions(items: KeeperCostItem[], playersMap: PlayersMap): void {
+  const rankOf = (pid: string) => (playersMap[pid] ? playersMap[pid].rank : 9999);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const buckets = new Map<number, KeeperCostItem[]>();
+    for (const item of items) {
+      const bucket = buckets.get(item.cost);
+      if (bucket) bucket.push(item);
+      else buckets.set(item.cost, [item]);
+    }
+    for (const group of buckets.values()) {
+      if (group.length <= 1) continue;
+      const ordered = group.slice().sort((a, b) => rankOf(a.playerId) - rankOf(b.playerId));
+      // every item but the worst-ranked (last) must move up a round
+      for (let i = 0; i < ordered.length - 1; i++) {
+        const item = ordered[i];
+        if (item.cost > 1) {
+          item.cost -= 1;
+          item.bumped = true;
+          changed = true;
+        } else {
+          item.unresolvedCollision = true;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Final costs for a roster's *selected* keepers, with same-round collisions
  * resolved, then surplus value attached at each resolved cost round.
  */
 export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[] {
-  const { keeperIds, prevDraftMap, playersMap, adpMap, ownerId, rosterId, lastRound, teamCount } =
-    ctx;
+  const {
+    keeperIds,
+    prevDraftMap,
+    playersMap,
+    adpMap,
+    ownerId,
+    rosterId,
+    lastRound,
+    teamCount,
+    inflationRounds,
+  } = ctx;
 
   const items: KeeperCostItem[] = keeperIds.map((pid) => {
     const prev = prevDraftMap ? prevDraftMap[pid] : null;
     const base = prev ? prev.round : lastRound;
-    const cost = potentialKeeperCost(prev, ownerId, rosterId, lastRound);
-    return { playerId: pid, base, cost, bumped: false, hasData: !!prev, value: 0, hasAdp: false };
+    const cost = potentialKeeperCost(prev, ownerId, rosterId, lastRound, inflationRounds);
+    return {
+      playerId: pid,
+      base,
+      cost,
+      bumped: false,
+      unresolvedCollision: false,
+      hasData: !!prev,
+      value: 0,
+      hasAdp: false,
+    };
   });
 
-  // Same-round collision: two keepers landing on the same cost round. The
-  // better-ranked one bumps up a round. (Tie-break not defined by the league.)
-  if (items.length === 2 && items[0].cost === items[1].cost) {
-    const rankOf = (pid: string) => (playersMap[pid] ? playersMap[pid].rank : 9999);
-    const bumpIdx = rankOf(items[0].playerId) <= rankOf(items[1].playerId) ? 0 : 1;
-    if (items[bumpIdx].cost > 1) {
-      items[bumpIdx].cost -= 1;
-      items[bumpIdx].bumped = true;
-    }
-  }
+  resolveCollisions(items, playersMap);
 
   // Attach surplus value using each item's resolved cost round.
   items.forEach((it) => {

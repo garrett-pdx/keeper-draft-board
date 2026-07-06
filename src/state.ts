@@ -1,12 +1,14 @@
 import type {
   AdpMap,
   AdpSource,
+  LeagueRules,
   PlayersMap,
   PrevDraftMap,
   SleeperLeague,
   SleeperRoster,
   SleeperUser,
 } from './types';
+import { DEFAULT_LEAGUE_RULES } from './types';
 import { displayNameFor } from './util';
 
 // ---- localStorage keys ----
@@ -15,6 +17,7 @@ export const LS_SEASON = 'kdb_season';
 export const LS_USERNAME = 'kdb_username';
 export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
+export const LS_RULES_PREFIX = 'kdb_rules_';
 export const LS_PLAYERS_CACHE = 'kdb_players_cache_v1';
 export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v1_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
@@ -35,6 +38,7 @@ interface AppState {
   prevDraftLoaded: boolean;
   boardRounds: number | null;
   boardOrder: string[] | null;
+  rules: LeagueRules;
   rostersLoadedAt: Date | null;
   draftLoadedAt: Date | null;
   boardLoadedAt: Date | null;
@@ -55,6 +59,7 @@ export const state: AppState = {
   prevDraftLoaded: false,
   boardRounds: null,
   boardOrder: null,
+  rules: { ...DEFAULT_LEAGUE_RULES },
   rostersLoadedAt: null,
   draftLoadedAt: null,
   boardLoadedAt: null,
@@ -87,7 +92,7 @@ export function toggleKeeper(rosterId: number, playerId: string): boolean {
   if (idx >= 0) {
     list.splice(idx, 1);
   } else {
-    if (list.length >= 2) return false;
+    if (list.length >= state.rules.maxKeepers) return false;
     list.push(playerId);
   }
   state.keepers[rosterId] = list;
@@ -133,4 +138,24 @@ export function ensureBoardOrder(): void {
 export function ownerIdOfRoster(rosterId: number): string | null {
   const r = state.rosters.find((x) => x.roster_id === rosterId);
   return r ? r.owner_id : null;
+}
+
+// ---------- league rules persistence ----------
+function rulesKey(): string {
+  return LS_RULES_PREFIX + state.leagueId;
+}
+export function loadRulesFromStorage(): void {
+  try {
+    const raw = localStorage.getItem(rulesKey());
+    state.rules = raw ? { ...DEFAULT_LEAGUE_RULES, ...JSON.parse(raw) } : { ...DEFAULT_LEAGUE_RULES };
+  } catch {
+    state.rules = { ...DEFAULT_LEAGUE_RULES };
+  }
+}
+export function saveRules(): void {
+  localStorage.setItem(rulesKey(), JSON.stringify(state.rules));
+}
+export function updateRules(patch: Partial<LeagueRules>): void {
+  state.rules = { ...state.rules, ...patch };
+  saveRules();
 }
