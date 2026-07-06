@@ -172,20 +172,22 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
 
   const playerIds = (roster.players || []).slice();
   const playersMap = state.playersMap || {};
+
+  // Per-player potential value (if this team kept them alone, ignoring collisions).
+  // Computed before sorting so within-position order can rank by it.
+  const potentialValue: Record<string, SurplusValue> = {};
+  playerIds.forEach((pid) => {
+    const cr = potentialKeeperCostFor(pid, roster.roster_id);
+    potentialValue[pid] = keeperSurplusValueFor(pid, cr, roster.roster_id);
+  });
+
   playerIds.sort((a, b) => {
     const pa = playersMap[a];
     const pb = playersMap[b];
     const oa = pa ? POSITION_ORDER[pa.pos] ?? 6 : 6;
     const ob = pb ? POSITION_ORDER[pb.pos] ?? 6 : 6;
     if (oa !== ob) return oa - ob;
-    return (pa ? pa.rank : 9999) - (pb ? pb.rank : 9999);
-  });
-
-  // Per-player potential value (if this team kept them alone, ignoring collisions).
-  const potentialValue: Record<string, SurplusValue> = {};
-  playerIds.forEach((pid) => {
-    const cr = potentialKeeperCostFor(pid, roster.roster_id);
-    potentialValue[pid] = keeperSurplusValueFor(pid, cr, roster.roster_id);
+    return potentialValue[b].value - potentialValue[a].value;
   });
   // top maxKeepers value candidates that actually have an ADP (positive-value, real market)
   const rankedCandidates = playerIds

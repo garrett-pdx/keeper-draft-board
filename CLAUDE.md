@@ -79,10 +79,11 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
 ## The four tabs
 
 - **Rosters & Keepers** (`#panel-rosters`): one card per team, players grouped by
-  position. Each player shows a keeper-cost round tag, a surplus-value badge, and a
-  star toggle (max keepers/team per `state.rules.maxKeepers`, enforced). Teams are
-  sorted by their best available keeper value, descending. Same-manager repeat keepers
-  get an amber "inflated" highlight.
+  position, each position group sorted by potential keeper value descending. Each player
+  shows a keeper-cost round tag, a surplus-value badge, and a star toggle (max
+  keepers/team per `state.rules.maxKeepers`, enforced). Teams are sorted by their best
+  available keeper value, descending. Same-manager repeat keepers get an amber
+  "inflated" highlight.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag headers to reorder,
