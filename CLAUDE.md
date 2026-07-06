@@ -90,9 +90,14 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   "inflated" highlight.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
-- **Draft Board** (`#panel-board`): a grid, one column per team (drag headers to reorder,
-  persisted), one row per round. Only keeper picks are filled in, placed at their cost
-  round. Shows value + collision warnings per cell.
+- **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
+  to reorder, persisted; headers are keyboard-focusable and refocus themselves after a
+  move since re-render rebuilds the table). Only keeper picks are filled in, placed at
+  their cost round, tagged with the exact overall pick number once this season's draft
+  order is known. Open cells show a traded-away/incoming-pick note (`→ {team}` /
+  `+N incoming from {team}`) for rounds affected by a trade. Shows value + bumped-round
+  warnings per cell; unkeepable players are excluded from the grid and listed in an
+  alert below it.
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
   rounds) with a "Reset to Mudd League defaults" shortcut. Auto-saves per league on
   change; re-renders every currently-loaded tab so numbers update immediately.

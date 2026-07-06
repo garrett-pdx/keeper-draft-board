@@ -297,6 +297,11 @@
   .board-warn{font-size:10px;}
   .bumped-tag{color:var(--flag);}
   .board-unkeepable{margin-bottom:14px;}
+  .pick-tag{font-family:'IBM Plex Mono',monospace; font-size:10px; padding:1px 6px; border-radius:20px; border:1px solid var(--border-bright); color:var(--slate); white-space:nowrap;}
+  .board-cell-traded{font-style:italic; color:var(--slate); font-size:11px;}
+  .board-cell-traded.incoming-note{margin-top:4px;}
+  .board-cell.is-traded-away{background:rgba(245,165,36,0.06);}
+  .board-table th[role="button"]{cursor:grab;}
 
   /* ---------- Settings panel ---------- */
   .settings-card{

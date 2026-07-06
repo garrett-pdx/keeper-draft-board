@@ -5,6 +5,8 @@ import {
   ensurePrevDraftLoaded,
   ensureTradedPicksLoaded,
 } from '../data';
+import { exactPickForRoster } from '../domain/draftOrder';
+import { pickCapacity } from '../domain/tradedPicks';
 import { getRosterKeeperCostsFor } from '../selectors';
 import { ensureBoardOrder, saveBoardOrder, state } from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
@@ -23,6 +25,20 @@ function reorderBoardColumns(draggedId: string, targetId: string): void {
   state.boardOrder = order;
   saveBoardOrder();
   renderBoard();
+  // renderBoard() rebuilds the whole table, destroying the focused <th> —
+  // re-find it by its stable data-roster-id and refocus after the repaint.
+  requestAnimationFrame(() => {
+    const th = $(`.board-table th[data-roster-id="${draggedId}"]`) as HTMLElement | null;
+    th?.focus();
+  });
+}
+
+function moveColumn(rid: string, direction: -1 | 1): void {
+  const order = state.boardOrder || [];
+  const from = order.indexOf(rid);
+  const to = from + direction;
+  if (from === -1 || to < 0 || to >= order.length) return;
+  reorderBoardColumns(rid, order[to]);
 }
 
 export async function loadBoard(force?: boolean): Promise<void> {
@@ -68,13 +84,22 @@ export function renderBoard(): void {
   const container = $('#boardContent')!;
   container.innerHTML = '';
   if (!state.rosters.length || !state.boardOrder) {
-    container.appendChild(el('div', { class: 'empty-state' }, 'Load the Rosters tab first, then come back here.'));
+    container.appendChild(
+      el('div', { class: 'empty-state' }, 'Load the Rosters tab first, then come back here.'),
+    );
     return;
   }
   const playersMap = state.playersMap || {};
   const rosterById: Record<string, SleeperRoster> = {};
   state.rosters.forEach((r) => (rosterById[String(r.roster_id)] = r));
   const rounds = state.boardRounds || 15;
+  const teamCount = state.rosters.length || 10;
+  const trades = state.tradedPicks || [];
+  const teamNameForRoster = (rid: number): string => {
+    const roster = rosterById[String(rid)];
+    const user = roster ? state.users.find((u) => u.user_id === roster.owner_id) : null;
+    return user ? displayNameFor(user) : `Team ${rid}`;
+  };
 
   // pre-compute each roster's keeper placements: round -> { players: [...] }.
   // Keepers that cannotBeKept occupy no round — collected separately for the
@@ -110,6 +135,9 @@ export function renderBoard(): void {
       {
         draggable: 'true',
         'data-roster-id': rid,
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `${teamName} column. Press left or right arrow to reorder.`,
         ondragstart: (e: Event) => {
           const de = e as DragEvent;
           de.dataTransfer!.setData('text/plain', rid);
@@ -127,6 +155,16 @@ export function renderBoard(): void {
           (de.currentTarget as HTMLElement).classList.remove('drop-target');
           const draggedId = de.dataTransfer!.getData('text/plain');
           reorderBoardColumns(draggedId, rid);
+        },
+        onkeydown: (e: Event) => {
+          const ke = e as KeyboardEvent;
+          if (ke.key === 'ArrowLeft') {
+            ke.preventDefault();
+            moveColumn(rid, -1);
+          } else if (ke.key === 'ArrowRight') {
+            ke.preventDefault();
+            moveColumn(rid, 1);
+          }
         },
       },
       el(
@@ -148,16 +186,26 @@ export function renderBoard(): void {
     for (const rid of state.boardOrder) {
       const roster = rosterById[rid];
       if (!roster) continue;
+      const ridNum = roster.roster_id;
       const cellData = placements[rid] && placements[rid][round];
-      let cellContent: HTMLElement;
+      const capacity = pickCapacity(trades, round, ridNum);
+      const outgoing = trades.find((t) => t.round === round && t.rosterId === ridNum);
+      const incoming = trades.filter((t) => t.round === round && t.ownerId === ridNum);
+      const cellChildren: (HTMLElement | null)[] = [];
       if (cellData && cellData.players && cellData.players.length) {
         const parts = cellData.players.map((c) => {
           const p = playersMap[c.playerId];
           const name = p ? `${p.first} ${p.last}`.trim() : c.playerId;
           const pos = p ? p.pos : '';
+          const pickNum =
+            c.consumedPick ?? exactPickForRoster(state.draft, ridNum, round, teamCount);
           let valEl: HTMLElement | null = null;
           if (c.hasAdp === false) {
-            valEl = el('span', { class: 'val-tag na', title: 'Not being drafted this year' }, 'no ADP');
+            valEl = el(
+              'span',
+              { class: 'val-tag na', title: 'Not being drafted this year' },
+              'no ADP',
+            );
           } else if (typeof c.value === 'number') {
             const sign = c.value > 0 ? '+' : '';
             valEl = el(
@@ -177,6 +225,7 @@ export function renderBoard(): void {
               'div',
               { class: 'bp-meta' },
               pos ? el('span', { class: 'pos-tag pos-' + pos }, pos) : null,
+              pickNum !== null ? el('span', { class: 'pick-tag' }, `Pick ${pickNum}`) : null,
               valEl,
               c.bumped ? el('span', { class: 'board-warn bumped-tag' }, 'bumped') : null,
             ),
@@ -185,11 +234,36 @@ export function renderBoard(): void {
         // Multiple players in one cell is a valid, non-alarming state now —
         // it means this roster holds more than one pick that round (via
         // trade), not a collision. No cell-level warning needed here.
-        cellContent = el('div', null, parts);
+        cellChildren.push(el('div', null, parts));
+      } else if (capacity === 0 && outgoing) {
+        cellChildren.push(
+          el(
+            'span',
+            { class: 'board-cell-traded', title: 'This round’s pick was traded away' },
+            `→ ${teamNameForRoster(outgoing.ownerId)}`,
+          ),
+        );
       } else {
-        cellContent = el('span', { class: 'board-cell-empty' }, '—');
+        const exactPick = exactPickForRoster(state.draft, ridNum, round, teamCount);
+        cellChildren.push(
+          el('span', { class: 'board-cell-empty' }, exactPick !== null ? `Pick ${exactPick}` : '—'),
+        );
       }
-      tr.appendChild(el('td', { class: 'board-cell' + (cellData ? ' has-player' : '') }, cellContent));
+      if (incoming.length) {
+        const fromNames = incoming.map((t) => teamNameForRoster(t.rosterId)).join(', ');
+        cellChildren.push(
+          el(
+            'div',
+            { class: 'board-cell-traded incoming-note' },
+            `+${incoming.length} incoming from ${fromNames}`,
+          ),
+        );
+      }
+      const cellClasses =
+        'board-cell' +
+        (cellData ? ' has-player' : '') +
+        (capacity === 0 && outgoing ? ' is-traded-away' : '');
+      tr.appendChild(el('td', { class: cellClasses }, ...cellChildren));
     }
     tbody.appendChild(tr);
   }
