@@ -27,13 +27,76 @@ describe('normalizePlayerName', () => {
 
 describe('matchAdpToPlayers', () => {
   const playersMap: PlayersMap = {
-    p1: { id: 'p1', first: "Ja'Marr", last: 'Chase', pos: 'WR', team: 'CIN', rank: 1 },
-    p2: { id: 'p2', first: 'Michael', last: 'Pittman', pos: 'WR', team: 'IND', rank: 2 },
-    p3: { id: 'p3', first: 'John', last: 'Smith', pos: 'RB', team: 'FA', rank: 3 },
-    p4: { id: 'p4', first: 'John', last: 'Smith', pos: 'RB', team: 'FA', rank: 4 }, // ambiguous dupe
-    p5: { id: 'p5', first: 'Harrison', last: 'Butker', pos: 'K', team: 'KC', rank: 5 },
-    p6: { id: 'p6', first: 'Denver', last: 'Broncos', pos: 'DEF', team: 'DEN', rank: 6 },
-    p7: { id: 'p7', first: 'Puka', last: 'Nacua', pos: 'WR', team: 'LAR', rank: 7 },
+    p1: {
+      id: 'p1',
+      first: "Ja'Marr",
+      last: 'Chase',
+      pos: 'WR',
+      team: 'CIN',
+      rank: 1,
+      birthDate: null,
+      espnId: null,
+    },
+    p2: {
+      id: 'p2',
+      first: 'Michael',
+      last: 'Pittman',
+      pos: 'WR',
+      team: 'IND',
+      rank: 2,
+      birthDate: null,
+      espnId: null,
+    },
+    p3: {
+      id: 'p3',
+      first: 'John',
+      last: 'Smith',
+      pos: 'RB',
+      team: 'FA',
+      rank: 3,
+      birthDate: null,
+      espnId: null,
+    },
+    p4: {
+      id: 'p4',
+      first: 'John',
+      last: 'Smith',
+      pos: 'RB',
+      team: 'FA',
+      rank: 4,
+      birthDate: null,
+      espnId: null,
+    }, // ambiguous dupe
+    p5: {
+      id: 'p5',
+      first: 'Harrison',
+      last: 'Butker',
+      pos: 'K',
+      team: 'KC',
+      rank: 5,
+      birthDate: null,
+      espnId: null,
+    },
+    p6: {
+      id: 'p6',
+      first: 'Denver',
+      last: 'Broncos',
+      pos: 'DEF',
+      team: 'DEN',
+      rank: 6,
+      birthDate: null,
+      espnId: null,
+    },
+    p7: {
+      id: 'p7',
+      first: 'Puka',
+      last: 'Nacua',
+      pos: 'WR',
+      team: 'LAR',
+      rank: 7,
+      birthDate: null,
+      espnId: null,
+    },
   };
   const entry = (players: AdpSnapshotEntry['players']): AdpSnapshotEntry => ({
     teams: 10,
@@ -51,7 +114,7 @@ describe('matchAdpToPlayers', () => {
       ],
       playersMap,
     );
-    expect(result).toEqual({ p1: 4.6, p2: 55.2 });
+    expect(result.adp).toEqual({ p1: 4.6, p2: 55.2 });
   });
 
   it('skips a name + position collision (ambiguous match)', () => {
@@ -59,7 +122,7 @@ describe('matchAdpToPlayers', () => {
       [entry([{ name: 'John Smith', position: 'RB', team: 'FA', adp: 120 }])],
       playersMap,
     );
-    expect(result).toEqual({});
+    expect(result.adp).toEqual({});
   });
 
   it('skips players with no position match and non-positive adp', () => {
@@ -72,7 +135,7 @@ describe('matchAdpToPlayers', () => {
       ],
       playersMap,
     );
-    expect(result).toEqual({});
+    expect(result.adp).toEqual({});
   });
 
   it('maps FFC\'s "PK" to Sleeper\'s "K" for kickers', () => {
@@ -80,7 +143,7 @@ describe('matchAdpToPlayers', () => {
       [entry([{ name: 'Harrison Butker', position: 'PK', team: 'KC', adp: 180 }])],
       playersMap,
     );
-    expect(result).toEqual({ p5: 180 });
+    expect(result.adp).toEqual({ p5: 180 });
   });
 
   it('matches team defenses by team abbreviation, not name', () => {
@@ -90,7 +153,7 @@ describe('matchAdpToPlayers', () => {
       [entry([{ name: 'Denver Defense', position: 'DEF', team: 'DEN', adp: 140 }])],
       playersMap,
     );
-    expect(result).toEqual({ p6: 140 });
+    expect(result.adp).toEqual({ p6: 140 });
   });
 
   it('skips a defense with no team match', () => {
@@ -98,7 +161,7 @@ describe('matchAdpToPlayers', () => {
       [entry([{ name: 'Nowhere Defense', position: 'DEF', team: 'XXX', adp: 140 }])],
       playersMap,
     );
-    expect(result).toEqual({});
+    expect(result.adp).toEqual({});
   });
 
   it('falls back to a lower-priority entry for a player missing from the top one', () => {
@@ -116,9 +179,25 @@ describe('matchAdpToPlayers', () => {
     };
     const result = matchAdpToPlayers([halfPpr, ppr], playersMap);
     // present in the higher-priority (half-ppr) entry: that value wins
-    expect(result.p1).toBe(4.1);
+    expect(result.adp.p1).toBe(4.1);
     // missing from half-ppr, but found in the fallback ppr entry
-    expect(result.p7).toBe(2.5);
+    expect(result.adp.p7).toBe(2.5);
+  });
+
+  it('captures each matched player\'s high/low range from the same entry', () => {
+    const result = matchAdpToPlayers(
+      [entry([{ name: "Ja'Marr Chase", position: 'WR', team: 'CIN', adp: 4.6, high: 1, low: 12 }])],
+      playersMap,
+    );
+    expect(result.range.p1).toEqual({ high: 1, low: 12 });
+  });
+
+  it('defaults range to nulls when FFC omits high/low for a matched player', () => {
+    const result = matchAdpToPlayers(
+      [entry([{ name: "Ja'Marr Chase", position: 'WR', team: 'CIN', adp: 4.6 }])],
+      playersMap,
+    );
+    expect(result.range.p1).toEqual({ high: null, low: null });
   });
 });
 

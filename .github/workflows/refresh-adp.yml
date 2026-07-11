@@ -1,4 +1,4 @@
-name: Refresh ADP data
+name: Refresh ADP and outlook data
 
 on:
   schedule:
@@ -20,10 +20,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run fetch-adp
-      - name: Commit snapshot if changed
+      - run: npm run fetch-outlooks
+      - name: Commit snapshots if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/adp-snapshot.json
-          git diff --cached --quiet && echo "No ADP changes." || git commit -m "Refresh ADP snapshot"
+          git add public/adp-snapshot.json public/outlook-snapshot.json
+          git diff --cached --quiet && echo "No changes." || git commit -m "Refresh ADP and outlook snapshots"
           git push

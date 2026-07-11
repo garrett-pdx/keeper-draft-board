@@ -1,5 +1,5 @@
 import type { AdpSnapshotEntry } from '../api/schemas';
-import type { AdpMap, PlayersMap } from '../types';
+import type { AdpMap, AdpRangeMap, PlayersMap } from '../types';
 
 // Real, crowd-sourced ADP from Fantasy Football Calculator, snapshotted at
 // build/CI time (see scripts/fetch-adp.mjs) — their API has no CORS support,
@@ -46,11 +46,16 @@ function normalizePosition(pos: string): string {
  * name + position. Ambiguous matches (two Sleeper players sharing a key) are
  * skipped rather than guessed at — a player unmatched in every entry just
  * falls back to "no ADP" upstream.
+ *
+ * Alongside the ADP map, also returns each matched player's high/low draft
+ * position range from that same entry — display only (e.g. an ADP volatility
+ * hint), never fed into the value metric. A player only ever gets a range
+ * when they get an adp, from the same priority-ordered entry.
  */
 export function matchAdpToPlayers(
   rankedEntries: AdpSnapshotEntry[],
   playersMap: PlayersMap,
-): AdpMap {
+): { adp: AdpMap; range: AdpRangeMap } {
   const nameIndex = new Map<string, string[]>();
   const defByTeam = new Map<string, string[]>();
   for (const pid in playersMap) {
@@ -69,9 +74,16 @@ export function matchAdpToPlayers(
   }
 
   const adpMap: AdpMap = {};
-  const assignIfUnambiguous = (candidates: string[] | undefined, adp: number) => {
+  const rangeMap: AdpRangeMap = {};
+  const assignIfUnambiguous = (
+    candidates: string[] | undefined,
+    adp: number,
+    high: number | null | undefined,
+    low: number | null | undefined,
+  ) => {
     if (candidates && candidates.length === 1 && !(candidates[0] in adpMap)) {
       adpMap[candidates[0]] = adp;
+      rangeMap[candidates[0]] = { high: high ?? null, low: low ?? null };
     }
   };
   for (const entry of rankedEntries) {
@@ -79,14 +91,14 @@ export function matchAdpToPlayers(
       if (!(fp.adp > 0)) continue;
       const pos = normalizePosition(fp.position);
       if (pos === 'DEF') {
-        assignIfUnambiguous(fp.team ? defByTeam.get(fp.team) : undefined, fp.adp);
+        assignIfUnambiguous(fp.team ? defByTeam.get(fp.team) : undefined, fp.adp, fp.high, fp.low);
         continue;
       }
       const key = `${normalizePlayerName(fp.name)}|${pos}`;
-      assignIfUnambiguous(nameIndex.get(key), fp.adp);
+      assignIfUnambiguous(nameIndex.get(key), fp.adp, fp.high, fp.low);
     }
   }
-  return adpMap;
+  return { adp: adpMap, range: rangeMap };
 }
 
 // Reception points per format, for ranking scoring formats by closeness below.

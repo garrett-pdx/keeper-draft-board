@@ -2,12 +2,13 @@ import { sleeper } from '../api/sleeper';
 import {
   ensureAdpLoaded,
   ensureBoardRoundsLoaded,
+  ensureOutlookLoaded,
   ensurePlayersLoaded,
   ensurePrevDraftLoaded,
   ensureTradedPicksLoaded,
   hasPrevDraft,
 } from '../data';
-import { NO_ADP_VALUE } from '../domain/value';
+import { outlookFor } from '../domain/outlook';
 import {
   getRosterKeeperCostsFor,
   isInflatedFor,
@@ -24,11 +25,12 @@ import {
   userForRoster,
 } from '../state';
 import type { SleeperRoster, SurplusValue } from '../types';
-import { displayNameFor, formatTime } from '../util';
+import { displayNameFor, formatBirthDate, formatTime, starSignFor } from '../util';
 import { $, el, setSpin } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
 import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
+import { openOutlookDrawer } from './outlookDrawer';
 
 export async function loadRosters(force?: boolean): Promise<void> {
   setSpin('rostersSpin', true);
@@ -62,6 +64,13 @@ export async function loadRosters(force?: boolean): Promise<void> {
       /* value badges will show as unavailable */
     }
     updateAdpSourceBadge();
+    // Best-effort, same rationale as ADP — a player simply gets no outlook
+    // teaser if this fails, nothing else on the page depends on it.
+    try {
+      await ensureOutlookLoaded(force);
+    } catch {
+      /* outlook teasers just won't render */
+    }
 
     $('#leagueName')!.textContent = state.league.name || 'League';
     $('#leagueMeta')!.textContent = `${state.rosters.length} teams · ${state.league.season} season`;
@@ -118,6 +127,64 @@ export function renderRostersNote(): void {
   );
 }
 
+// Which teams currently have their roster expanded. Session-only (not
+// persisted) — the point is just to keep the initial view condensed, not to
+// remember a choice across reloads.
+const expandedRosters = new Set<number>();
+
+function toggleRosterExpanded(rosterId: number): void {
+  if (expandedRosters.has(rosterId)) expandedRosters.delete(rosterId);
+  else expandedRosters.add(rosterId);
+  renderRosters();
+}
+
+// Same idea, one level down: which individual player rows have their detail
+// panel open. Keyed by "rosterId:playerId" rather than bare playerId — a
+// player only ever rows under one roster, but the compound key costs nothing
+// and avoids any cross-roster surprise if that ever changes.
+const expandedPlayers = new Set<string>();
+
+function togglePlayerExpanded(key: string): void {
+  if (expandedPlayers.has(key)) expandedPlayers.delete(key);
+  else expandedPlayers.add(key);
+  renderRosters();
+}
+
+function detailRow(label: string, value: string): HTMLElement {
+  return el(
+    'div',
+    { class: 'player-detail-row' },
+    el('span', { class: 'player-detail-label' }, label),
+    el('span', { class: 'player-detail-value' }, value),
+  );
+}
+
+// Last season's final standings, 1st place first — Sleeper has no simple
+// "previous season finish" endpoint already fetched here, so this is entered
+// by hand from the league itself and matched against each roster's Sleeper
+// display_name. Keep in sync each offseason.
+const LAST_SEASON_STANDINGS = [
+  'malstol',
+  'tuckersdumbteam',
+  'Gurret',
+  'kshoyer',
+  'mikestreinz',
+  'BBrown16',
+  'jonahcartwright',
+  'paulslaats',
+  'Kabroa',
+  'TnT44',
+];
+
+// Index into LAST_SEASON_STANDINGS (0 = defending champion), or Infinity for
+// an unclaimed/unmatched team so it sorts last rather than crashing the order.
+function standingsRank(roster: SleeperRoster): number {
+  const handle = userForRoster(roster.roster_id)?.display_name;
+  if (!handle) return Infinity;
+  const idx = LAST_SEASON_STANDINGS.findIndex((h) => h.toLowerCase() === handle.toLowerCase());
+  return idx === -1 ? Infinity : idx;
+}
+
 export function renderRosters(): void {
   const container = $('#rostersContent')!;
   container.innerHTML = '';
@@ -129,28 +196,15 @@ export function renderRosters(): void {
   }
   const grid = el('div', { class: 'roster-grid' });
   const sortedRosters = state.rosters.slice().sort((a, b) => {
-    const va = bestRosterKeeperValue(a);
-    const vb = bestRosterKeeperValue(b);
-    if (vb !== va) return vb - va; // highest best-keeper value first
+    const ra = standingsRank(a);
+    const rb = standingsRank(b);
+    if (ra !== rb) return ra - rb; // last season's finish, best first
     return a.roster_id - b.roster_id; // stable fallback
   });
   for (const roster of sortedRosters) {
     grid.appendChild(renderTeamCard(roster));
   }
   container.appendChild(grid);
-}
-
-// Best single keeper surplus available to a roster (ignoring collisions), used to
-// order the team cards. Players with no current ADP contribute NO_ADP_VALUE.
-function bestRosterKeeperValue(roster: SleeperRoster): number {
-  const ids = roster.players || [];
-  let best = -Infinity;
-  for (const pid of ids) {
-    const cr = potentialKeeperCostFor(pid, roster.roster_id);
-    const sv = keeperSurplusValueFor(pid, cr, roster.roster_id);
-    if (sv.value > best) best = sv.value;
-  }
-  return best === -Infinity ? NO_ADP_VALUE : best;
 }
 
 function renderTeamCard(roster: SleeperRoster): HTMLElement {
@@ -172,9 +226,29 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     `Keepers ${keeperList.length}/${maxKeepers}`,
   );
 
+  const expanded = expandedRosters.has(roster.roster_id);
+  const isChampion = standingsRank(roster) === 0;
+  const listId = `roster-list-${roster.roster_id}`;
+  const toggleExpanded = () => toggleRosterExpanded(roster.roster_id);
+
   const head = el(
     'div',
-    { class: 'team-card-head' },
+    {
+      class: 'team-card-head',
+      role: 'button',
+      tabindex: '0',
+      'aria-expanded': expanded ? 'true' : 'false',
+      'aria-controls': listId,
+      'aria-label': `${teamName} roster. Press to ${expanded ? 'collapse' : 'expand'}.`,
+      onclick: toggleExpanded,
+      onkeydown: (e: Event) => {
+        const ke = e as KeyboardEvent;
+        if (ke.key === 'Enter' || ke.key === ' ') {
+          ke.preventDefault();
+          toggleExpanded();
+        }
+      },
+    },
     el(
       'div',
       { class: 'team-avatar' },
@@ -182,8 +256,15 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     ),
     el(
       'div',
-      null,
-      el('div', { class: 'team-name' }, teamName),
+      { class: 'team-info' },
+      el(
+        'div',
+        { class: 'team-name' },
+        teamName,
+        isChampion
+          ? el('span', { class: 'champion-badge', title: 'Last season’s champion' }, '🏆')
+          : null,
+      ),
       el('div', { class: 'team-owner' }, ownerHandle),
     ),
     countBadge,
@@ -215,7 +296,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     .slice(0, maxKeepers);
   const bestSet = new Set(rankedCandidates);
 
-  const list = el('div', null);
+  const list = el('div', { class: 'team-roster-list', id: listId });
   if (!playerIds.length) {
     list.appendChild(
       el(
@@ -343,6 +424,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
             ? `Max ${maxKeepers} keepers selected`
             : 'Mark as keeper',
         onclick: (e: Event) => {
+          e.stopPropagation();
           const target = e.currentTarget as HTMLElement;
           if (maxedOut) {
             target.classList.add('shake');
@@ -358,24 +440,120 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
       active ? '★' : '☆',
     );
 
-    list.appendChild(
+    const playerKey = `${roster.roster_id}:${pid}`;
+    const playerExpanded = expandedPlayers.has(playerKey);
+    const detailId = `player-detail-${roster.roster_id}-${pid}`;
+    const togglePlayerDetail = () => togglePlayerExpanded(playerKey);
+
+    const row = el(
+      'div',
+      {
+        class: 'player-row' + (active ? ' is-keeper' : '') + (inflated ? ' is-inflated' : ''),
+        role: 'button',
+        tabindex: '0',
+        'aria-expanded': playerExpanded ? 'true' : 'false',
+        'aria-controls': detailId,
+        'aria-label': `${name} details. Press to ${playerExpanded ? 'collapse' : 'expand'}.`,
+        onclick: togglePlayerDetail,
+        onkeydown: (e: Event) => {
+          const ke = e as KeyboardEvent;
+          if (ke.key === 'Enter' || ke.key === ' ') {
+            ke.preventDefault();
+            togglePlayerDetail();
+          }
+        },
+      },
+      el('span', { class: 'pos-tag pos-' + pos }, pos),
       el(
         'div',
-        { class: 'player-row' + (active ? ' is-keeper' : '') + (inflated ? ' is-inflated' : '') },
-        el('span', { class: 'pos-tag pos-' + pos }, pos),
-        el(
-          'div',
-          { class: 'player-info' },
-          el('div', { class: 'player-name' }, name),
-          el('div', { class: 'player-sub' }, team, inflatedMark),
-        ),
-        valueBadge,
-        costTag,
-        toggle,
+        { class: 'player-info' },
+        el('div', { class: 'player-name' }, name),
+        el('div', { class: 'player-sub' }, team, inflatedMark),
       ),
+      valueBadge,
+      costTag,
+      toggle,
+    );
+
+    const cannotBeKept = active && costByPlayer[pid]?.cannotBeKept;
+    const adpIsReal = state.adpSource === 'adp';
+    const rawAdp = state.adpMap ? state.adpMap[pid] : undefined;
+    const range = state.adpRangeMap[pid];
+
+    const adpValueText = !sv.hasAdp
+      ? 'No ADP — not being drafted this year'
+      : adpIsReal && typeof rawAdp === 'number'
+        ? `Pick ${rawAdp.toFixed(1)}`
+        : typeof rawAdp === 'number'
+          ? `Sleeper rank ${rawAdp} (no live ADP)`
+          : '—';
+    const highText = adpIsReal && range?.high != null ? `Pick ${range.high}` : '—';
+    const lowText = adpIsReal && range?.low != null ? `Pick ${range.low}` : '—';
+    const costText = cannotBeKept
+      ? `Can't be kept — no available pick at Rd ${costByPlayer[pid]!.base} or earlier`
+      : `Round ${resolvedCostRound}`;
+    const valueText = cannotBeKept
+      ? 'No meaningful value — this player cannot be kept'
+      : sv.hasAdp
+        ? `${sv.value > 0 ? '+' : ''}${sv.value.toFixed(1)}`
+        : 'No ADP — not being drafted this year';
+    const draftedText = undrafted ? 'Undrafted last year' : `Round ${prevRound}`;
+    const inflationText = inflated
+      ? `Yes — kept by this team last year at Rd ${prevRound}, cost climbs one round`
+      : 'No';
+    const birthDateText = formatBirthDate(p?.birthDate) || 'Unknown';
+    const starSignText = starSignFor(p?.birthDate) || 'Unknown';
+
+    const outlook = outlookFor(p?.espnId ?? null, state.outlookMap);
+    const outlookBlock = outlook
+      ? el(
+          'div',
+          {
+            class: 'player-outlook',
+            role: 'button',
+            tabindex: '0',
+            title: 'Tap for the full outlook',
+            onclick: () => openOutlookDrawer(name, outlook),
+            onkeydown: (e: Event) => {
+              const ke = e as KeyboardEvent;
+              if (ke.key === 'Enter' || ke.key === ' ') {
+                ke.preventDefault();
+                openOutlookDrawer(name, outlook);
+              }
+            },
+          },
+          outlook,
+        )
+      : el('div', { class: 'player-outlook player-outlook-empty' }, 'No outlook available.');
+
+    const detailGrid = el(
+      'div',
+      { class: 'player-detail-grid' },
+      detailRow('Position', pos),
+      detailRow('NFL team', team || 'Free agent'),
+      detailRow('Keeper cost', costText),
+      detailRow('Keeper surplus value', valueText),
+      detailRow('Average draft position', adpValueText),
+      detailRow('Highest pick taken', highText),
+      detailRow('Lowest pick taken', lowText),
+      detailRow('Drafted last year', draftedText),
+      detailRow('Repeat-keeper inflation', inflationText),
+      detailRow('Birthdate', birthDateText),
+      detailRow('Star sign', starSignText),
+    );
+
+    const detail = el('div', { class: 'player-detail', id: detailId }, outlookBlock, detailGrid);
+
+    list.appendChild(
+      el('div', { class: 'player-item' + (playerExpanded ? ' expanded' : '') }, row, detail),
     );
     if (cannotBeKeptWarning) list.appendChild(cannotBeKeptWarning);
   }
 
-  return el('div', { class: 'team-card' }, head, list);
+  return el(
+    'div',
+    { class: 'team-card' + (expanded ? ' expanded' : '') + (isChampion ? ' champion' : '') },
+    head,
+    list,
+  );
 }

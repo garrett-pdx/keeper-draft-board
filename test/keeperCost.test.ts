@@ -86,10 +86,10 @@ describe('isInflatedForRoster', () => {
 
 describe('getRosterKeeperCosts (collision handling)', () => {
   const players: PlayersMap = {
-    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5 },
-    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40 },
-    mid: { id: 'mid', first: 'C', last: 'Mid', pos: 'WR', team: 'Z', rank: 20 },
-    deep: { id: 'deep', first: 'D', last: 'Deep', pos: 'TE', team: 'W', rank: 80 },
+    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5, birthDate: null, espnId: null },
+    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40, birthDate: null, espnId: null },
+    mid: { id: 'mid', first: 'C', last: 'Mid', pos: 'WR', team: 'Z', rank: 20, birthDate: null, espnId: null },
+    deep: { id: 'deep', first: 'D', last: 'Deep', pos: 'TE', team: 'W', rank: 80, birthDate: null, espnId: null },
   };
 
   it('bumps the better-ranked player up a round on a same-round collision', () => {
@@ -252,8 +252,8 @@ describe('getRosterKeeperCosts (collision handling)', () => {
 
 describe('getRosterKeeperCosts (trade-aware capacity)', () => {
   const players: PlayersMap = {
-    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5 },
-    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40 },
+    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5, birthDate: null, espnId: null },
+    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40, birthDate: null, espnId: null },
   };
 
   type PartialCtx = Partial<RosterKeeperContext> &
@@ -322,8 +322,8 @@ describe('getRosterKeeperCosts (trade-aware capacity)', () => {
 
   it('applies rank priority when multiple keepers cascade through a zero-capacity round', () => {
     const acePlayers: PlayersMap = {
-      ace: { id: 'ace', first: 'A', last: 'Ace', pos: 'RB', team: 'X', rank: 5 },
-      grinder: { id: 'grinder', first: 'B', last: 'Grinder', pos: 'WR', team: 'Y', rank: 60 },
+      ace: { id: 'ace', first: 'A', last: 'Ace', pos: 'RB', team: 'X', rank: 5, birthDate: null, espnId: null },
+      grinder: { id: 'grinder', first: 'B', last: 'Grinder', pos: 'WR', team: 'Y', rank: 60, birthDate: null, espnId: null },
     };
     const prevDraftMap: PrevDraftMap = {
       ace: entry({ round: 4, ownerId: 'ownerA' }),

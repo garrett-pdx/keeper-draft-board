@@ -431,8 +431,9 @@ a {
 /* ---------- Roster cards ---------- */
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 18px;
+  align-items: start;
 }
 .skeleton-card {
   height: 340px;
@@ -470,6 +471,27 @@ a {
   align-items: center;
   gap: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.team-card-head:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+.team-card-head:focus-visible {
+  outline: 2px solid var(--turf-bright);
+  outline-offset: -2px;
+}
+.team-card:not(.expanded) .team-card-head {
+  border-bottom: none;
+}
+.team-card-chevron {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--slate-dim);
+  transition: transform 0.15s ease;
+}
+.team-card.expanded .team-card-chevron {
+  transform: rotate(90deg);
 }
 .team-avatar {
   width: 36px;
@@ -491,10 +513,59 @@ a {
   height: 100%;
   object-fit: cover;
 }
+
+.team-info {
+  overflow: hidden;
+}
+
 .team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 15.5px;
   font-weight: 600;
   line-height: 1.2;
+}
+.champion-badge {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.team-card.champion {
+  border-color: rgba(245, 165, 36, 0.4);
+}
+.team-card.champion .team-card-head {
+  background: linear-gradient(
+    120deg,
+    rgba(245, 165, 36, 0.24) 0%,
+    rgba(245, 165, 36, 0.06) 45%,
+    rgba(245, 165, 36, 0.22) 100%
+  );
+  background-size: 220% 100%;
+  animation: champion-sheen 7s ease-in-out infinite;
+  border-bottom-color: rgba(245, 165, 36, 0.3);
+}
+.team-card.champion .team-card-head:hover {
+  background: linear-gradient(
+    120deg,
+    rgba(245, 165, 36, 0.3) 0%,
+    rgba(245, 165, 36, 0.1) 45%,
+    rgba(245, 165, 36, 0.28) 100%
+  );
+  background-size: 220% 100%;
+}
+@keyframes champion-sheen {
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-card.champion .team-card-head {
+    animation: none;
+  }
 }
 .team-owner {
   font-size: 12px;
@@ -516,18 +587,110 @@ a {
   background: rgba(60, 203, 127, 0.08);
 }
 
+.team-roster-list {
+  display: none;
+}
+.team-card.expanded .team-roster-list {
+  display: block;
+}
+
+.player-item:last-child .player-row {
+  border-bottom: none;
+}
+.player-item.expanded .player-row {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
 .player-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 9px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
 }
-.player-row:last-child {
-  border-bottom: none;
+.player-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.player-row:focus-visible {
+  outline: 2px solid var(--turf-bright);
+  outline-offset: -2px;
 }
 .player-row.is-keeper {
   background: rgba(245, 165, 36, 0.05);
+}
+.player-row.is-keeper:hover {
+  background: rgba(245, 165, 36, 0.09);
+}
+
+.player-detail {
+  display: none;
+  padding: 4px 16px 14px 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.14);
+}
+.player-item.expanded .player-detail {
+  display: block;
+}
+.player-item:last-child .player-detail {
+  border-bottom: none;
+}
+
+.player-outlook {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--chalk);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.player-outlook:hover {
+  border-color: var(--border-bright);
+  background: rgba(255, 255, 255, 0.05);
+}
+.player-outlook:focus-visible {
+  outline: 2px solid var(--turf-bright);
+  outline-offset: 1px;
+}
+.player-outlook-empty {
+  color: var(--slate-dim);
+  font-style: italic;
+  cursor: default;
+}
+.player-outlook-empty:hover {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.player-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px 18px;
+}
+.player-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 11.5px;
+}
+.player-detail-label {
+  color: var(--slate);
+}
+.player-detail-value {
+  color: var(--chalk);
+  font-family: 'IBM Plex Mono', monospace;
+  text-align: right;
 }
 .pos-tag {
   font-family: 'IBM Plex Mono', monospace;
@@ -952,4 +1115,107 @@ table.board-table {
   .panel {
     padding: 18px 16px 48px;
   }
+}
+
+/* ---------- Outlook drawer ---------- */
+.outlook-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  z-index: 100;
+}
+.outlook-scrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.outlook-scrim[hidden] {
+  display: none;
+}
+
+.outlook-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 640px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 101;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.outlook-drawer.open {
+  transform: translateY(0);
+}
+.outlook-drawer.dragging {
+  transition: none;
+}
+.outlook-drawer[hidden] {
+  display: none;
+}
+.outlook-drawer-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border-bright);
+  margin: 10px auto 4px;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.outlook-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.outlook-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.outlook-drawer-close {
+  appearance: none;
+  border: 1px solid var(--border-bright);
+  background: transparent;
+  color: var(--slate);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.outlook-drawer-close:hover {
+  color: var(--chalk);
+  border-color: var(--slate);
+}
+.outlook-drawer-body {
+  padding: 14px 18px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--chalk);
+}
+.outlook-drawer-attribution {
+  padding: 0 18px 14px;
+  font-size: 11px;
+  color: var(--slate-dim);
+  flex-shrink: 0;
 }

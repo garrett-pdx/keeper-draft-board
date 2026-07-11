@@ -46,21 +46,27 @@ scripts/
   fetch-adp.mjs       # CI-only Node script: pulls real ADP from Fantasy Football
                       #   Calculator, writes public/adp-snapshot.json (run by
                       #   .github/workflows/refresh-adp.yml, Mon + Fri)
+  fetch-outlooks.mjs  # CI-only Node script: pulls season-outlook paragraphs from
+                      #   ESPN's public fantasy API, writes public/outlook-snapshot.json
+                      #   (same workflow/cadence as ADP)
 public/
-  adp-snapshot.json   # generated, committed — served same-origin, matched at
-                      #   runtime against Sleeper's player dictionary
+  adp-snapshot.json      # generated, committed — served same-origin, matched at
+                        #   runtime against Sleeper's player dictionary
+  outlook-snapshot.json  # generated, committed — served same-origin, matched at
+                        #   runtime against Sleeper's player dictionary via espn_id
 src/
   main.ts             # bootstrap: tab switching + init() wiring
   state.ts            # the single `state` object, constants, localStorage persistence
   selectors.ts        # state-aware wrappers that feed the pure domain layer
   data.ts             # cache-aware "ensure*" loaders (honor a `force` flag)
-  util.ts             # formatTime, displayNameFor
+  util.ts             # formatTime, displayNameFor, formatBirthDate, starSignFor
   types.ts            # shared data shapes + (loosely-typed) Sleeper payloads
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
   api/
     sleeper.ts        # fetchJSON + endpoint helpers (each validates its response)
     adpSnapshot.ts    # fetchAdpSnapshot — reads public/adp-snapshot.json (same-origin)
-    schemas.ts        # zod schemas for Sleeper responses + our own ADP snapshot
+    outlookSnapshot.ts # fetchOutlookSnapshot — reads public/outlook-snapshot.json (same-origin)
+    schemas.ts        # zod schemas for Sleeper responses + our own ADP/outlook snapshots
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
@@ -78,6 +84,7 @@ src/
                       #   priority order so a player missing from one format can still
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
+    outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
   ui/
     dom.ts            # $, $all, el, setSpin
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge (visible data-source
@@ -86,7 +93,12 @@ src/
                       #   handleConfirmLeague, toggleManualEntry) + manual league-ID
                       #   fallback (handleLoadLeague), both routed through the shared
                       #   commitLeagueAndEnter(); enterApp, showSetupScreen
-    rosters.ts        # loadRosters + renderRosters + renderTeamCard
+    rosters.ts        # loadRosters + renderRosters + renderTeamCard (tap-to-expand team
+                      #   tiles and player rows; expanded player detail leads with an
+                      #   outlook teaser, tappable to open the outlook drawer)
+    outlookDrawer.ts  # openOutlookDrawer/closeOutlookDrawer — singleton bottom-sheet
+                      #   drawer (built lazily, appended to document.body), dismissible by
+                      #   pointer-drag swipe-down, scrim click, or Escape
     draft.ts          # loadDraft + renderDraft
     board.ts          # loadBoard + renderBoard (draggable grid)
     settings.ts       # renderSettings + wireSettingsEvents — the Settings tab
@@ -98,12 +110,17 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
 
 ## The four tabs
 
-- **Rosters & Keepers** (`#panel-rosters`): one card per team, players grouped by
-  position, each position group sorted by potential keeper value descending. Each player
-  shows a keeper-cost round tag, a surplus-value badge, and a star toggle (max
-  keepers/team per `state.rules.maxKeepers`, enforced). Teams are sorted by their best
-  available keeper value, descending. Same-manager repeat keepers get an amber
-  "inflated" highlight.
+- **Rosters & Keepers** (`#panel-rosters`): one condensed tile per team (avatar, team
+  name, keeper count), tap to expand into the full roster. Within an expanded roster,
+  players are grouped by position, each position group sorted by potential keeper value
+  descending; tapping a player row expands it further into a detail panel led by a
+  4-line-clamped season-outlook teaser (tap it to open the full text in a bottom drawer,
+  swipe down/click the scrim/Escape to dismiss — see "Player outlook pipeline"), followed
+  by the keeper-cost round, surplus-value, ADP range, birthdate/star sign, etc. Each
+  player row also shows a keeper-cost round tag, a surplus-value badge, and a star toggle
+  (max keepers/team per `state.rules.maxKeepers`, enforced). Teams are sorted by last
+  season's final standings (hand-maintained list in `rosters.ts`); the defending champion
+  gets a gold-tinted tile. Same-manager repeat keepers get an amber "inflated" highlight.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
@@ -181,6 +198,47 @@ runtime:
   Ambiguous name+position collisions are skipped, not guessed at. If fewer than 20
   players end up matched across all entries, this falls back to Sleeper's overall
   player rank as a proxy (`state.adpSource === 'rank'`), same as before.
+
+## Player outlook pipeline
+
+Each roster card's expanded player detail leads with a short editorial "season outlook"
+paragraph, tappable to open the full text in a bottom drawer. The source is ESPN's public
+fantasy football API (the same `kona_player_info` view ESPN's own frontend calls,
+`https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/<year>/segments/0/
+leaguedefaults/1?view=kona_player_info`) — **undocumented** (no official terms page for
+it specifically), free, and requires **no API key or signup**. Two things make this a
+meaningfully different case from the ADP source, worth calling out explicitly so a future
+change doesn't assume the same constraints:
+
+- **CORS is actually open here** (confirmed live: the endpoint reflects whatever `Origin`
+  header the request sends, including on the preflight for the custom `X-Fantasy-Filter`
+  header this endpoint requires) — unlike Fantasy Football Calculator, this endpoint
+  *could* be called directly from the browser at runtime. It's still fetched at CI time
+  instead, same cadence as ADP, purely for performance/consistency (one static snapshot
+  beats every page load hitting a third party we have no support relationship with) — not
+  because of a CORS block.
+- Matching against Sleeper's player dictionary is a **direct `espn_id` lookup**, not fuzzy
+  name matching — Sleeper's own player objects carry an `espn_id` field (confirmed live:
+  Josh Allen is Sleeper id `4984`, `espn_id: 3918298`, which is exactly ESPN's own id for
+  him), so there's no ambiguity/normalization problem like FFC's name-keyed data has.
+
+- `scripts/fetch-outlooks.mjs` fetches each offense-relevant position slot (QB/RB/WR/TE/
+  DEF/K — ESPN's own `filterSlotIds`) and keeps only players with a non-empty
+  `player.seasonOutlook`, writing `public/outlook-snapshot.json` keyed by `espnId`. Real
+  coverage is skill-position-only in practice — defenses and kickers come back with zero
+  written outlooks (confirmed live), so those positions simply show "No outlook available."
+  rather than a broken lookup.
+- `.github/workflows/refresh-adp.yml` runs this alongside the ADP fetch (same schedule, one
+  combined commit) — deliberately combined into one workflow rather than a second scheduled
+  job, to avoid two independent jobs racing to push to `main` around the same cron tick.
+- At runtime, `ensureOutlookLoaded` (`src/data.ts`) fetches the snapshot same-origin and
+  builds a flat `espnId -> outlook` map; `outlookFor` (`src/domain/outlook.ts`) does the
+  actual per-player lookup against a Sleeper player's `espnId`. A player with no match (or
+  when the whole fetch fails) just renders no outlook teaser — nothing else on the page
+  depends on this data.
+- Being undocumented, `scripts/fetch-outlooks.mjs` deliberately keeps request volume low
+  (one request per position slot, twice weekly, ~300ms apart) rather than polling
+  per-player — the same "good citizen" posture as the ADP fetcher.
 
 ## The value metric
 

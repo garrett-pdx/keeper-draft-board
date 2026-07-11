@@ -8,12 +8,25 @@ export interface SlimPlayer {
   pos: string;
   team: string;
   rank: number;
+  birthDate: string | null;
+  espnId: number | null;
 }
 export type PlayersMap = Record<string, SlimPlayer>;
 
 /** player_id -> ADP pick number (or a rank proxy when ADP is unavailable). */
 export type AdpMap = Record<string, number>;
 export type AdpSource = 'adp' | 'rank' | null;
+
+/**
+ * player_id -> the earliest/latest pick this player was actually taken across
+ * the real drafts behind their matched ADP entry — display only, never fed
+ * into the value metric. Absent for a player matched via the rank-proxy
+ * fallback (no real ADP entry to pull a range from).
+ */
+export type AdpRangeMap = Record<string, { high: number | null; low: number | null }>;
+
+/** espn_id (as a string key) -> season outlook paragraph. See domain/outlook.ts. */
+export type OutlookMap = Record<string, string>;
 
 /** One player's prior-season draft record, used to derive keeper cost. */
 export interface PrevDraftEntry {

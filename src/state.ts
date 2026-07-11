@@ -2,8 +2,10 @@ import type { SleeperDraft } from './api/schemas';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type {
   AdpMap,
+  AdpRangeMap,
   AdpSource,
   LeagueRules,
+  OutlookMap,
   PlayersMap,
   PrevDraftMap,
   SleeperLeague,
@@ -20,8 +22,9 @@ export const LS_USERNAME = 'kdb_username';
 export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
 export const LS_RULES_PREFIX = 'kdb_rules_';
-export const LS_PLAYERS_CACHE = 'kdb_players_cache_v1';
-export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v1_';
+export const LS_PLAYERS_CACHE = 'kdb_players_cache_v3'; // v3: added espnId
+export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v2_'; // v2: added high/low range
+export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v1_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 
 export const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
@@ -34,7 +37,9 @@ interface AppState {
   rosters: SleeperRoster[];
   playersMap: PlayersMap | null;
   adpMap: AdpMap | null;
+  adpRangeMap: AdpRangeMap;
   adpSource: AdpSource;
+  outlookMap: OutlookMap;
   keepers: Record<string, string[]>;
   prevDraftMap: PrevDraftMap | null;
   prevDraftLoaded: boolean;
@@ -57,7 +62,9 @@ export const state: AppState = {
   rosters: [],
   playersMap: null,
   adpMap: null,
+  adpRangeMap: {},
   adpSource: null,
+  outlookMap: {},
   keepers: {},
   prevDraftMap: null,
   prevDraftLoaded: false,

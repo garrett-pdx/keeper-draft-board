@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "fetch-adp": "node scripts/fetch-adp.mjs"
+    "fetch-adp": "node scripts/fetch-adp.mjs",
+    "fetch-outlooks": "node scripts/fetch-outlooks.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

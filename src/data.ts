@@ -1,11 +1,18 @@
 // Stateful, cache-aware data loaders. Each honors a `force` flag to bypass cache.
 import { fetchAdpSnapshot } from './api/adpSnapshot';
+import { fetchOutlookSnapshot } from './api/outlookSnapshot';
 import { fetchJSON, sleeper } from './api/sleeper';
-import { LS_ADP_CACHE_PREFIX, LS_PLAYERS_CACHE, PLAYERS_MAX_AGE_MS, state } from './state';
+import {
+  LS_ADP_CACHE_PREFIX,
+  LS_OUTLOOK_CACHE_PREFIX,
+  LS_PLAYERS_CACHE,
+  PLAYERS_MAX_AGE_MS,
+  state,
+} from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
 import type { TradedPicksList } from './domain/tradedPicks';
-import type { PlayersMap, PrevDraftMap } from './types';
+import type { OutlookMap, PlayersMap, PrevDraftMap } from './types';
 
 // ---------- players map (cached, slimmed) ----------
 export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> {
@@ -28,6 +35,7 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
     if (!p) continue;
     const fantasyPositions = p.fantasy_positions;
     const searchRank = p.search_rank;
+    const espnId = typeof p.espn_id === 'string' ? Number(p.espn_id) : p.espn_id;
     slim[pid] = {
       id: pid,
       first: p.first_name || '',
@@ -35,6 +43,8 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
       pos: (fantasyPositions && fantasyPositions[0]) || p.position || '—',
       team: p.team || 'FA',
       rank: typeof searchRank === 'number' ? searchRank : 9999,
+      birthDate: p.birth_date || null,
+      espnId: typeof espnId === 'number' && !isNaN(espnId) ? espnId : null,
     };
   }
   state.playersMap = slim;
@@ -55,6 +65,7 @@ export async function ensureAdpLoaded(force?: boolean) {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
       if (cached && Date.now() - cached.ts < PLAYERS_MAX_AGE_MS) {
         state.adpMap = cached.data;
+        state.adpRangeMap = cached.range || {};
         state.adpSource = cached.source;
         return { adpMap: state.adpMap, source: state.adpSource };
       }
@@ -64,6 +75,7 @@ export async function ensureAdpLoaded(force?: boolean) {
   }
 
   let adpMap: Record<string, number> | null = null;
+  let rangeMap: Record<string, { high: number | null; low: number | null }> = {};
   try {
     const snapshot = await fetchAdpSnapshot();
     const teamCount = state.rosters.length || 10;
@@ -72,7 +84,10 @@ export async function ensureAdpLoaded(force?: boolean) {
     if (ranked.length) {
       const players = await ensurePlayersLoaded(false);
       const matched = matchAdpToPlayers(ranked, players);
-      if (Object.keys(matched).length >= 20) adpMap = matched;
+      if (Object.keys(matched.adp).length >= 20) {
+        adpMap = matched.adp;
+        rangeMap = matched.range;
+      }
     }
   } catch {
     /* fall through to rank proxy */
@@ -80,23 +95,64 @@ export async function ensureAdpLoaded(force?: boolean) {
 
   if (adpMap) {
     state.adpMap = adpMap;
+    state.adpRangeMap = rangeMap;
     state.adpSource = 'adp';
   } else {
     const players = await ensurePlayersLoaded(false);
     const rankMap: Record<string, number> = {};
     for (const pid in players) rankMap[pid] = players[pid].rank;
     state.adpMap = rankMap;
+    state.adpRangeMap = {}; // rank proxy has no real draft-position range to show
     state.adpSource = 'rank';
   }
   try {
     localStorage.setItem(
       cacheKey,
-      JSON.stringify({ ts: Date.now(), data: state.adpMap, source: state.adpSource }),
+      JSON.stringify({
+        ts: Date.now(),
+        data: state.adpMap,
+        range: state.adpRangeMap,
+        source: state.adpSource,
+      }),
     );
   } catch {
     /* storage full — proceed without caching */
   }
   return { adpMap: state.adpMap, source: state.adpSource };
+}
+
+// ---------- player outlooks (ESPN, snapshotted at build time — see domain/outlook.ts) ----------
+export async function ensureOutlookLoaded(force?: boolean): Promise<OutlookMap> {
+  if (Object.keys(state.outlookMap).length && !force) return state.outlookMap;
+  const cacheKey = LS_OUTLOOK_CACHE_PREFIX + state.season;
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      if (cached && Date.now() - cached.ts < PLAYERS_MAX_AGE_MS) {
+        state.outlookMap = cached.data || {};
+        return state.outlookMap;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const outlookMap: OutlookMap = {};
+  try {
+    const snapshot = await fetchOutlookSnapshot();
+    snapshot.players.forEach((p) => {
+      outlookMap[String(p.espnId)] = p.outlook;
+    });
+  } catch {
+    /* leave empty — outlook teasers just won't render */
+  }
+  state.outlookMap = outlookMap;
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: outlookMap }));
+  } catch {
+    /* storage full — proceed without caching */
+  }
+  return state.outlookMap;
 }
 
 // ---------- previous season draft (for keeper cost) ----------

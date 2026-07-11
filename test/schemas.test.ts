@@ -4,6 +4,7 @@ import {
   DraftSchema,
   LeagueSchema,
   LeaguesForUserSchema,
+  OutlookSnapshotSchema,
   PicksSchema,
   RostersSchema,
   TradedPicksSchema,
@@ -187,6 +188,20 @@ describe('AdpSnapshotSchema', () => {
     expect(parsed.entries[0].players[0].adp).toBe(1.5);
   });
 
+  it('parses a player with a high/low draft-position range', () => {
+    const parsed = AdpSnapshotSchema.parse({
+      fetchedAt: '2026-07-06T00:00:00.000Z',
+      entries: [
+        {
+          teams: 10,
+          format: 'half-ppr',
+          players: [{ name: 'Bijan Robinson', position: 'RB', team: 'ATL', adp: 1.5, high: 1, low: 4 }],
+        },
+      ],
+    });
+    expect(parsed.entries[0].players[0]).toMatchObject({ high: 1, low: 4 });
+  });
+
   it('tolerates a missing meta block and a null team', () => {
     const parsed = AdpSnapshotSchema.parse({
       fetchedAt: '2026-07-06T00:00:00.000Z',
@@ -203,6 +218,26 @@ describe('AdpSnapshotSchema', () => {
       AdpSnapshotSchema.parse({
         fetchedAt: '2026-07-06T00:00:00.000Z',
         entries: [{ teams: 10, format: 'ppr' }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('OutlookSnapshotSchema', () => {
+  it('parses the shape written by scripts/fetch-outlooks.mjs', () => {
+    const parsed = OutlookSnapshotSchema.parse({
+      fetchedAt: '2026-07-06T00:00:00.000Z',
+      attribution: 'Player outlooks provided by ESPN Fantasy Football',
+      players: [{ espnId: 3918298, name: 'Josh Allen', outlook: 'Allen enters his age-30...' }],
+    });
+    expect(parsed.players[0].espnId).toBe(3918298);
+  });
+
+  it('rejects a player missing the required outlook text', () => {
+    expect(() =>
+      OutlookSnapshotSchema.parse({
+        fetchedAt: '2026-07-06T00:00:00.000Z',
+        players: [{ espnId: 1, name: 'Nobody' }],
       }),
     ).toThrow();
   });

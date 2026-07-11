@@ -47,6 +47,8 @@ async function fetchOne(format, teams) {
       position: p.position,
       team: p.team ?? null,
       adp: p.adp,
+      high: p.high ?? null,
+      low: p.low ?? null,
     })),
   };
 }
