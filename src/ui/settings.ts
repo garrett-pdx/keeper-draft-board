@@ -14,6 +14,9 @@ function rerenderLoadedTabs(): void {
 export function renderSettings(): void {
   ($('#maxKeepersInput') as HTMLInputElement).value = String(state.rules.maxKeepers);
   ($('#inflationRoundsInput') as HTMLInputElement).value = String(state.rules.inflationRounds);
+  const noKeeperCostInput = $('#noKeeperCostInput') as HTMLInputElement;
+  noKeeperCostInput.checked = state.rules.noKeeperCost;
+  ($('#inflationRoundsInput') as HTMLInputElement).disabled = state.rules.noKeeperCost;
 }
 
 function handleMaxKeepersChange(): void {
@@ -35,6 +38,13 @@ function handleInflationRoundsChange(): void {
   rerenderLoadedTabs();
 }
 
+function handleNoKeeperCostChange(): void {
+  const input = $('#noKeeperCostInput') as HTMLInputElement;
+  updateRules({ noKeeperCost: input.checked });
+  renderSettings();
+  rerenderLoadedTabs();
+}
+
 function handleResetRules(): void {
   updateRules({ ...DEFAULT_LEAGUE_RULES });
   renderSettings();
@@ -44,5 +54,6 @@ function handleResetRules(): void {
 export function wireSettingsEvents(): void {
   $('#maxKeepersInput')!.addEventListener('change', handleMaxKeepersChange);
   $('#inflationRoundsInput')!.addEventListener('change', handleInflationRoundsChange);
+  $('#noKeeperCostInput')!.addEventListener('change', handleNoKeeperCostChange);
   $('#resetRulesBtn')!.addEventListener('click', handleResetRules);
 }

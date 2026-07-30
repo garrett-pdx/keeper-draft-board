@@ -179,7 +179,7 @@
             <div class="last-updated mono">Last updated: <b id="boardUpdated">never</b></div>
           </div>
         </div>
-        <div class="draft-note">
+        <div class="draft-note" id="boardNote">
           Drag a column header to reorder teams. Only keeper picks are filled in — everything else
           opens up on draft day.
         </div>
@@ -198,6 +198,12 @@
           <div class="field">
             <label for="inflationRoundsInput">Inflation rounds (same-manager repeat keep)</label>
             <input type="number" id="inflationRoundsInput" min="0" step="1" />
+          </div>
+          <div class="field field-checkbox">
+            <label for="noKeeperCostInput">
+              <input type="checkbox" id="noKeeperCostInput" />
+              No keeper cost (taxi squad — keepers don't cost any draft picks)
+            </label>
           </div>
           <button class="btn btn-ghost" id="resetRulesBtn">Reset to Mudd League defaults</button>
         </div>

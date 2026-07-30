@@ -89,6 +89,13 @@ export function renderBoard(): void {
     );
     return;
   }
+  const noKeeperCost = state.rules.noKeeperCost;
+  const noteEl = $('#boardNote');
+  if (noteEl) {
+    noteEl.textContent = noKeeperCost
+      ? 'This league keeps players for free (taxi squad) — every round is open, and kept players are listed below instead.'
+      : 'Drag a column header to reorder teams. Only keeper picks are filled in — everything else opens up on draft day.';
+  }
   const playersMap = state.playersMap || {};
   const rosterById: Record<string, SleeperRoster> = {};
   state.rosters.forEach((r) => (rosterById[String(r.roster_id)] = r));
@@ -98,12 +105,20 @@ export function renderBoard(): void {
 
   // pre-compute each roster's keeper placements: round -> { players: [...] }.
   // Keepers that cannotBeKept occupy no round — collected separately for the
-  // alert area below instead.
+  // alert area below instead. In taxi squad mode (noKeeperCost) no keeper
+  // occupies a round at all — they're collected into taxiSquadByRoster and
+  // shown as a summary list above the (fully open) grid instead.
   const placements: Record<string, Record<number, { players: KeeperCostItem[] }>> = {};
   const unkeepable: { rid: string; item: KeeperCostItem }[] = [];
+  const taxiSquadByRoster: { rid: string; items: KeeperCostItem[] }[] = [];
   state.rosters.forEach((r) => {
     const rid = String(r.roster_id);
     const costs = getRosterKeeperCostsFor(r.roster_id);
+    if (noKeeperCost) {
+      if (costs.length) taxiSquadByRoster.push({ rid, items: costs });
+      placements[rid] = {};
+      return;
+    }
     const byRound: Record<number, { players: KeeperCostItem[] }> = {};
     costs.forEach((c) => {
       if (c.cannotBeKept) {
@@ -275,6 +290,27 @@ export function renderBoard(): void {
       );
     });
     container.appendChild(el('div', { class: 'error-banner board-unkeepable' }, ...lines));
+  }
+
+  if (noKeeperCost && taxiSquadByRoster.length) {
+    const rows = taxiSquadByRoster.map(({ rid, items }) => {
+      const teamName = teamNameForRoster(Number(rid));
+      const names = items
+        .map((it) => {
+          const p = playersMap[it.playerId];
+          return p ? `${p.first} ${p.last}`.trim() : it.playerId;
+        })
+        .join(', ');
+      return el('div', null, el('strong', null, `${teamName}: `), names);
+    });
+    container.appendChild(
+      el(
+        'div',
+        { class: 'info-note board-taxi-squad' },
+        el('div', null, el('strong', null, 'Taxi squad — kept for free, no picks spent:')),
+        ...rows,
+      ),
+    );
   }
 
   const wrap = el('div', { class: 'table-scroll' }, table);

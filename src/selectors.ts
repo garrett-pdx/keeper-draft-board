@@ -28,7 +28,11 @@ export function keeperSurplusValueFor(
   rosterId: number,
 ): SurplusValue {
   const teamCount = state.rosters.length || 10;
-  const exactCostPick = exactPickForRoster(state.draft, rosterId, costRound, teamCount);
+  // Taxi squad mode: no round is ever spent, so value is against an infinite
+  // cost pick (full market value) rather than this roster's actual pick.
+  const exactCostPick = state.rules.noKeeperCost
+    ? Infinity
+    : exactPickForRoster(state.draft, rosterId, costRound, teamCount);
   return keeperSurplusValue(playerId, costRound, state.adpMap || {}, teamCount, exactCostPick);
 }
 
@@ -50,5 +54,6 @@ export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {
     inflationRounds: state.rules.inflationRounds,
     draft: state.draft,
     tradedPicks: state.tradedPicks || [],
+    noKeeperCost: state.rules.noKeeperCost,
   });
 }

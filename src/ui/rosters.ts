@@ -118,13 +118,10 @@ export function renderRostersNote(): void {
       : state.adpSource === 'adp'
         ? 'Market value comes from real ADP data from Fantasy Football Calculator. '
         : '';
-  note.appendChild(
-    el(
-      'div',
-      { class: 'info-note' },
-      `Value = surplus between a player’s market round and their keeper cost round, with early-round surplus weighted more heavily (exponential curve). ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn’t being drafted this year.`,
-    ),
-  );
+  const valueExplainer = state.rules.noKeeperCost
+    ? `This league keeps players for free (taxi squad) — no round or pick is ever spent, so value here is just each player’s market strength. ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn’t being drafted this year.`
+    : `Value = surplus between a player’s market round and their keeper cost round, with early-round surplus weighted more heavily (exponential curve). ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn’t being drafted this year.`;
+  note.appendChild(el('div', { class: 'info-note' }, valueExplainer));
 }
 
 // Which teams currently have their roster expanded. Session-only (not
@@ -314,14 +311,25 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     const active = isKeeper(roster.roster_id, pid);
     const maxedOut = !active && keeperList.length >= maxKeepers;
 
+    const noKeeperCost = state.rules.noKeeperCost;
     const undrafted = !hasPrevDraft(pid);
-    const inflated = isInflatedFor(pid, roster.roster_id);
+    const inflated = noKeeperCost ? false : isInflatedFor(pid, roster.roster_id);
     const prevRound =
       state.prevDraftMap && state.prevDraftMap[pid] ? state.prevDraftMap[pid].round : null;
     let costTag: HTMLElement;
     let resolvedCostRound: number;
     let cannotBeKeptWarning: HTMLElement | null = null;
-    if (active && costByPlayer[pid]) {
+    if (noKeeperCost) {
+      resolvedCostRound = 0;
+      costTag = el(
+        'span',
+        {
+          class: 'cost-tag' + (active ? ' active' : ''),
+          title: 'This league keeps players for free — no draft pick is ever spent.',
+        },
+        'Taxi squad',
+      );
+    } else if (active && costByPlayer[pid]) {
       const c = costByPlayer[pid];
       resolvedCostRound = c.cost;
       if (c.cannotBeKept) {
@@ -489,18 +497,22 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
           : '—';
     const highText = adpIsReal && range?.high != null ? `Pick ${range.high}` : '—';
     const lowText = adpIsReal && range?.low != null ? `Pick ${range.low}` : '—';
-    const costText = cannotBeKept
-      ? `Can't be kept — no available pick at Rd ${costByPlayer[pid]!.base} or earlier`
-      : `Round ${resolvedCostRound}`;
+    const costText = noKeeperCost
+      ? 'No cost — taxi squad, kept for free'
+      : cannotBeKept
+        ? `Can't be kept — no available pick at Rd ${costByPlayer[pid]!.base} or earlier`
+        : `Round ${resolvedCostRound}`;
     const valueText = cannotBeKept
       ? 'No meaningful value — this player cannot be kept'
       : sv.hasAdp
         ? `${sv.value > 0 ? '+' : ''}${sv.value.toFixed(1)}`
         : 'No ADP — not being drafted this year';
     const draftedText = undrafted ? 'Undrafted last year' : `Round ${prevRound}`;
-    const inflationText = inflated
-      ? `Yes — kept by this team last year at Rd ${prevRound}, cost climbs one round`
-      : 'No';
+    const inflationText = noKeeperCost
+      ? 'N/A — no keeper cost in this league'
+      : inflated
+        ? `Yes — kept by this team last year at Rd ${prevRound}, cost climbs one round`
+        : 'No';
     const birthDateText = formatBirthDate(p?.birthDate) || 'Unknown';
     const starSignText = starSignFor(p?.birthDate) || 'Unknown';
 

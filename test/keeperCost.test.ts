@@ -6,6 +6,7 @@ import {
   getRosterKeeperCosts,
   type RosterKeeperContext,
 } from '../src/domain/keeperCost';
+import { pickValue } from '../src/domain/value';
 import type { PlayersMap, PrevDraftEntry, PrevDraftMap } from '../src/types';
 
 const LAST_ROUND = 14;
@@ -247,6 +248,81 @@ describe('getRosterKeeperCosts (collision handling)', () => {
     // round-midpoint approximation used when no draft order is supplied.
     expect(withoutDraft[0].cost).toBe(withDraft[0].cost);
     expect(withoutDraft[0].value).not.toBe(withDraft[0].value);
+  });
+});
+
+describe('getRosterKeeperCosts (noKeeperCost / taxi squad mode)', () => {
+  const players: PlayersMap = {
+    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5, birthDate: null, espnId: null },
+    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40, birthDate: null, espnId: null },
+  };
+
+  it('skips round assignment entirely and flags every item taxiSquad', () => {
+    const prevDraftMap: PrevDraftMap = {
+      star: entry({ round: 1, ownerId: 'ownerA' }),
+      role: entry({ round: 1, ownerId: 'ownerA' }),
+    };
+    const items = getRosterKeeperCosts({
+      keeperIds: ['star', 'role'],
+      prevDraftMap,
+      playersMap: players,
+      adpMap: { star: 8, role: 50 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+      noKeeperCost: true,
+    });
+    // both keepers would collide at round 1 (no room to bump further) under
+    // normal rules; taxi squad mode never even runs that logic.
+    expect(items.every((i) => i.taxiSquad)).toBe(true);
+    expect(items.every((i) => !i.bumped)).toBe(true);
+    expect(items.every((i) => !i.cannotBeKept)).toBe(true);
+  });
+
+  it('values a taxi squad keeper at full market value (no cost pick to subtract)', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 5, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts({
+      keeperIds: ['star'],
+      prevDraftMap,
+      playersMap: players,
+      adpMap: { star: 8 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+      noKeeperCost: true,
+    });
+    expect(items[0].hasAdp).toBe(true);
+    // keeperSurplusValue rounds to 1 decimal place
+    expect(items[0].value).toBeCloseTo(pickValue(8), 1);
+  });
+
+  it('ignores traded-pick capacity — a taxi squad keeper never consumes a pick', () => {
+    const prevDraftMap: PrevDraftMap = { star: entry({ round: 4, ownerId: 'ownerA' }) };
+    const items = getRosterKeeperCosts({
+      keeperIds: ['star'],
+      prevDraftMap,
+      playersMap: players,
+      adpMap: { star: 8 },
+      ownerId: 'ownerA',
+      rosterId: 1,
+      lastRound: LAST_ROUND,
+      teamCount: 10,
+      inflationRounds: INFLATION,
+      noKeeperCost: true,
+      tradedPicks: [1, 2, 3, 4].map((round) => ({
+        round,
+        season: '2026',
+        rosterId: 1,
+        ownerId: 8,
+        previousOwnerId: 1,
+      })),
+    });
+    expect(items[0].cannotBeKept).toBe(false);
+    expect(items[0].consumedPick).toBeNull();
   });
 });
 

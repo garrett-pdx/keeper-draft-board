@@ -83,6 +83,7 @@ export interface RosterKeeperContext {
   inflationRounds: number;
   draft?: SleeperDraft | null;
   tradedPicks?: TradedPicksList;
+  noKeeperCost?: boolean;
 }
 
 /**
@@ -172,6 +173,13 @@ function attachConsumedPicks(
 /**
  * Final costs for a roster's *selected* keepers, with capacity-aware
  * collisions resolved, then surplus value attached at each resolved cost round.
+ *
+ * When `ctx.noKeeperCost` is set (taxi squad mode), none of that applies: a
+ * keeper spends no round and no pick, so collision/capacity resolution is
+ * skipped entirely and every item comes back `taxiSquad: true`. Value still
+ * gets computed, but against an infinite cost pick (pickValue decays to 0),
+ * so it reduces to the player's full market value — i.e. purely "how good is
+ * this player," since there's no cost to weigh it against.
  */
 export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[] {
   const {
@@ -186,6 +194,7 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
     inflationRounds,
     draft,
     tradedPicks,
+    noKeeperCost,
   } = ctx;
   const trades = tradedPicks || [];
 
@@ -203,8 +212,18 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
       value: 0,
       hasAdp: false,
       consumedPick: null,
+      taxiSquad: !!noKeeperCost,
     };
   });
+
+  if (noKeeperCost) {
+    items.forEach((it) => {
+      const sv = keeperSurplusValue(it.playerId, it.cost, adpMap, teamCount, Infinity);
+      it.value = sv.value;
+      it.hasAdp = sv.hasAdp;
+    });
+    return items;
+  }
 
   assignKeeperCosts(items, playersMap, (round) => pickCapacity(trades, round, rosterId));
   attachConsumedPicks(items, trades, rosterId, draft, teamCount, playersMap);

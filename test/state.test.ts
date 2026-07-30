@@ -19,7 +19,7 @@ class MemoryStorage {
 describe('toggleKeeper', () => {
   beforeEach(() => {
     state.keepers = {};
-    state.rules = { maxKeepers: 2, inflationRounds: 1 };
+    state.rules = { maxKeepers: 2, inflationRounds: 1, noKeeperCost: false };
     state.leagueId = 'test-league';
   });
 

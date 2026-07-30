@@ -1057,6 +1057,9 @@ table.board-table {
 .board-unkeepable {
   margin-bottom: 14px;
 }
+.board-taxi-squad div {
+  margin-top: 4px;
+}
 .pick-tag {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
@@ -1094,6 +1097,16 @@ table.board-table {
 }
 .settings-card .btn-ghost {
   margin-top: 4px;
+}
+.field-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.field-checkbox input[type='checkbox'] {
+  width: auto;
+  accent-color: var(--turf);
 }
 
 .footer-note {

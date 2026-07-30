@@ -130,10 +130,13 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   order is known. Open cells show a traded-away/incoming-pick note (`→ {team}` /
   `+N incoming from {team}`) for rounds affected by a trade. Shows value + bumped-round
   warnings per cell; unkeepable players are excluded from the grid and listed in an
-  alert below it.
+  alert below it. In `noKeeperCost` ("taxi squad") leagues, no keeper ever occupies a
+  cell — every round stays fully open, and each team's kept players are listed instead
+  in a summary panel above the grid.
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
-  rounds) with a "Reset to Mudd League defaults" shortcut. Auto-saves per league on
-  change; re-renders every currently-loaded tab so numbers update immediately.
+  rounds, and a "no keeper cost / taxi squad" toggle) with a "Reset to Mudd League
+  defaults" shortcut. Auto-saves per league on change; re-renders every currently-loaded
+  tab so numbers update immediately.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 
@@ -163,6 +166,17 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   was _not_ specified by the league and was chosen by us — the rule itself is fixed (not
   user-configurable), only the _capacity per round_ (affected by `maxKeepers` and trades)
   changes how many keepers can collide.
+- **`state.rules.noKeeperCost` ("taxi squad" mode, default off)**: for leagues where keepers
+  don't cost a draft pick at all. When on, every rule above about cost rounds, inflation,
+  same-round collisions, capacity, and `cannotBeKept` is skipped entirely — see the
+  `noKeeperCost` branch in `getRosterKeeperCosts` (`src/domain/keeperCost.ts`). Every
+  `KeeperCostItem` comes back `taxiSquad: true` with no round spent. `maxKeepers` still
+  applies (it's the taxi squad size cap, not a pick-cost concept). Value is still computed
+  but against an infinite cost pick — `keeperSurplusValue(..., Infinity)` — which decays
+  `pickValue` to 0, so surplus reduces to the player's full market value: purely "how good
+  is this player," since there's no cost to weigh it against. The Draft Board
+  (`src/ui/board.ts`) reflects this by leaving every round open (no keeper ever occupies a
+  cell) and listing each team's taxi squad in a summary panel above the grid instead.
 
 ## ADP data pipeline
 
