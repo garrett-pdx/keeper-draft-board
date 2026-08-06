@@ -65,8 +65,10 @@ src/
   selectors.ts        # state-aware wrappers that feed the pure domain layer
   data.ts             # cache-aware "ensure*" loaders (honor a `force` flag)
   sync.ts             # stateful glue between api/gist.ts and `state` for shared
-                      #   keeper picks — ensureSharedKeepersLoaded, saveMyKeepers,
-                      #   startEditingMyKeepers/cancelEditingMyKeepers, clearMyKeepers
+                      #   keeper picks — refreshSharedKeepers, saveMyKeepers,
+                      #   clearMyKeepers, startEditingMyKeepers/cancelEditing…,
+                      #   commitSharedChange (retry/verify), and the background
+                      #   poll (start/stopSharedKeeperPolling)
                       #   (see "Shared keeper picks")
   util.ts             # formatTime, displayNameFor, formatBirthDate, starSignFor
   types.ts            # shared data shapes + (loosely-typed) Sleeper payloads
@@ -97,8 +99,9 @@ src/
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
     outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
-    keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers —
-                      #   pure merge logic for the shared keeper doc (see below)
+    keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers,
+                      #   samePicks — pure merge logic for the shared keeper doc
+                      #   (see below)
   ui/
     dom.ts            # $, $all, el, setSpin
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge, updateIdentityBadge,
@@ -110,15 +113,19 @@ src/
                       #   commitLeagueAndEnter(); enterApp, showSetupScreen
     rosters.ts        # loadRosters + renderRosters + renderTeamCard (tap-to-expand team
                       #   tiles and player rows; expanded player detail leads with an
-                      #   outlook teaser, tappable to open the outlook drawer) + the
-                      #   keeper lock/save/edit/withdraw controls (see below)
+                      #   outlook teaser, tappable to open the outlook drawer)
+    keeperControls.ts # the only part of the rosters tab that WRITES to the league:
+                      #   renderClaimTeamPrompt ("which team is yours?") and
+                      #   renderKeeperActions (save/lock/edit/withdraw). Takes an
+                      #   onChange callback so it never imports rosters.ts back.
+    overlay.ts        # showBusy/hideBusy — blocking "working on it" modal, used only
+                      #   for deliberate actions (save, withdraw, tapped Refresh)
     outlookDrawer.ts  # openOutlookDrawer/closeOutlookDrawer — singleton bottom-sheet
                       #   drawer (built lazily, appended to document.body), dismissible by
                       #   pointer-drag swipe-down, scrim click, or Escape
     draft.ts          # loadDraft + renderDraft
     board.ts          # loadBoard + renderBoard (draggable grid)
-    settings.ts       # renderSettings + wireSettingsEvents — league rules, the
-                      #   signed-in-manager picker, and gist sharing config
+    settings.ts       # renderSettings + wireSettingsEvents — league rules only
 test/                 # Vitest specs mirroring src/domain/
 ```
 
@@ -143,7 +150,11 @@ import no state.
   manager's own team has interactive stars — every other team's stars are a read-only
   indicator — and a 🔒 badge plus a "Locked in for the league on {date}" note appears on
   any team that has saved. The signed-in manager's own card additionally shows
-  Save & lock keepers / Edit keepers / Withdraw controls.
+  Save & lock keepers / Edit keepers / Withdraw controls. When sync is on but this
+  browser hasn't been claimed by a manager yet, a "Which team is yours?" card sits above
+  the grid — that choice gates the whole tab (until it's answered nobody can select a
+  keeper), which is exactly why it lives here and not in Settings. The header identity
+  badge re-opens it to switch teams.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
@@ -159,11 +170,9 @@ import no state.
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
   rounds, and a "no keeper cost / taxi squad" toggle) with a "Reset to Mudd League
   defaults" shortcut. Auto-saves per league on change; re-renders every currently-loaded
-  tab so numbers update immediately. A second card covers league keeper sharing: which
-  team is the signed-in manager's (a plain dropdown, since the manual league-ID setup
-  path never learns a Sleeper user_id), and an optional Gist ID / write token override
-  for pointing at a different shared list than the one baked in at build time (see
-  "Shared keeper picks").
+  tab so numbers update immediately. Deliberately nothing about keeper sharing lives
+  here — see "Shared keeper picks" for why there's no in-app gist/token field and where
+  the team claim went.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 
@@ -302,48 +311,78 @@ private tool used by ~10 friends, not an oversight — don't "fix" it by trying 
 token harder (that's not possible in a static site) or by reaching for a real backend
 without discussing it first.
 
-**Setup is optional and layered**, so the app works identically to before this feature for
-anyone who doesn't set it up:
+**Setup is build-time only, and optional.** `VITE_KEEPER_GIST_ID` /
+`VITE_KEEPER_GIST_TOKEN` come from GitHub Actions (`vars.KEEPER_GIST_ID` /
+`secrets.KEEPER_GIST_TOKEN` in `.github/workflows/deploy.yml`); for local development,
+put them in a gitignored `.env.local`. With no Gist ID configured, `canReadShared()`
+(`src/api/gist.ts`) is false and the app behaves exactly as it did when keepers were
+localStorage-only — every team's stars stay interactive, there's no lock concept, nothing
+changes. A build with an ID but no token is a supported **read-only** mode
+(`canWriteShared()` false, "League sync · read-only" badge).
 
-- With no Gist ID configured anywhere, `canReadShared()` (`src/api/gist.ts`) is false and
-  the app behaves exactly as it did when keepers were localStorage-only — every team's
-  stars stay interactive, there's no lock concept, nothing changes.
-- `VITE_KEEPER_GIST_ID` / `VITE_KEEPER_GIST_TOKEN` are baked in at build time from GitHub
-  Actions (`vars.KEEPER_GIST_ID` / `secrets.KEEPER_GIST_TOKEN` in `.github/workflows/
-deploy.yml`) — the normal path for the league's actual deployment.
-- Either can be overridden per-browser from the Settings tab (`LS_GIST_ID`/`LS_GIST_TOKEN`
-  in `src/api/gist.ts`), which also allows a **write-token-less, read-only** mode: paste
-  just the Gist ID and you see everyone's locked picks but can't save your own
-  (`canWriteShared()` false, "League sync · read-only" badge).
+There is deliberately **no in-app field for the gist ID or the token**, and adding one
+back would be a mistake on two counts: a token box invites a manager to paste a
+credential into a page that already ships one (teaching exactly the wrong habit for a
+value that is not per-user and not secret from anyone who opens devtools), and a
+per-browser gist override silently splits the league across two lists that look
+identical, which is a genuinely confusing failure for the one feature whose entire job is
+that everyone sees the same thing. One league, one build, one shared list.
 
 **Identity is honor-system, not authentication.** Sleeper has no OAuth for third-party
 apps, so there's no way to cryptographically prove which manager is at the keyboard. The
 signed-in manager's Sleeper `user_id` (`state.currentUserId`, `src/state.ts`) is learned
-automatically from the setup screen's username lookup, or set by hand in Settings (the
-manual league-ID path never learns a username). `myRosterId()` matches it against
-`roster.owner_id`. The failure mode this accepts is a friend picking the wrong team from
-the dropdown — acceptable for a private league, not something worth building real auth
-for.
+automatically from the setup screen's username lookup; `myRosterId()` matches it against
+`roster.owner_id`. When that doesn't resolve (the manual league-ID path never learns a
+username, or the account owns no team here), the **"Which team is yours?" card on the
+Rosters tab** (`renderClaimTeamPrompt`, `src/ui/keeperControls.ts`) asks directly. It
+lives on that tab rather than in Settings because it gates the tab's whole purpose —
+until it's answered nobody can select a keeper — and a blocking question buried in
+another tab is a dead end. The header identity badge is a real button that re-opens it to
+switch teams. The failure mode this accepts is a friend picking the wrong team;
+acceptable for a private league, not worth building real auth for.
 
 **Data shape and merge semantics** (`src/api/schemas.ts` `SharedKeepersSchema`,
 `src/domain/keeperShare.ts`): one JSON file, `{ version: 1, leagues: { [leagueId]: {
 [rosterId]: { playerIds, savedBy, savedByName, savedAt } } } }`, keyed by league so one
-Gist can back more than one league. `mergeSharedKeepers` folds the fetched doc over this
-browser's local `state.keepers` — **the shared doc wins for every team**, so a manager
-always sees what was actually committed rather than a stale local guess, **except** the
-roster currently being edited in this browser (`state.editingRosterId`), which stays local
-until explicitly saved again — otherwise re-opening an already-locked team to change it
-would get immediately stomped back to the old picks on the next background refresh.
-`withTeamKeepers`/`withoutTeamKeepers` are non-mutating "replace one team's entry" /
-"remove one team's entry" builders used when saving/withdrawing.
+Gist can back more than one league. `mergeSharedKeepers` **builds its result from the shared doc**, not by patching the local
+copy. That direction matters: the doc is authoritative about what every team's keepers
+are, _including that a team absent from it has none_. Patching local instead meant a
+withdrawal never propagated — each earlier sync had mirrored that team's picks into
+localStorage, so they lingered as phantom keepers nobody had selected, greying out players
+on the Draft List and filling cells on the Board. Only two rosters keep local selections
+through a merge: the one being edited here (`state.editingRosterId`), so re-opening a
+locked team doesn't get stomped back on the next refresh; and the signed-in manager's own
+**while it's absent from the doc** — those are picks chosen but not yet committed. Once
+their team IS in the doc the remote copy wins, so a save made on another device shows up.
+`locks` mirrors the doc exactly, including the roster being edited: that team really is
+still locked for the league until it's saved again. `withTeamKeepers`/`withoutTeamKeepers`
+are non-mutating single-team builders; `samePicks` is the order-insensitive comparison the
+write path verifies with.
 
-**Save is read-modify-write, not blind-write** (`saveMyKeepers` /
-`clearMyKeepers`, `src/sync.ts`): each save re-fetches the live Gist immediately before
-writing and only replaces the signed-in manager's own team's entry in that freshly-fetched
-doc, so two managers saving around the same time can't clobber each other's picks — each
-only ever touches their own key. This isn't full optimistic-concurrency-safe (a
-same-second double-save on the _same_ team could still race), which is an accepted gap
-for a 10-person league, not something to add locking for.
+**Writes are read-modify-write-_verify_, with bounded retries** (`commitSharedChange`,
+`src/sync.ts`). The gist API has no compare-and-swap, so there is an unavoidable window
+between our read and our write in which another manager's save can land and be
+overwritten. Re-reading after the write is how a client notices the mirror image of that
+— that _it_ was the one overwritten — and the retry re-applies its change on top of the
+now-current doc. Since every client runs the same loop and `apply` only ever touches its
+own team's key, a collision converges with both entries intact instead of one manager
+silently losing their picks. Backoff is jittered on purpose: two managers who collided
+were by definition acting at the same moment, and a fixed wait would line their retries up
+to collide again. Three attempts, then it throws and the UI says so — a save that can't be
+confirmed must never look successful.
+
+**Reads poll in the background** (`startSharedKeeperPolling`): keeper season is a live,
+shared activity where managers sit on the page watching what everyone else does, and
+without a poll the board looks frozen until someone thinks to hit Refresh. Every 60s while
+the tab is visible, plus an immediate catch-up on `visibilitychange` (coming back to the
+tab is exactly when you want to see what changed). It skips while `syncStatus === 'syncing'`
+so a poll can't land between a write and its read-back and confuse the verification, and it
+re-renders only when something actually changed.
+
+**The loading overlay is for deliberate actions only** (`showBusy`/`hideBusy`,
+`src/ui/overlay.ts`): save, withdraw, and a tapped Refresh block the page while they run.
+Background polling stays silent — a modal that flashed up every 60s on its own would be far
+worse than no feedback at all.
 
 **Lock/edit/withdraw flow**: `canEditRoster(rosterId)` (`src/state.ts`) is the single
 gate the UI checks before rendering an interactive star — true when sync is off

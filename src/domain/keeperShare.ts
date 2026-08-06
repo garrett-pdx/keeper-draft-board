@@ -21,6 +21,8 @@ export interface MergeArgs {
   localKeepers: Record<string, string[]>;
   /** The roster currently being edited in this browser, if any. */
   editingRosterId: number | null;
+  /** The signed-in manager's roster — the only one with uncommitted local picks. */
+  myRosterId: number | null;
 }
 
 export interface MergeResult {
@@ -31,27 +33,57 @@ export interface MergeResult {
 /**
  * Fold the league's shared picks over this browser's local ones.
  *
- * Shared picks win for every team, so a manager always sees what everyone else
- * actually committed rather than a stale local guess. The single exception is
- * the roster being actively edited here: those in-progress selections stay
- * local until they're explicitly saved, so re-opening an already-saved team to
- * change it doesn't get stomped by its own previous save on every refresh.
+ * The shared doc is authoritative: it decides what every team's keepers are,
+ * INCLUDING that a team absent from it has no keepers at all. Building the
+ * result from the remote doc rather than patching the local copy is what makes
+ * a withdrawal propagate — a team that un-saves would otherwise keep showing
+ * its old picks forever on everyone else's device, since each sync had mirrored
+ * them into localStorage.
+ *
+ * Only two rosters keep their local selections through a merge:
+ *  - the one being edited here, so re-opening an already-saved team to change it
+ *    doesn't get stomped back by its own previous save on the next refresh;
+ *  - the signed-in manager's own, and only while it's absent from the shared doc
+ *    — those are picks they've chosen but not yet committed. Once it IS in the
+ *    doc the remote copy wins, so a save made on another device shows up here.
  */
 export function mergeSharedKeepers({
   shared,
   leagueId,
   localKeepers,
   editingRosterId,
+  myRosterId,
 }: MergeArgs): MergeResult {
   const remote = lockedTeamsFor(shared, leagueId);
-  const keepers: Record<string, string[]> = { ...localKeepers };
-  const locks: Record<string, SharedKeeperTeam> = {};
+  const keepers: Record<string, string[]> = {};
   for (const rosterId in remote) {
-    if (editingRosterId !== null && rosterId === String(editingRosterId)) continue;
     keepers[rosterId] = remote[rosterId].playerIds.slice();
-    locks[rosterId] = remote[rosterId];
   }
-  return { keepers, locks };
+
+  const keepLocal = (rosterId: number): void => {
+    const key = String(rosterId);
+    const local = localKeepers[key];
+    if (local) keepers[key] = local.slice();
+    else delete keepers[key];
+  };
+  if (myRosterId !== null && !(String(myRosterId) in remote)) keepLocal(myRosterId);
+  if (editingRosterId !== null) keepLocal(editingRosterId);
+
+  // Locks mirror the shared doc exactly, including the roster being edited here:
+  // that team really is still locked for the league until it's saved again, and
+  // the edit affects what this browser may change, not what everyone else sees.
+  return { keepers, locks: { ...remote } };
+}
+
+/** Whether a team's committed picks match `playerIds`, order-insensitively. */
+export function samePicks(team: SharedKeeperTeam | undefined, playerIds: string[]): boolean {
+  if (!team) return false;
+  if (team.playerIds.length !== playerIds.length) return false;
+  const sorted = playerIds.slice().sort();
+  return team.playerIds
+    .slice()
+    .sort()
+    .every((id, i) => id === sorted[i]);
 }
 
 /**

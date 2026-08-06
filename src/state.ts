@@ -143,13 +143,21 @@ export function toggleKeeper(rosterId: number, playerId: string): boolean {
 // Mirrors the last-fetched shared doc so a failed sync (offline, gist down)
 // still shows the true lock state instead of silently forgetting it — losing
 // track of a lock would let someone edit a team that's actually already
-// committed for the league. keepers.ts's ensureSharedKeepersLoaded populates
-// this on every successful fetch/save; see domain/keeperShare.ts for the
-// derivation of keeperLocks from the cached doc.
+// committed for the league. sync.ts's refreshSharedKeepers populates this on
+// every successful fetch/save; see domain/keeperShare.ts for the derivation of
+// keeperLocks from the cached doc.
 function sharedKeepersKey(): string {
   return LS_SHARED_KEEPERS_PREFIX + state.leagueId;
 }
 export function loadSharedKeepersCacheFromStorage(): void {
+  // With no gist configured the app is purely local and has no lock concept at
+  // all, so a cache left over from a build that DID have one must not surface
+  // stale 🔒 badges on teams nobody can even sync with.
+  if (!canReadShared()) {
+    state.sharedKeepers = null;
+    state.keeperLocks = {};
+    return;
+  }
   try {
     const raw = localStorage.getItem(sharedKeepersKey());
     state.sharedKeepers = raw ? (JSON.parse(raw) as SharedKeepers) : null;

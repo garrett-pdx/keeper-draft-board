@@ -289,8 +289,26 @@ describe('getRosterKeeperCosts (collision handling)', () => {
 
 describe('getRosterKeeperCosts (noKeeperCost / taxi squad mode)', () => {
   const players: PlayersMap = {
-    star: { id: 'star', first: 'A', last: 'Star', pos: 'RB', team: 'X', rank: 5, birthDate: null, espnId: null },
-    role: { id: 'role', first: 'B', last: 'Role', pos: 'WR', team: 'Y', rank: 40, birthDate: null, espnId: null },
+    star: {
+      id: 'star',
+      first: 'A',
+      last: 'Star',
+      pos: 'RB',
+      team: 'X',
+      rank: 5,
+      birthDate: null,
+      espnId: null,
+    },
+    role: {
+      id: 'role',
+      first: 'B',
+      last: 'Role',
+      pos: 'WR',
+      team: 'Y',
+      rank: 40,
+      birthDate: null,
+      espnId: null,
+    },
   };
 
   it('skips round assignment entirely and flags every item taxiSquad', () => {

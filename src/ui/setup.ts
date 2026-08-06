@@ -12,7 +12,8 @@ import {
   state,
 } from '../state';
 import { $, el } from './dom';
-import { loadRosters } from './rosters';
+import { loadRosters, rerenderAfterKeeperChange } from './rosters';
+import { startSharedKeeperPolling } from '../sync';
 
 export function initSeasonOptions(): void {
   const sel = $('#seasonInput') as HTMLSelectElement;
@@ -159,4 +160,7 @@ export function enterApp(): void {
   loadSharedKeepersCacheFromStorage();
   loadRulesFromStorage();
   loadRosters(false);
+  // Managers watch this page live during keeper season, so pick up everyone
+  // else's saves without them having to think to hit Refresh.
+  startSharedKeeperPolling(rerenderAfterKeeperChange);
 }

@@ -22,23 +22,22 @@ import { EMPTY_SHARED_KEEPERS } from '../domain/keeperShare';
 const GIST_API = 'https://api.github.com/gists';
 const KEEPERS_FILENAME = 'keepers.json';
 
-// Runtime overrides, so the sync can be pointed at a personal gist (or turned
-// on at all) without a rebuild — set from the Settings tab.
-export const LS_GIST_ID = 'kdb_gist_id';
-export const LS_GIST_TOKEN = 'kdb_gist_token';
-
-function configValue(lsKey: string, envKey: string): string {
-  const local = localStorage.getItem(lsKey);
-  if (local && local.trim()) return local.trim();
-  const fromEnv = import.meta.env[envKey];
-  return typeof fromEnv === 'string' ? fromEnv.trim() : '';
+// Configured only at build time (GitHub Actions for the deploy, a local
+// .env.local for development). There is deliberately no in-app field for
+// either value: a token box in the UI invites pasting a credential into a page
+// that already ships one, and a per-browser gist override just splits the
+// league across two lists that look identical. One league, one build, one
+// shared list.
+function envValue(key: string): string {
+  const value = import.meta.env[key];
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 export function gistId(): string {
-  return configValue(LS_GIST_ID, 'VITE_KEEPER_GIST_ID');
+  return envValue('VITE_KEEPER_GIST_ID');
 }
 export function gistToken(): string {
-  return configValue(LS_GIST_TOKEN, 'VITE_KEEPER_GIST_TOKEN');
+  return envValue('VITE_KEEPER_GIST_TOKEN');
 }
 /** Shared picks can be shown at all. */
 export function canReadShared(): boolean {

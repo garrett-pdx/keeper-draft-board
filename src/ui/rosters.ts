@@ -19,7 +19,6 @@ import {
   canEditRoster,
   ensureBoardOrder,
   isKeeper,
-  isLockedRoster,
   keeperListFor,
   myRosterId,
   POSITION_ORDER,
@@ -27,14 +26,8 @@ import {
   toggleKeeper,
   userForRoster,
 } from '../state';
-import {
-  cancelEditingMyKeepers,
-  clearMyKeepers,
-  ensureSharedKeepersLoaded,
-  saveMyKeepers,
-  startEditingMyKeepers,
-} from '../sync';
-import { canReadShared, canWriteShared } from '../api/gist';
+import { refreshSharedKeepers } from '../sync';
+import { renderClaimTeamPrompt, renderKeeperActions } from './keeperControls';
 import type { SleeperRoster, SurplusValue } from '../types';
 import { displayNameFor, formatBirthDate, formatTime, starSignFor } from '../util';
 import { $, el, setSpin } from './dom';
@@ -47,10 +40,14 @@ import {
   updateSyncBadge,
 } from './header';
 import { openOutlookDrawer } from './outlookDrawer';
+import { hideBusy, showBusy } from './overlay';
 
 export async function loadRosters(force?: boolean): Promise<void> {
   setSpin('rostersSpin', true);
   ($('#refreshRosters') as HTMLButtonElement).disabled = true;
+  // Only a deliberate Refresh blocks the page; the initial load has its own
+  // skeleton, and background polling must never throw up a modal.
+  if (force) showBusy('Refreshing rosters and league keepers…');
   try {
     const [league, users, rosters] = await Promise.all([
       sleeper.league(state.leagueId!),
@@ -89,7 +86,7 @@ export async function loadRosters(force?: boolean): Promise<void> {
     }
     // After rosters, since the merge needs to know which team is the signed-in
     // manager's. Never throws — a failed sync leaves local picks in place.
-    await ensureSharedKeepersLoaded();
+    await refreshSharedKeepers();
     updateSyncBadge();
     updateIdentityBadge();
 
@@ -116,6 +113,7 @@ export async function loadRosters(force?: boolean): Promise<void> {
       ),
     );
   } finally {
+    if (force) hideBusy();
     setSpin('rostersSpin', false);
     ($('#refreshRosters') as HTMLButtonElement).disabled = false;
   }
@@ -168,148 +166,18 @@ function togglePlayerExpanded(key: string): void {
   renderRosters();
 }
 
-// Error text from the most recent save/withdraw attempt, shown inline in the
-// keeper actions row. Cleared when a new attempt starts.
-let syncActionError: string | null = null;
-
-function rerenderAfterKeeperChange(): void {
+/** Re-render everything a keeper change can affect. */
+export function rerenderAfterKeeperChange(): void {
   renderRosters();
   updateSyncBadge();
+  updateIdentityBadge();
   if (state.adpMap) renderDraft();
   if ($('#panel-board')!.classList.contains('active')) renderBoard();
-}
-
-async function runKeeperAction(action: () => Promise<void>): Promise<void> {
-  syncActionError = null;
-  // Flip to 'syncing' here rather than relying on the action to do it — the
-  // action sets it after its first await, which is too late for this render.
-  state.syncStatus = 'syncing';
-  rerenderAfterKeeperChange();
-  try {
-    await action();
-  } catch (e) {
-    syncActionError = e instanceof Error ? e.message : 'Something went wrong';
-  }
-  rerenderAfterKeeperChange();
 }
 
 function formatSavedAt(iso: string): string {
   const d = new Date(iso);
   return isNaN(d.getTime()) ? 'unknown time' : d.toLocaleString();
-}
-
-/**
- * The save/lock controls, shown only on the signed-in manager's own team.
- * Returns null when there's nothing to offer — no sync configured (the app is
- * purely local then), or this isn't your team.
- */
-function renderKeeperActions(rosterId: number): HTMLElement | null {
-  if (!canReadShared() || myRosterId() !== rosterId) return null;
-
-  const busy = state.syncStatus === 'syncing';
-  const locked = isLockedRoster(rosterId);
-  const editing = state.editingRosterId === rosterId;
-  const row = el('div', { class: 'keeper-actions' });
-
-  if (!canWriteShared()) {
-    row.appendChild(
-      el(
-        'div',
-        { class: 'keeper-actions-note' },
-        'This build can’t save to the league — you can see everyone’s locked keepers but not publish your own.',
-      ),
-    );
-    return row;
-  }
-
-  if (locked && !editing) {
-    const lock = state.keeperLocks[String(rosterId)];
-    row.appendChild(
-      el(
-        'div',
-        { class: 'keeper-actions-note' },
-        `Locked in for the league on ${formatSavedAt(lock.savedAt)}. Everyone else sees these picks.`,
-      ),
-    );
-    row.appendChild(
-      el(
-        'button',
-        {
-          class: 'btn btn-ghost btn-sm',
-          onclick: (e: Event) => {
-            e.stopPropagation();
-            startEditingMyKeepers();
-            rerenderAfterKeeperChange();
-          },
-        },
-        'Edit keepers',
-      ),
-    );
-    row.appendChild(
-      el(
-        'button',
-        {
-          class: 'btn btn-ghost btn-sm btn-danger',
-          title: 'Remove your picks from the league’s shared list entirely',
-          onclick: (e: Event) => {
-            e.stopPropagation();
-            runKeeperAction(clearMyKeepers);
-          },
-        },
-        'Withdraw',
-      ),
-    );
-  } else {
-    row.appendChild(
-      el(
-        'div',
-        { class: 'keeper-actions-note' },
-        editing
-          ? 'Editing — your saved picks stay visible to the league until you save again.'
-          : 'These picks are only in this browser until you save them to the league.',
-      ),
-    );
-    row.appendChild(
-      el(
-        'button',
-        {
-          class: 'btn btn-primary btn-sm' + (busy ? ' disabled' : ''),
-          onclick: (e: Event) => {
-            e.stopPropagation();
-            if (!busy) runKeeperAction(saveMyKeepers);
-          },
-        },
-        busy ? 'Saving…' : 'Save & lock keepers',
-      ),
-    );
-    if (editing) {
-      row.appendChild(
-        el(
-          'button',
-          {
-            class: 'btn btn-ghost btn-sm',
-            onclick: (e: Event) => {
-              e.stopPropagation();
-              cancelEditingMyKeepers();
-              rerenderAfterKeeperChange();
-            },
-          },
-          'Cancel',
-        ),
-      );
-    }
-  }
-
-  if (syncActionError) {
-    row.appendChild(
-      el(
-        'div',
-        { class: 'keeper-actions-error' },
-        `${syncActionError}. Your picks are still saved in this browser.`,
-      ),
-    );
-  }
-  return row;
 }
 
 function detailRow(label: string, value: string): HTMLElement {
@@ -356,6 +224,8 @@ export function renderRosters(): void {
     );
     return;
   }
+  const claimPrompt = renderClaimTeamPrompt(rerenderAfterKeeperChange);
+  if (claimPrompt) container.appendChild(claimPrompt);
   const grid = el('div', { class: 'roster-grid' });
   const sortedRosters = state.rosters.slice().sort((a, b) => {
     const ra = standingsRank(a);
@@ -474,7 +344,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
   const bestSet = new Set(rankedCandidates);
 
   const list = el('div', { class: 'team-roster-list', id: listId });
-  const actions = renderKeeperActions(roster.roster_id);
+  const actions = renderKeeperActions(roster.roster_id, rerenderAfterKeeperChange);
   if (actions) list.appendChild(actions);
   if (!playerIds.length) {
     list.appendChild(

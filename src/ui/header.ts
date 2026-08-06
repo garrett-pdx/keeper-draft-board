@@ -59,13 +59,13 @@ export function updateIdentityBadge(): void {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = state.currentUserId ? 'No team in this league' : 'Pick your team';
     badge.title = state.currentUserId
-      ? 'The signed-in Sleeper account doesn’t own a roster in this league. Choose your team in Settings.'
-      : 'Choose which team is yours in Settings to select and lock your keepers.';
+      ? 'The Sleeper account you looked up doesn’t own a team in this league. Choose yours on the Rosters tab.'
+      : 'Choose which team is yours to select and lock your keepers.';
     return;
   }
   badge.className = 'adp-badge adp-badge-live';
   badge.textContent = `You: ${teamNameForRoster(mine)}`;
-  badge.title = 'You can select and lock keepers for this team only. Change it in Settings.';
+  badge.title = 'You can select and lock keepers for this team only. Click to switch teams.';
 }
 
 // Whether the league's shared picks are reachable, and whether this browser can

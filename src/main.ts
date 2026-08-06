@@ -3,7 +3,8 @@ import { LS_LEAGUE_ID, LS_SEASON, state } from './state';
 import { $, $all } from './ui/dom';
 import { loadBoard } from './ui/board';
 import { loadDraft, renderDraft } from './ui/draft';
-import { loadRosters } from './ui/rosters';
+import { loadRosters, rerenderAfterKeeperChange } from './ui/rosters';
+import { openClaimPicker } from './ui/keeperControls';
 import { renderSettings, wireSettingsEvents } from './ui/settings';
 import {
   enterApp,
@@ -57,9 +58,14 @@ function init(): void {
     showSetupScreen();
   });
 
-  // The identity badge is where you find out you haven't claimed a team yet,
-  // so make it the way to go fix that.
-  $('#identityBadge')!.addEventListener('click', () => switchTab('settings'));
+  // The identity badge is where you find out which team you're acting as, so
+  // make it the way to change that — it opens the picker in place on the
+  // Rosters tab rather than sending anyone hunting through Settings.
+  $('#identityBadge')!.addEventListener('click', () => {
+    openClaimPicker();
+    switchTab('rosters');
+    rerenderAfterKeeperChange();
+  });
 
   $all('.tab-btn').forEach((b) =>
     b.addEventListener('click', () => switchTab(b.dataset.tab as TabName)),

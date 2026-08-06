@@ -3,6 +3,7 @@ import {
   EMPTY_SHARED_KEEPERS,
   lockedTeamsFor,
   mergeSharedKeepers,
+  samePicks,
   withTeamKeepers,
   withoutTeamKeepers,
 } from '../src/domain/keeperShare';
@@ -36,57 +37,99 @@ describe('lockedTeamsFor', () => {
 });
 
 describe('mergeSharedKeepers', () => {
+  // Signed in as nobody in particular unless a test says otherwise.
+  const base = { shared, leagueId: 'L1', editingRosterId: null, myRosterId: null };
+
   it('lets saved picks win over local ones', () => {
     const { keepers } = mergeSharedKeepers({
-      shared,
-      leagueId: 'L1',
+      ...base,
       localKeepers: { '1': ['stale'], '2': ['also-stale'] },
-      editingRosterId: null,
     });
     expect(keepers['1']).toEqual(['p1', 'p2']);
     expect(keepers['2']).toEqual(['p3']);
   });
 
-  it('keeps local picks for teams nobody has saved yet', () => {
+  it('keeps your own local picks while your team is absent from the shared doc', () => {
     const { keepers } = mergeSharedKeepers({
-      shared,
-      leagueId: 'L1',
+      ...base,
       localKeepers: { '7': ['mine'] },
-      editingRosterId: null,
+      myRosterId: 7,
     });
     expect(keepers['7']).toEqual(['mine']);
   });
 
-  it('preserves in-progress local edits for the roster being edited', () => {
+  it('drops another team’s local picks once they withdraw from the shared doc', () => {
+    // Team 2 previously saved, so an earlier sync mirrored their picks into this
+    // browser's localStorage. They've since withdrawn, and the shared doc is
+    // authoritative — those picks must not linger as phantom keepers.
+    const afterWithdrawal: SharedKeepers = {
+      version: 1,
+      leagues: { L1: { '1': team(['p1', 'p2']) } },
+    };
     const { keepers, locks } = mergeSharedKeepers({
-      shared,
-      leagueId: 'L1',
+      ...base,
+      shared: afterWithdrawal,
+      localKeepers: { '1': ['p1', 'p2'], '2': ['p3'] },
+      myRosterId: 1,
+    });
+    expect(keepers['2']).toBeUndefined();
+    expect(locks['2']).toBeUndefined();
+  });
+
+  it('lets a save made on another device replace your own stale local picks', () => {
+    const { keepers } = mergeSharedKeepers({
+      ...base,
+      localKeepers: { '1': ['picked-here-but-never-saved'] },
+      myRosterId: 1,
+    });
+    expect(keepers['1']).toEqual(['p1', 'p2']);
+  });
+
+  it('preserves in-progress local edits for the roster being edited', () => {
+    const { keepers } = mergeSharedKeepers({
+      ...base,
       localKeepers: { '1': ['in-progress'] },
       editingRosterId: 1,
+      myRosterId: 1,
     });
     expect(keepers['1']).toEqual(['in-progress']);
-    // ...and that team reads as unlocked while it's being edited
-    expect(locks['1']).toBeUndefined();
-    expect(locks['2']).toBeDefined();
+  });
+
+  it('still reports the edited team as locked for the league', () => {
+    // Editing changes what this browser may alter, not what the league sees:
+    // the previously-saved picks stay committed until they're saved again.
+    const { locks } = mergeSharedKeepers({
+      ...base,
+      localKeepers: { '1': ['in-progress'] },
+      editingRosterId: 1,
+      myRosterId: 1,
+    });
+    expect(locks['1']).toBeDefined();
+    expect(locks['1'].playerIds).toEqual(['p1', 'p2']);
+  });
+
+  it('empties the edited team when its local selection is cleared', () => {
+    const { keepers } = mergeSharedKeepers({
+      ...base,
+      localKeepers: {},
+      editingRosterId: 1,
+      myRosterId: 1,
+    });
+    expect(keepers['1']).toBeUndefined();
   });
 
   it('reports a lock for every saved team, carrying who saved it', () => {
-    const { locks } = mergeSharedKeepers({
-      shared,
-      leagueId: 'L1',
-      localKeepers: {},
-      editingRosterId: null,
-    });
+    const { locks } = mergeSharedKeepers({ ...base, localKeepers: {} });
     expect(locks['2'].savedBy).toBe('u2');
     expect(locks['2'].savedByName).toBe('malstol');
   });
 
-  it('falls back to local-only when there is no shared doc', () => {
+  it('falls back to your own local picks when there is no shared doc', () => {
     const { keepers, locks } = mergeSharedKeepers({
+      ...base,
       shared: null,
-      leagueId: 'L1',
       localKeepers: { '1': ['mine'] },
-      editingRosterId: null,
+      myRosterId: 1,
     });
     expect(keepers).toEqual({ '1': ['mine'] });
     expect(locks).toEqual({});
@@ -94,8 +137,24 @@ describe('mergeSharedKeepers', () => {
 
   it('does not mutate the local keepers it was handed', () => {
     const local = { '1': ['stale'] };
-    mergeSharedKeepers({ shared, leagueId: 'L1', localKeepers: local, editingRosterId: null });
+    mergeSharedKeepers({ ...base, localKeepers: local, myRosterId: 1 });
     expect(local['1']).toEqual(['stale']);
+  });
+});
+
+describe('samePicks', () => {
+  it('matches regardless of order', () => {
+    expect(samePicks(team(['a', 'b']), ['b', 'a'])).toBe(true);
+  });
+
+  it('rejects a different set, a different length, or a missing team', () => {
+    expect(samePicks(team(['a', 'b']), ['a', 'c'])).toBe(false);
+    expect(samePicks(team(['a', 'b']), ['a'])).toBe(false);
+    expect(samePicks(undefined, [])).toBe(false);
+  });
+
+  it('matches two empty selections on a team that saved none', () => {
+    expect(samePicks(team([]), [])).toBe(true);
   });
 });
 
