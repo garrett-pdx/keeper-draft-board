@@ -1267,6 +1267,22 @@ table.board-table {
 .settings-card .btn-ghost {
   margin-top: 4px;
 }
+.sleeper-hint {
+  background: rgba(78, 161, 255, 0.08);
+  border: 1px solid rgba(78, 161, 255, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+.sleeper-hint[hidden] {
+  display: none;
+}
+.sleeper-hint .btn {
+  margin-top: 6px;
+}
 .field-checkbox label {
   display: flex;
   align-items: center;

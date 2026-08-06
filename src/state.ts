@@ -14,6 +14,7 @@ import type {
 } from './types';
 import { canReadShared } from './api/gist';
 import { lockedTeamsFor } from './domain/keeperShare';
+import { initialRulesForLeague } from './domain/leagueSettings';
 import { DEFAULT_LEAGUE_RULES } from './types';
 import { displayNameFor } from './util';
 
@@ -284,6 +285,26 @@ export function loadRulesFromStorage(): void {
 }
 export function saveRules(): void {
   localStorage.setItem(rulesKey(), JSON.stringify(state.rules));
+}
+
+/** Has this browser ever saved rules for the current league? */
+export function hasSavedRules(): boolean {
+  return localStorage.getItem(rulesKey()) !== null;
+}
+
+/**
+ * Seed this league's rules from Sleeper's own settings, but only the first time
+ * it's opened here.
+ *
+ * A league that has been configured in this app keeps what it was given —
+ * silently rewriting a commissioner's deliberate choice because Sleeper says
+ * otherwise would be worse than being slightly out of date. Settings surfaces
+ * the difference instead and offers to apply it.
+ */
+export function seedRulesFromLeague(league: SleeperLeague | null): void {
+  if (!league || hasSavedRules()) return;
+  state.rules = initialRulesForLeague(league);
+  saveRules();
 }
 export function updateRules(patch: Partial<LeagueRules>): void {
   state.rules = { ...state.rules, ...patch };

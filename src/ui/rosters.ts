@@ -22,6 +22,7 @@ import {
   keeperListFor,
   myRosterId,
   POSITION_ORDER,
+  seedRulesFromLeague,
   state,
   toggleKeeper,
   userForRoster,
@@ -59,6 +60,10 @@ export async function loadRosters(force?: boolean): Promise<void> {
     state.league = league;
     state.users = users;
     state.rosters = rosters.sort((a, b) => a.roster_id - b.roster_id);
+    // First time this league is opened here, take what Sleeper already knows
+    // (currently just the keeper allowance) instead of assuming this app's
+    // defaults. No-op once the league has been configured.
+    seedRulesFromLeague(league);
 
     await ensurePrevDraftLoaded(force);
     await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost; also loads state.draft

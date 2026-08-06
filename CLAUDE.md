@@ -99,6 +99,9 @@ src/
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
     outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
+    leagueSettings.ts #   isSuperflexLeague, maxKeepersFromLeague,
+                      #   suggestedRulesFromLeague, initialRulesForLeague — reading
+                      #   a Sleeper league's own config (see "League settings import")
     keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers,
                       #   samePicks — pure merge logic for the shared keeper doc
                       #   (see below)
@@ -170,9 +173,10 @@ import no state.
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
   rounds, and a "no keeper cost / taxi squad" toggle) with a "Reset to Mudd League
   defaults" shortcut. Auto-saves per league on change; re-renders every currently-loaded
-  tab so numbers update immediately. Deliberately nothing about keeper sharing lives
-  here — see "Shared keeper picks" for why there's no in-app gist/token field and where
-  the team claim went.
+  tab so numbers update immediately. Shows a hint offering Sleeper's own settings when
+  they differ from what's set here (see "League settings import"). Deliberately nothing
+  about keeper sharing lives here — see "Shared keeper picks" for why there's no in-app
+  gist/token field and where the team claim went.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 
@@ -278,6 +282,40 @@ runtime:
   Ambiguous name+position collisions are skipped, not guessed at. If fewer than 20
   players end up matched across all entries, this falls back to Sleeper's overall
   player rank as a proxy (`state.adpSource === 'rank'`), same as before.
+
+### Superflex / 2QB
+
+`scripts/fetch-adp.mjs` also pulls FFC's `2qb` set (its name for the superflex market),
+and `rankAdpEntries` treats it as a **hard partition, not a tiebreak**: a league draws
+from the 2QB market or the 1QB formats, never a blend. This matters because starting a
+second QB reprices the position entirely — confirmed live, Josh Allen goes **25.6** in
+half-ppr and **1.4** in 2qb. If 2qb entries merely sorted last for a 1QB league, a QB
+absent from every 1QB format would fall through and be priced as the first overall pick,
+which is worse than showing no ADP. Superflex leagues still fall back to the 1QB entries
+if a snapshot has no 2qb data — a slightly mispriced QB beats an empty board.
+
+Detection (`isSuperflexLeague`) accepts **either** an explicit `SUPER_FLEX` slot **or**
+two or more `QB` starters. Both are real: confirmed live, one of this user's leagues
+starts `QB,QB,...` with no `SUPER_FLEX` slot anywhere, so a `SUPER_FLEX`-only check would
+silently miss it and price that league off 1QB ADP.
+
+## League settings import
+
+Sleeper knows some of what this app asks the user for, so on the **first** load of a
+league `seedRulesFromLeague` (`src/state.ts`) seeds the rules from it. Only
+`settings.max_keepers` is derived — confirmed live across three of this user's leagues
+(2, 2, and 1, where this app's default is 2, so the third was simply wrong before).
+
+Two deliberate limits:
+
+- **It only seeds a league never configured here** (`hasSavedRules()`). Silently
+  rewriting a commissioner's deliberate choice because Sleeper disagrees would be worse
+  than being out of date. When saved rules differ, the Settings tab shows what Sleeper
+  says plus a "Use Sleeper's settings" button, and otherwise leaves it alone.
+- **`noKeeperCost` is never inferred from `settings.taxi_slots`.** Sleeper's taxi squad
+  is a dynasty rookie-stash concept and has nothing to do with this app's "keepers cost
+  no draft pick" rule despite the shared nickname; `inflationRounds` has no Sleeper field
+  at all. Both stay manual, and `suggestedRulesFromLeague` has tests pinning that.
 
 ## Player outlook pipeline
 

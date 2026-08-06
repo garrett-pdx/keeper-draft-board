@@ -12,6 +12,7 @@ import {
 } from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
+import { isSuperflexLeague } from './domain/leagueSettings';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { OutlookMap, PlayersMap, PrevDraftMap } from './types';
 
@@ -81,7 +82,8 @@ export async function ensureAdpLoaded(force?: boolean) {
     const snapshot = await fetchAdpSnapshot();
     const teamCount = state.rosters.length || 10;
     const recPoints = state.league?.scoring_settings?.rec;
-    const ranked = rankAdpEntries(snapshot.entries, teamCount, recPoints);
+    const superflex = isSuperflexLeague(state.league?.roster_positions);
+    const ranked = rankAdpEntries(snapshot.entries, teamCount, recPoints, superflex);
     if (ranked.length) {
       const players = await ensurePlayersLoaded(false);
       const matched = matchAdpToPlayers(ranked, players);

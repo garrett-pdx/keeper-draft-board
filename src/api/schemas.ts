@@ -16,6 +16,9 @@ export const LeagueSchema = z.object({
   // `rec` (points per reception) is what we use to pick the closest ADP
   // snapshot format (0 = standard, 0.5 = half-ppr, 1 = ppr) — see domain/adp.ts.
   scoring_settings: z.record(z.string(), z.number()).nullish(),
+  // Only `max_keepers` is read (see domain/leagueSettings.ts); passthrough keeps
+  // the rest rather than failing validation on Sleeper's many other settings.
+  settings: z.looseObject({ max_keepers: z.number().nullish() }).nullish(),
 });
 export type SleeperLeague = z.infer<typeof LeagueSchema>;
 

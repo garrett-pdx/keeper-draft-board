@@ -104,24 +104,49 @@ export function matchAdpToPlayers(
 // Reception points per format, for ranking scoring formats by closeness below.
 const FORMAT_REC: Record<string, number> = { standard: 0, 'half-ppr': 0.5, ppr: 1 };
 
+/** FFC's name for the superflex/2QB market. */
+export const SUPERFLEX_FORMAT = '2qb';
+
 /**
- * Ranks this league's team-count entries by scoring-format closeness to the
- * league's reception points (0 = standard, 0.5 = half-ppr, 1 = ppr) —
- * defaults to half-ppr when scoring isn't known (this app's primary
- * calibration, see CLAUDE.md). The full ranked list feeds matchAdpToPlayers
- * so a player missing from the closest format can still be matched from the
- * next-closest one, rather than showing "no ADP".
+ * Ranks this league's entries: superflex first (a hard partition), then by
+ * scoring-format closeness to the league's reception points (0 = standard,
+ * 0.5 = half-ppr, 1 = ppr), defaulting to half-ppr when scoring isn't known
+ * (this app's primary calibration, see CLAUDE.md). The full ranked list feeds
+ * matchAdpToPlayers so a player missing from the closest format can still be
+ * matched from the next-closest one, rather than showing "no ADP".
+ *
+ * The superflex split is a **filter, not a tiebreak**, and that distinction is
+ * the whole point. Starting a second QB moves the position so far that the two
+ * markets aren't comparable — confirmed live, Josh Allen goes 25.6 in half-ppr
+ * and 1.4 in 2qb. If 2qb entries merely sorted last for a 1QB league, a QB
+ * absent from every 1QB format would still fall through and be priced as a
+ * first overall pick, which is worse than showing no ADP at all. So a league
+ * draws from one market or the other, never a blend.
+ *
+ * Superflex leagues still fall back to the 1QB entries when the snapshot has
+ * no 2qb data (an older snapshot, or FFC dropping the format) — a slightly
+ * mispriced QB beats an empty board.
  */
 export function rankAdpEntries(
   entries: AdpSnapshotEntry[],
   teamCount: number,
   recPoints: number | null | undefined,
+  superflex = false,
 ): AdpSnapshotEntry[] {
   if (!entries.length) return [];
-  const closestTeamCount = entries
+  const superflexEntries = entries.filter((e) => e.format === SUPERFLEX_FORMAT);
+  const singleQbEntries = entries.filter((e) => e.format !== SUPERFLEX_FORMAT);
+  const pool = superflex && superflexEntries.length ? superflexEntries : singleQbEntries;
+  if (!pool.length) return [];
+
+  const closestTeamCount = pool
     .map((e) => e.teams)
     .reduce((best, t) => (Math.abs(t - teamCount) < Math.abs(best - teamCount) ? t : best));
-  const atTeamCount = entries.filter((e) => e.teams === closestTeamCount);
+  const atTeamCount = pool.filter((e) => e.teams === closestTeamCount);
+
+  // FFC publishes one 2qb set rather than a per-scoring-format matrix, so for a
+  // superflex league this sort is a no-op — the partition already picked the
+  // market, and reception points only break ties within the 1QB set.
   const targetRec = recPoints ?? 0.5;
   return atTeamCount.slice().sort((a, b) => {
     const ra = FORMAT_REC[a.format] ?? 0.5;

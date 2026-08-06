@@ -238,4 +238,39 @@ describe('rankAdpEntries', () => {
     expect(rankAdpEntries(entries, 13, 0.5)[0].teams).toBe(12);
     expect(rankAdpEntries(entries, 9, 0.5)[0].teams).toBe(8);
   });
+
+  describe('superflex partitioning', () => {
+    const withSuperflex: AdpSnapshotEntry[] = [
+      ...entries,
+      { teams: 8, format: '2qb', players: [] },
+      { teams: 12, format: '2qb', players: [] },
+    ];
+
+    it('gives a superflex league only 2qb entries', () => {
+      const ranked = rankAdpEntries(withSuperflex, 12, 0.5, true);
+      expect(ranked.map((e) => e.format)).toEqual(['2qb']);
+    });
+
+    it('never leaks 2qb pricing into a single-QB league', () => {
+      // The whole point of partitioning rather than ranking: a QB missing from
+      // every 1QB format must show no ADP, not a superflex first-round price.
+      const ranked = rankAdpEntries(withSuperflex, 12, 0.5, false);
+      expect(ranked.some((e) => e.format === '2qb')).toBe(false);
+    });
+
+    it('defaults to single-QB when the flag is omitted', () => {
+      expect(rankAdpEntries(withSuperflex, 12, 0.5).some((e) => e.format === '2qb')).toBe(false);
+    });
+
+    it('falls back to single-QB entries when the snapshot has no 2qb data', () => {
+      // An older snapshot shouldn't leave a superflex league with an empty board.
+      const ranked = rankAdpEntries(entries, 12, 0.5, true);
+      expect(ranked.length).toBeGreaterThan(0);
+      expect(ranked[0].format).toBe('half-ppr');
+    });
+
+    it('still honours team-count proximity within the superflex pool', () => {
+      expect(rankAdpEntries(withSuperflex, 13, 0.5, true)[0].teams).toBe(12);
+    });
+  });
 });

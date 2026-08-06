@@ -17,7 +17,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const TEAM_COUNTS = [8, 10, 12, 14];
-const FORMATS = ['standard', 'half-ppr', 'ppr'];
+// '2qb' is FFC's superflex/2QB market. It is kept strictly separate from the
+// 1QB formats at runtime (see rankAdpEntries) rather than blended with them —
+// starting a second QB reprices the position entirely (Josh Allen: 25.6
+// half-ppr vs 1.4 in 2qb).
+const FORMATS = ['standard', 'half-ppr', 'ppr', '2qb'];
 const YEAR = new Date().getUTCFullYear();
 const OUT_PATH = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
