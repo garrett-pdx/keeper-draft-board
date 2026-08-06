@@ -34,7 +34,7 @@ export function renderDraft(): void {
   const note = $('#draftNote')!;
   if (state.adpSource === 'adp') {
     note.textContent =
-      'Ordered by real average draft position from Fantasy Football Calculator, refreshed twice weekly.';
+      'Ordered by real average draft position from Fantasy Football Calculator, refreshed daily.';
   } else if (state.adpSource === 'rank') {
     note.textContent =
       'No ADP snapshot was available for this format, so this list falls back to Sleeper’s overall player ranking as a proxy.';

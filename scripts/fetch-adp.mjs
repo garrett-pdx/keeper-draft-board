@@ -6,7 +6,7 @@
 //
 // This can only run server-side: FFC's API sends no CORS headers, so a direct
 // browser fetch() from the deployed site fails (confirmed live). Refreshed
-// twice weekly by .github/workflows/refresh-adp.yml (Monday and Friday).
+// daily by .github/workflows/refresh-adp.yml.
 //
 // FFC's terms (https://help.fantasyfootballcalculator.com/article/42-adp-rest-api):
 // free for personal/commercial use, attribution requested (see index.html's

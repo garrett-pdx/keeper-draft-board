@@ -11,7 +11,7 @@ and ships as a static site (deployable to GitHub Pages). `npm run dev` to develo
 
 The user's league is on **Sleeper** (10-team keeper league). The app pulls rosters and
 last season's draft results live from Sleeper's public read-only API, plus a real ADP
-snapshot refreshed twice weekly (see "ADP data pipeline" below), lets the user pick
+snapshot refreshed daily (see "ADP data pipeline" below), lets the user pick
 keepers, computes a keeper "value" metric, and renders a draggable draft board.
 
 > History: this started as a single self-contained `keeper-draft-board.html`. It was
@@ -50,7 +50,7 @@ index.html            # markup only (setup screen + app shell); loads src/main.t
 scripts/
   fetch-adp.mjs       # CI-only Node script: pulls real ADP from Fantasy Football
                       #   Calculator, writes public/adp-snapshot.json (run by
-                      #   .github/workflows/refresh-adp.yml, Mon + Fri)
+                      #   .github/workflows/refresh-adp.yml, daily)
   fetch-outlooks.mjs  # CI-only Node script: pulls season-outlook paragraphs from
                       #   ESPN's public fantasy API, writes public/outlook-snapshot.json
                       #   (same workflow/cadence as ADP)
@@ -224,6 +224,21 @@ were ruled out — no paid API keys in a static, no-backend app with no way to k
 secret. So real ADP can only be fetched **server-side, at CI/build time**, never at
 runtime:
 
+> **Re-checked 2026-08-06, since "just pull Sleeper's own ADP" keeps coming up.** It does
+> not exist as an endpoint. Sleeper's GraphQL API (`https://sleeper.app/graphql`) exposes
+> **240 query fields and not one of them is ADP** (confirmed live by introspection;
+> `get_adp` returns "Cannot query field"). It has plenty of _draft_ fields — individual
+> drafts, picks, queues — which is why community tools appear to have "Sleeper ADP": they
+> aggregate many mock drafts themselves. There is no ffverse/nflverse ADP CSV to read
+> either (`nflverse-data` releases contain no ADP asset; `ffscrapr` is an **R** package
+> that wraps platform APIs and ships no ADP dataset). Don't spend another afternoon on
+> this without new evidence.
+>
+> Also confirmed: FFC ignores `start_date`/`period`/`days` params, because it already
+> serves a **rolling recent window** on its own (the half-ppr/10-team set reported
+> `2026-08-01..2026-08-06`, 1731 drafts). So there is no staleness knob to turn — the
+> freshness lever is purely our refresh cadence, which is why it's daily.
+
 - `scripts/fetch-adp.mjs` pulls a small matrix (`teams` × `8,10,12,14`, `format` ×
   `standard,half-ppr,ppr`) from Fantasy Football Calculator's public REST API (free for
   personal/commercial use, attribution requested — see the footer credit in `index.html`)
@@ -287,7 +302,7 @@ change doesn't assume the same constraints:
   when the whole fetch fails) just renders no outlook teaser — nothing else on the page
   depends on this data.
 - Being undocumented, `scripts/fetch-outlooks.mjs` deliberately keeps request volume low
-  (one request per position slot, twice weekly, ~300ms apart) rather than polling
+  (one request per position slot, once daily, ~300ms apart) rather than polling
   per-player — the same "good citizen" posture as the ADP fetcher.
 
 ## Shared keeper picks

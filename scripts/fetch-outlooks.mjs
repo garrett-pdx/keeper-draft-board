@@ -17,7 +17,7 @@
 // same-origin snapshot (see CLAUDE.md's "Player outlook pipeline" section).
 //
 // No API key, no signup, no cost — but being undocumented, low, infrequent
-// request volume (twice weekly, ~1200 players total) is used deliberately to
+// request volume (once daily, ~1200 players total) is used deliberately to
 // stay a good citizen of a public endpoint we don't have a support contract
 // for.
 

@@ -2,8 +2,12 @@ name: Refresh ADP and outlook data
 
 on:
   schedule:
-    # Monday and Friday, 13:00 UTC (~6am Pacific / 9am Eastern).
-    - cron: '0 13 * * 1,5'
+    # Daily, 13:00 UTC (~6am Pacific / 9am Eastern). FFC recomputes its ADP
+    # roughly daily over a rolling window of recent drafts (confirmed live: the
+    # half-ppr/10-team set reported a 6-day window), so a twice-weekly refresh
+    # meant the app could sit 3-4 days behind data that had already moved on.
+    # Once a day matches the source's own cadence without hammering it.
+    - cron: '0 13 * * *'
   workflow_dispatch:
 
 permissions:

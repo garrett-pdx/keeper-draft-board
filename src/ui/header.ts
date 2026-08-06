@@ -17,7 +17,7 @@ export function updateAdpSourceBadge(): void {
     badge.className = 'adp-badge adp-badge-live';
     badge.textContent = 'ADP · Fantasy Football Calculator';
     badge.title =
-      'Real average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed twice weekly.';
+      'Real average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed daily.';
   } else {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'ADP · rank proxy';
