@@ -6,8 +6,13 @@ import { AdpSnapshotSchema, type AdpSnapshot } from './schemas';
 // call to Fantasy Football Calculator (no CORS support there — see
 // domain/adp.ts), so it works from the deployed static site with no backend.
 export async function fetchAdpSnapshot(): Promise<AdpSnapshot> {
-  const url = `${import.meta.env.BASE_URL}adp-snapshot.json`;
-  const res = await fetch(url);
+  // Cache-bust. Vite content-hashes JS/CSS, but files in public/ keep a stable
+  // filename forever, so the browser and Pages' CDN will happily serve a
+  // months-old copy of this one — confirmed the hard way: a stale cache pinned
+  // a player at his late-July ADP long after the committed snapshot had moved
+  // on, which reads as "the app's ADP is wrong" rather than "the file is old".
+  const url = `${import.meta.env.BASE_URL}adp-snapshot.json?t=${Date.now()}`;
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return AdpSnapshotSchema.parse(await res.json());
 }

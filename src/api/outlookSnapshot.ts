@@ -6,8 +6,10 @@ import { OutlookSnapshotSchema, type OutlookSnapshot } from './schemas';
 // CLAUDE.md's "Player outlook pipeline" for why this is snapshotted at CI
 // time rather than fetched live even though ESPN's endpoint allows it.
 export async function fetchOutlookSnapshot(): Promise<OutlookSnapshot> {
-  const url = `${import.meta.env.BASE_URL}outlook-snapshot.json`;
-  const res = await fetch(url);
+  // Cache-bust for the same reason as the ADP snapshot: public/ filenames are
+  // stable, so without this the CDN and browser can pin a long-stale copy.
+  const url = `${import.meta.env.BASE_URL}outlook-snapshot.json?t=${Date.now()}`;
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return OutlookSnapshotSchema.parse(await res.json());
 }

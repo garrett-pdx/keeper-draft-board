@@ -30,6 +30,10 @@ export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v2_'; // v2: added high/low ra
 export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v1_';
 export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
+// ADP moves daily and is the number people second-guess the app over ("he is
+// not the 4th pick"), so it gets a much shorter leash than the player
+// dictionary. The snapshot is a small static asset — refetching it is cheap.
+export const ADP_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4h
 
 export const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
 

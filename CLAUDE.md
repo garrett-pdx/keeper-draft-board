@@ -234,6 +234,21 @@ runtime:
 > that wraps platform APIs and ships no ADP dataset). Don't spend another afternoon on
 > this without new evidence.
 >
+> **FantasyCalc** (`api.fantasycalc.com/values/current`) was evaluated too: free, no auth,
+> 200 rows, and — unlike FFC's `teams` param — its `numTeams`/`ppr`/`numQbs` parameters
+> genuinely change the output. But it returns **trade values, not ADP**: `maybeAdp` is
+> null on every row, and `overallRank` is a value ranking (it had McCaffrey 8th where
+> FFC's half-ppr ADP had him 6th). Value answers "how good is this player", ADP answers
+> "what does it cost to get him" — and the keeper metric needs the latter. It also sends
+> no CORS headers, so it would be a CI-time fetch like FFC. Worth remembering as a
+> _better proxy than Sleeper's `search_rank`_ if the rank-proxy fallback ever needs
+> upgrading; not a replacement for ADP.
+>
+> **BeatADP** has the ideal data (real per-platform ADP, including Sleeper, with a
+> scoring-format filter) but is a paid product whose `robots.txt` disallows `/api/`. Not
+> a source we take from. If a subscription ever grants an export or key, wiring it in is
+> one more `fetchOne()` variant.
+>
 > Also confirmed: FFC ignores `start_date`/`period`/`days` params, because it already
 > serves a **rolling recent window** on its own (the half-ppr/10-team set reported
 > `2026-08-01..2026-08-06`, 1731 drafts). So there is no staleness knob to turn — the

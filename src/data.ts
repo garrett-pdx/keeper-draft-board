@@ -3,6 +3,7 @@ import { fetchAdpSnapshot } from './api/adpSnapshot';
 import { fetchOutlookSnapshot } from './api/outlookSnapshot';
 import { fetchJSON, sleeper } from './api/sleeper';
 import {
+  ADP_MAX_AGE_MS,
   LS_ADP_CACHE_PREFIX,
   LS_OUTLOOK_CACHE_PREFIX,
   LS_PLAYERS_CACHE,
@@ -63,7 +64,7 @@ export async function ensureAdpLoaded(force?: boolean) {
   if (!force) {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-      if (cached && Date.now() - cached.ts < PLAYERS_MAX_AGE_MS) {
+      if (cached && Date.now() - cached.ts < ADP_MAX_AGE_MS) {
         state.adpMap = cached.data;
         state.adpRangeMap = cached.range || {};
         state.adpSource = cached.source;
