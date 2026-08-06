@@ -20,11 +20,16 @@ keepers, computes a keeper "value" metric, and renders a draggable draft board.
 
 ## Hard constraints (do not break these)
 
-- **Static, no backend.** All persistence is `localStorage`. Never introduce a server
-  component, and never send the user's data anywhere except read-only GETs to Sleeper.
-  The build output must be a static site. The one exception is ADP: it's fetched at
-  **CI/build time** (never at runtime, never in the browser) from Fantasy Football
-  Calculator and baked into a static asset — see "ADP data pipeline" below for why.
+- **Static, no backend.** All persistence is `localStorage`, with one deliberate
+  exception: **keeper picks are shared league-wide via a GitHub Gist** (see "Shared
+  keeper picks" below), because the whole point of that feature is for one manager's
+  picks to show up on every other manager's device, which no localStorage-only design
+  can do. That gist is the only thing this app ever writes to anywhere. Never introduce
+  a server component beyond it, and never send data anywhere else except read-only GETs
+  to Sleeper. The build output must be a static site. ADP is a second, read-only
+  exception: it's fetched at **CI/build time** (never at runtime, never in the browser)
+  from Fantasy Football Calculator and baked into a static asset — see "ADP data
+  pipeline" below for why.
 - **Keep runtime dependencies near-zero.** Dev tooling (Vite, Vitest, ESLint, Prettier,
   TypeScript) is welcome; think hard before adding a _runtime_ dependency — prefer writing
   it by hand. The only external runtime requests are Google Fonts and the Sleeper API (ADP
@@ -59,6 +64,10 @@ src/
   state.ts            # the single `state` object, constants, localStorage persistence
   selectors.ts        # state-aware wrappers that feed the pure domain layer
   data.ts             # cache-aware "ensure*" loaders (honor a `force` flag)
+  sync.ts             # stateful glue between api/gist.ts and `state` for shared
+                      #   keeper picks — ensureSharedKeepersLoaded, saveMyKeepers,
+                      #   startEditingMyKeepers/cancelEditingMyKeepers, clearMyKeepers
+                      #   (see "Shared keeper picks")
   util.ts             # formatTime, displayNameFor, formatBirthDate, starSignFor
   types.ts            # shared data shapes + (loosely-typed) Sleeper payloads
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
@@ -66,7 +75,10 @@ src/
     sleeper.ts        # fetchJSON + endpoint helpers (each validates its response)
     adpSnapshot.ts    # fetchAdpSnapshot — reads public/adp-snapshot.json (same-origin)
     outlookSnapshot.ts # fetchOutlookSnapshot — reads public/outlook-snapshot.json (same-origin)
-    schemas.ts        # zod schemas for Sleeper responses + our own ADP/outlook snapshots
+    gist.ts           # fetchSharedKeepers/writeSharedKeepers — the league's shared
+                      #   keeper picks, read/written in a GitHub Gist (see below)
+    schemas.ts        # zod schemas for Sleeper responses + our own ADP/outlook/keeper
+                      #   snapshots
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
@@ -85,28 +97,34 @@ src/
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
     outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
+    keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers —
+                      #   pure merge logic for the shared keeper doc (see below)
   ui/
     dom.ts            # $, $all, el, setSpin
-    header.ts         # updateAdpSourceBadge, updatePickSourceBadge (visible data-source
-                      #   indicators; the pick badge is hidden until an exact order is known)
+    header.ts         # updateAdpSourceBadge, updatePickSourceBadge, updateIdentityBadge,
+                      #   updateSyncBadge (visible data-source/identity/sync-status
+                      #   indicators; each hidden until relevant)
     setup.ts          # setup screen: username→league picker (handleFindLeagues,
                       #   handleConfirmLeague, toggleManualEntry) + manual league-ID
                       #   fallback (handleLoadLeague), both routed through the shared
                       #   commitLeagueAndEnter(); enterApp, showSetupScreen
     rosters.ts        # loadRosters + renderRosters + renderTeamCard (tap-to-expand team
                       #   tiles and player rows; expanded player detail leads with an
-                      #   outlook teaser, tappable to open the outlook drawer)
+                      #   outlook teaser, tappable to open the outlook drawer) + the
+                      #   keeper lock/save/edit/withdraw controls (see below)
     outlookDrawer.ts  # openOutlookDrawer/closeOutlookDrawer — singleton bottom-sheet
                       #   drawer (built lazily, appended to document.body), dismissible by
                       #   pointer-drag swipe-down, scrim click, or Escape
     draft.ts          # loadDraft + renderDraft
     board.ts          # loadBoard + renderBoard (draggable grid)
-    settings.ts       # renderSettings + wireSettingsEvents — the Settings tab
+    settings.ts       # renderSettings + wireSettingsEvents — league rules, the
+                      #   signed-in-manager picker, and gist sharing config
 test/                 # Vitest specs mirroring src/domain/
 ```
 
-Layering: `ui/*` and `data.ts` read/write `state`; `selectors.ts` bridges `state` into the
-pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import no state.
+Layering: `ui/*` and `data.ts`/`sync.ts` read/write `state`; `selectors.ts` bridges
+`state` into the pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts
+import no state.
 
 ## The four tabs
 
@@ -121,6 +139,11 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
   (max keepers/team per `state.rules.maxKeepers`, enforced). Teams are sorted by last
   season's final standings (hand-maintained list in `rosters.ts`); the defending champion
   gets a gold-tinted tile. Same-manager repeat keepers get an amber "inflated" highlight.
+  If shared keeper sync is configured (see "Shared keeper picks"), only the signed-in
+  manager's own team has interactive stars — every other team's stars are a read-only
+  indicator — and a 🔒 badge plus a "Locked in for the league on {date}" note appears on
+  any team that has saved. The signed-in manager's own card additionally shows
+  Save & lock keepers / Edit keepers / Withdraw controls.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter. Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
@@ -136,7 +159,11 @@ pure `domain/*` functions; `domain/*` and `api/sleeper.ts`'s pure parts import n
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
   rounds, and a "no keeper cost / taxi squad" toggle) with a "Reset to Mudd League
   defaults" shortcut. Auto-saves per league on change; re-renders every currently-loaded
-  tab so numbers update immediately.
+  tab so numbers update immediately. A second card covers league keeper sharing: which
+  team is the signed-in manager's (a plain dropdown, since the manual league-ID setup
+  path never learns a Sleeper user_id), and an optional Gist ID / write token override
+  for pointing at a different shared list than the one baked in at build time (see
+  "Shared keeper picks").
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 
@@ -205,7 +232,7 @@ runtime:
   including Alvin Kamara and Puka Nacua, that are present in its ppr set (995 drafts)
   for the same league size. So a player missing from the closest-format entry still
   gets matched from the next-closest one rather than showing "no ADP" — only a player
-  missing from *every* ranked entry falls through. Two other confirmed real-data
+  missing from _every_ ranked entry falls through. Two other confirmed real-data
   quirks handled in `matchAdpToPlayers`: FFC uses `"PK"` where Sleeper uses `"K"`, and
   team defenses can't be name-matched at all (FFC: "Denver Defense"; Sleeper:
   first/last = city/nickname) so those are matched by team abbreviation instead.
@@ -227,7 +254,7 @@ change doesn't assume the same constraints:
 - **CORS is actually open here** (confirmed live: the endpoint reflects whatever `Origin`
   header the request sends, including on the preflight for the custom `X-Fantasy-Filter`
   header this endpoint requires) — unlike Fantasy Football Calculator, this endpoint
-  *could* be called directly from the browser at runtime. It's still fetched at CI time
+  _could_ be called directly from the browser at runtime. It's still fetched at CI time
   instead, same cadence as ADP, purely for performance/consistency (one static snapshot
   beats every page load hitting a third party we have no support relationship with) — not
   because of a CORS block.
@@ -253,6 +280,89 @@ change doesn't assume the same constraints:
 - Being undocumented, `scripts/fetch-outlooks.mjs` deliberately keeps request volume low
   (one request per position slot, twice weekly, ~300ms apart) rather than polling
   per-player — the same "good citizen" posture as the ADP fetcher.
+
+## Shared keeper picks
+
+Keeper picks are shared league-wide so one manager's saved picks show up, locked, on
+every other manager's device — the one feature this app has that genuinely can't be
+done with localStorage alone. It's built as a single JSON file living in a **GitHub
+Gist**, read and written over plain `fetch()` — no server we run, but also the one
+exception to "no backend" (see "Hard constraints" above).
+
+**Why a Gist, and the security tradeoff.** A static site with no backend has no place to
+put a write credential that isn't visible to whoever loads the page — there is no server
+boundary to hide it behind. That's true of any "shared write" approach here, not just a
+Gist. Given that, a Gist is the simplest thing that could work: no infra to run, a
+free/generous tier, and GitHub's REST API already supports CORS for both reads and
+authenticated writes (confirmed live), so no proxy is needed. The token is a **fine-grained
+PAT scoped to Gists only, on an account with nothing else of value in it** — worst case if
+it leaks is someone overwrites the keepers gist, which Gist revision history makes
+recoverable rather than destructive. This is a considered, accepted tradeoff for a
+private tool used by ~10 friends, not an oversight — don't "fix" it by trying to hide the
+token harder (that's not possible in a static site) or by reaching for a real backend
+without discussing it first.
+
+**Setup is optional and layered**, so the app works identically to before this feature for
+anyone who doesn't set it up:
+
+- With no Gist ID configured anywhere, `canReadShared()` (`src/api/gist.ts`) is false and
+  the app behaves exactly as it did when keepers were localStorage-only — every team's
+  stars stay interactive, there's no lock concept, nothing changes.
+- `VITE_KEEPER_GIST_ID` / `VITE_KEEPER_GIST_TOKEN` are baked in at build time from GitHub
+  Actions (`vars.KEEPER_GIST_ID` / `secrets.KEEPER_GIST_TOKEN` in `.github/workflows/
+deploy.yml`) — the normal path for the league's actual deployment.
+- Either can be overridden per-browser from the Settings tab (`LS_GIST_ID`/`LS_GIST_TOKEN`
+  in `src/api/gist.ts`), which also allows a **write-token-less, read-only** mode: paste
+  just the Gist ID and you see everyone's locked picks but can't save your own
+  (`canWriteShared()` false, "League sync · read-only" badge).
+
+**Identity is honor-system, not authentication.** Sleeper has no OAuth for third-party
+apps, so there's no way to cryptographically prove which manager is at the keyboard. The
+signed-in manager's Sleeper `user_id` (`state.currentUserId`, `src/state.ts`) is learned
+automatically from the setup screen's username lookup, or set by hand in Settings (the
+manual league-ID path never learns a username). `myRosterId()` matches it against
+`roster.owner_id`. The failure mode this accepts is a friend picking the wrong team from
+the dropdown — acceptable for a private league, not something worth building real auth
+for.
+
+**Data shape and merge semantics** (`src/api/schemas.ts` `SharedKeepersSchema`,
+`src/domain/keeperShare.ts`): one JSON file, `{ version: 1, leagues: { [leagueId]: {
+[rosterId]: { playerIds, savedBy, savedByName, savedAt } } } }`, keyed by league so one
+Gist can back more than one league. `mergeSharedKeepers` folds the fetched doc over this
+browser's local `state.keepers` — **the shared doc wins for every team**, so a manager
+always sees what was actually committed rather than a stale local guess, **except** the
+roster currently being edited in this browser (`state.editingRosterId`), which stays local
+until explicitly saved again — otherwise re-opening an already-locked team to change it
+would get immediately stomped back to the old picks on the next background refresh.
+`withTeamKeepers`/`withoutTeamKeepers` are non-mutating "replace one team's entry" /
+"remove one team's entry" builders used when saving/withdrawing.
+
+**Save is read-modify-write, not blind-write** (`saveMyKeepers` /
+`clearMyKeepers`, `src/sync.ts`): each save re-fetches the live Gist immediately before
+writing and only replaces the signed-in manager's own team's entry in that freshly-fetched
+doc, so two managers saving around the same time can't clobber each other's picks — each
+only ever touches their own key. This isn't full optimistic-concurrency-safe (a
+same-second double-save on the _same_ team could still race), which is an accepted gap
+for a 10-person league, not something to add locking for.
+
+**Lock/edit/withdraw flow**: `canEditRoster(rosterId)` (`src/state.ts`) is the single
+gate the UI checks before rendering an interactive star — true when sync is off
+(everything editable, original behavior), or when this is your own roster and it isn't
+locked (or it's locked but you're actively editing it). `toggleKeeper` re-checks the same
+function as defense in depth, since it's an exported function callable outside the gated
+UI path. "Save & lock keepers" calls `saveMyKeepers()`, which locks and publishes in one
+step — there's no separate unlocked-and-shared state. "Edit keepers" sets
+`editingRosterId` (session-only, not persisted) so the team's stars become interactive
+again locally without touching the shared doc; "Cancel" reverts to the last-saved picks;
+"Withdraw" removes the team's entry from the shared doc entirely via `clearMyKeepers()`.
+
+**Offline/error handling degrades to last-known state, not "no lock info."** A failed
+fetch (`state.syncStatus = 'error'`, "League sync · offline" badge) must not make a
+locked team look editable again just because the network call failed — that would be
+worse than doing nothing. `cacheSharedKeepersLocally`/`loadSharedKeepersCacheFromStorage`
+(`src/state.ts`) mirror the last-fetched shared doc into `localStorage`
+(`kdb_shared_keepers_<leagueId>`) so a reload while offline still shows every team's true
+lock state from the last successful sync, not an empty/unlocked default.
 
 ## The value metric
 

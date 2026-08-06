@@ -1,4 +1,4 @@
-import type { SleeperDraft } from './api/schemas';
+import type { SharedKeepers, SharedKeeperTeam, SleeperDraft } from './api/schemas';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type {
   AdpMap,
@@ -12,6 +12,8 @@ import type {
   SleeperRoster,
   SleeperUser,
 } from './types';
+import { canReadShared } from './api/gist';
+import { lockedTeamsFor } from './domain/keeperShare';
 import { DEFAULT_LEAGUE_RULES } from './types';
 import { displayNameFor } from './util';
 
@@ -19,20 +21,27 @@ import { displayNameFor } from './util';
 export const LS_LEAGUE_ID = 'kdb_league_id';
 export const LS_SEASON = 'kdb_season';
 export const LS_USERNAME = 'kdb_username';
+export const LS_USER_ID = 'kdb_user_id'; // the signed-in manager's Sleeper user_id
 export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
 export const LS_RULES_PREFIX = 'kdb_rules_';
 export const LS_PLAYERS_CACHE = 'kdb_players_cache_v3'; // v3: added espnId
 export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v2_'; // v2: added high/low range
 export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v1_';
+export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 
 export const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
+
+/** How the shared-keeper sync last went, for the header badge. */
+export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error';
 
 interface AppState {
   leagueId: string | null;
   season: string | null;
   league: SleeperLeague | null;
+  /** Signed-in manager's Sleeper user_id — decides which roster they may edit. */
+  currentUserId: string | null;
   users: SleeperUser[];
   rosters: SleeperRoster[];
   playersMap: PlayersMap | null;
@@ -41,6 +50,14 @@ interface AppState {
   adpSource: AdpSource;
   outlookMap: OutlookMap;
   keepers: Record<string, string[]>;
+  /** Last-known shared doc, kept so an edit can be cancelled back to it. */
+  sharedKeepers: SharedKeepers | null;
+  /** rosterId -> who locked that team in, for every team that has saved. */
+  keeperLocks: Record<string, SharedKeeperTeam>;
+  /** Roster being edited in this browser right now; session-only. */
+  editingRosterId: number | null;
+  syncStatus: SyncStatus;
+  syncedAt: Date | null;
   prevDraftMap: PrevDraftMap | null;
   prevDraftLoaded: boolean;
   boardRounds: number | null;
@@ -58,6 +75,7 @@ export const state: AppState = {
   leagueId: null,
   season: null,
   league: null,
+  currentUserId: null,
   users: [],
   rosters: [],
   playersMap: null,
@@ -66,6 +84,11 @@ export const state: AppState = {
   adpSource: null,
   outlookMap: {},
   keepers: {},
+  sharedKeepers: null,
+  keeperLocks: {},
+  editingRosterId: null,
+  syncStatus: 'off',
+  syncedAt: null,
   prevDraftMap: null,
   prevDraftLoaded: false,
   boardRounds: null,
@@ -90,7 +113,7 @@ export function loadKeepersFromStorage(): void {
     state.keepers = {};
   }
 }
-function saveKeepers(): void {
+export function saveKeepers(): void {
   localStorage.setItem(keepersKey(), JSON.stringify(state.keepers));
 }
 export function keeperListFor(rosterId: number): string[] {
@@ -100,6 +123,10 @@ export function isKeeper(rosterId: number, playerId: string): boolean {
   return keeperListFor(rosterId).includes(playerId);
 }
 export function toggleKeeper(rosterId: number, playerId: string): boolean {
+  // Defense in depth: the UI only ever renders an interactive star when
+  // canEditRoster(rosterId) is true, but this is exported and callable
+  // directly, so the same rule is enforced here too.
+  if (!canEditRoster(rosterId)) return false;
   const list = keeperListFor(rosterId).slice();
   const idx = list.indexOf(playerId);
   if (idx >= 0) {
@@ -112,6 +139,31 @@ export function toggleKeeper(rosterId: number, playerId: string): boolean {
   saveKeepers();
   return true;
 }
+// ---------- shared-keepers cache ----------
+// Mirrors the last-fetched shared doc so a failed sync (offline, gist down)
+// still shows the true lock state instead of silently forgetting it — losing
+// track of a lock would let someone edit a team that's actually already
+// committed for the league. keepers.ts's ensureSharedKeepersLoaded populates
+// this on every successful fetch/save; see domain/keeperShare.ts for the
+// derivation of keeperLocks from the cached doc.
+function sharedKeepersKey(): string {
+  return LS_SHARED_KEEPERS_PREFIX + state.leagueId;
+}
+export function loadSharedKeepersCacheFromStorage(): void {
+  try {
+    const raw = localStorage.getItem(sharedKeepersKey());
+    state.sharedKeepers = raw ? (JSON.parse(raw) as SharedKeepers) : null;
+  } catch {
+    state.sharedKeepers = null;
+  }
+  state.keeperLocks = lockedTeamsFor(state.sharedKeepers, state.leagueId);
+}
+export function cacheSharedKeepersLocally(doc: SharedKeepers | null): void {
+  state.sharedKeepers = doc;
+  if (doc) localStorage.setItem(sharedKeepersKey(), JSON.stringify(doc));
+  else localStorage.removeItem(sharedKeepersKey());
+}
+
 export function allKeeperIdsWithTeam(): Map<string, string> {
   const map = new Map<string, string>();
   for (const roster of state.rosters) {
@@ -160,6 +212,48 @@ export function userForRoster(rosterId: number): SleeperUser | null {
 
 export function teamNameForRoster(rosterId: number): string {
   return displayNameFor(userForRoster(rosterId));
+}
+
+// ---------- signed-in manager ----------
+// Which Sleeper account this browser is acting as. Set from the setup screen's
+// username lookup, or picked by hand in Settings (the manual league-ID path
+// never learns a username). This is an honor-system identity, not authentication
+// — Sleeper has no OAuth for third-party apps, and this is a private tool for a
+// 10-person league where the failure mode is a friend editing the wrong team.
+export function loadCurrentUserId(): void {
+  state.currentUserId = localStorage.getItem(LS_USER_ID);
+}
+export function setCurrentUserId(userId: string | null): void {
+  state.currentUserId = userId;
+  if (userId) localStorage.setItem(LS_USER_ID, userId);
+  else localStorage.removeItem(LS_USER_ID);
+}
+
+/** The roster the signed-in manager owns, or null if unknown/unclaimed. */
+export function myRosterId(): number | null {
+  if (!state.currentUserId) return null;
+  const mine = state.rosters.find((r) => r.owner_id === state.currentUserId);
+  return mine ? mine.roster_id : null;
+}
+
+/** Has this team committed its picks to the league's shared doc? */
+export function isLockedRoster(rosterId: number): boolean {
+  return !!state.keeperLocks[String(rosterId)];
+}
+
+/**
+ * May this browser change this team's keepers?
+ *
+ * With no shared gist configured the app is purely local, so everything stays
+ * editable exactly as it was before sync existed. Once sync is on, you may only
+ * touch your own team, and only while it isn't locked — locked teams are
+ * reopened deliberately via the Edit action, which sets editingRosterId.
+ */
+export function canEditRoster(rosterId: number): boolean {
+  if (!canReadShared()) return true;
+  const mine = myRosterId();
+  if (mine === null || rosterId !== mine) return false;
+  return !isLockedRoster(rosterId) || state.editingRosterId === rosterId;
 }
 
 // ---------- league rules persistence ----------

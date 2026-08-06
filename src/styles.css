@@ -272,6 +272,14 @@ a {
   border-color: rgba(245, 165, 36, 0.4);
   background: rgba(245, 165, 36, 0.08);
 }
+#identityBadge {
+  cursor: pointer;
+}
+.adp-badge.adp-badge-error {
+  color: var(--danger);
+  border-color: rgba(229, 72, 77, 0.4);
+  background: rgba(229, 72, 77, 0.08);
+}
 
 .tabs {
   display: flex;
@@ -869,8 +877,70 @@ a {
   border-color: var(--border-bright);
   color: var(--slate-dim);
 }
+/* Read-only star: a team you don't own, or your own team once locked in. Same
+   shape as the interactive toggle so rows stay aligned, but visibly inert. */
+.keeper-toggle.static {
+  cursor: default;
+  border-color: transparent;
+}
+.keeper-toggle.static.active {
+  background: transparent;
+  border-color: transparent;
+  color: var(--flag);
+  font-size: 16px;
+}
 .keeper-toggle.shake {
   animation: shake 0.3s ease;
+}
+
+.lock-badge {
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: auto;
+}
+/* The keeper count already claims margin-left:auto; when a lock sits beside it
+   the lock takes that role and the count sits flush against it. */
+.lock-badge + .keeper-count {
+  margin-left: 0;
+}
+
+.keeper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+.keeper-actions-note {
+  flex: 1 1 100%;
+  color: var(--slate);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.keeper-actions-error {
+  flex: 1 1 100%;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+.btn-danger {
+  color: var(--danger);
+  border-color: rgba(229, 72, 77, 0.35);
+}
+.btn-danger:hover {
+  border-color: var(--danger);
+  background: rgba(229, 72, 77, 0.08);
+}
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 @keyframes shake {
   25% {
@@ -1107,6 +1177,20 @@ table.board-table {
 .field-checkbox input[type='checkbox'] {
   width: auto;
   accent-color: var(--turf);
+}
+.settings-card + .settings-card {
+  margin-top: 16px;
+}
+.settings-heading {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-blurb {
+  margin: 0 0 16px;
+  color: var(--slate);
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .footer-note {

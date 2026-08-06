@@ -1,5 +1,6 @@
+import { canReadShared, canWriteShared } from '../api/gist';
 import { hasKnownDraftOrder } from '../domain/draftOrder';
-import { state } from '../state';
+import { myRosterId, state, teamNameForRoster } from '../state';
 import { $ } from './dom';
 
 // Keep the always-visible ADP data-source badge in sync with state.adpSource, so
@@ -40,4 +41,61 @@ export function updatePickSourceBadge(): void {
   badge.textContent = 'Pick #s · exact draft order';
   badge.title =
     'Keeper values use this team’s actual pick number in each round, from the set draft order.';
+}
+
+// Who this browser is acting as, and therefore whose keepers it can edit.
+// Hidden entirely when there's no shared gist — without sync there's no
+// ownership to enforce and the identity is meaningless.
+export function updateIdentityBadge(): void {
+  const badge = $('#identityBadge');
+  if (!badge) return;
+  if (!canReadShared() || !state.rosters.length) {
+    badge.setAttribute('hidden', '');
+    return;
+  }
+  badge.removeAttribute('hidden');
+  const mine = myRosterId();
+  if (mine === null) {
+    badge.className = 'adp-badge adp-badge-proxy';
+    badge.textContent = state.currentUserId ? 'No team in this league' : 'Pick your team';
+    badge.title = state.currentUserId
+      ? 'The signed-in Sleeper account doesn’t own a roster in this league. Choose your team in Settings.'
+      : 'Choose which team is yours in Settings to select and lock your keepers.';
+    return;
+  }
+  badge.className = 'adp-badge adp-badge-live';
+  badge.textContent = `You: ${teamNameForRoster(mine)}`;
+  badge.title = 'You can select and lock keepers for this team only. Change it in Settings.';
+}
+
+// Whether the league's shared picks are reachable, and whether this browser can
+// write to them. A read-only deploy (gist configured, no token) is a normal,
+// supported state — say so rather than looking broken.
+export function updateSyncBadge(): void {
+  const badge = $('#syncBadge');
+  if (!badge) return;
+  if (state.syncStatus === 'off') {
+    badge.setAttribute('hidden', '');
+    return;
+  }
+  badge.removeAttribute('hidden');
+  if (state.syncStatus === 'error') {
+    badge.className = 'adp-badge adp-badge-error';
+    badge.textContent = 'League sync · offline';
+    badge.title =
+      'Could not reach the league’s shared keeper list. Your picks are still saved in this browser — hit Refresh to retry.';
+  } else if (state.syncStatus === 'syncing') {
+    badge.className = 'adp-badge adp-badge-proxy';
+    badge.textContent = 'League sync · syncing…';
+    badge.title = 'Fetching the league’s shared keeper picks.';
+  } else if (!canWriteShared()) {
+    badge.className = 'adp-badge adp-badge-proxy';
+    badge.textContent = 'League sync · read-only';
+    badge.title =
+      'You can see everyone’s locked keepers, but this build has no write access to save your own.';
+  } else {
+    badge.className = 'adp-badge adp-badge-live';
+    badge.textContent = 'League sync · on';
+    badge.title = 'Keeper picks are shared with the whole league.';
+  }
 }

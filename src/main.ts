@@ -57,6 +57,10 @@ function init(): void {
     showSetupScreen();
   });
 
+  // The identity badge is where you find out you haven't claimed a team yet,
+  // so make it the way to go fix that.
+  $('#identityBadge')!.addEventListener('click', () => switchTab('settings'));
+
   $all('.tab-btn').forEach((b) =>
     b.addEventListener('click', () => switchTab(b.dataset.tab as TabName)),
   );

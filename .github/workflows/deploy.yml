@@ -27,6 +27,13 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          # Bakes the shared-keeper gist location/credential into the static
+          # bundle at build time — see CLAUDE.md's "Shared keeper picks" for
+          # why a build-time secret in a public bundle is an accepted
+          # tradeoff here. Both are optional: an empty VITE_KEEPER_GIST_ID
+          # ships the app in its original local-only mode.
+          VITE_KEEPER_GIST_ID: ${{ vars.KEEPER_GIST_ID }}
+          VITE_KEEPER_GIST_TOKEN: ${{ secrets.KEEPER_GIST_TOKEN }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

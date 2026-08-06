@@ -195,7 +195,9 @@ describe('AdpSnapshotSchema', () => {
         {
           teams: 10,
           format: 'half-ppr',
-          players: [{ name: 'Bijan Robinson', position: 'RB', team: 'ATL', adp: 1.5, high: 1, low: 4 }],
+          players: [
+            { name: 'Bijan Robinson', position: 'RB', team: 'ATL', adp: 1.5, high: 1, low: 4 },
+          ],
         },
       ],
     });

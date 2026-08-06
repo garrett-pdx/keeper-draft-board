@@ -94,6 +94,8 @@
           </div>
         </div>
         <div class="scoreboard-right">
+          <span class="adp-badge" id="identityBadge" hidden></span>
+          <span class="adp-badge" id="syncBadge" hidden></span>
           <span class="adp-badge" id="pickSourceBadge" hidden></span>
           <span class="adp-badge" id="adpSourceBadge" hidden></span>
           <button class="btn btn-ghost" id="changeLeagueBtn">Change league</button>
@@ -207,6 +209,30 @@
           </div>
           <button class="btn btn-ghost" id="resetRulesBtn">Reset to Mudd League defaults</button>
         </div>
+
+        <div class="settings-card">
+          <h3 class="settings-heading">League keeper sharing</h3>
+          <p class="settings-blurb" id="syncBlurb"></p>
+          <div class="field">
+            <label for="identitySelect">Which team is yours?</label>
+            <select id="identitySelect"></select>
+          </div>
+          <div class="field">
+            <label for="gistIdInput">Shared list ID (GitHub Gist)</label>
+            <input type="text" id="gistIdInput" placeholder="Gist ID" spellcheck="false" />
+          </div>
+          <div class="field">
+            <label for="gistTokenInput">Write token (optional — leave blank to view only)</label>
+            <input
+              type="password"
+              id="gistTokenInput"
+              placeholder="Uses the built-in token if blank"
+              spellcheck="false"
+              autocomplete="off"
+            />
+          </div>
+          <button class="btn btn-ghost" id="saveSyncConfigBtn">Save sharing settings</button>
+        </div>
       </div>
 
       <div class="footer-note">
@@ -214,9 +240,9 @@
         Average draft position data is provided by
         <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noopener"
           >Fantasy Football Calculator</a
-        >, and player season outlooks by ESPN Fantasy Football, both refreshed twice weekly.
-        Your keeper picks are saved only in this browser (localStorage) — nothing is uploaded
-        anywhere.
+        >, and player season outlooks by ESPN Fantasy Football, both refreshed twice weekly. Keeper
+        picks stay in this browser until you save them to the league, which publishes them to a
+        shared GitHub Gist so every manager sees the same locked-in selections.
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

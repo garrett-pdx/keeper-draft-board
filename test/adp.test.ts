@@ -184,7 +184,7 @@ describe('matchAdpToPlayers', () => {
     expect(result.adp.p7).toBe(2.5);
   });
 
-  it('captures each matched player\'s high/low range from the same entry', () => {
+  it("captures each matched player's high/low range from the same entry", () => {
     const result = matchAdpToPlayers(
       [entry([{ name: "Ja'Marr Chase", position: 'WR', team: 'CIN', adp: 4.6, high: 1, low: 12 }])],
       playersMap,

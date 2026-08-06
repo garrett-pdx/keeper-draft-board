@@ -1,11 +1,14 @@
 import { sleeper } from '../api/sleeper';
 import type { SleeperLeague } from '../api/schemas';
 import {
+  loadCurrentUserId,
   loadKeepersFromStorage,
   loadRulesFromStorage,
+  loadSharedKeepersCacheFromStorage,
   LS_LEAGUE_ID,
   LS_SEASON,
   LS_USERNAME,
+  setCurrentUserId,
   state,
 } from '../state';
 import { $, el } from './dom';
@@ -114,6 +117,11 @@ export async function handleFindLeagues(): Promise<void> {
     }
     populateLeaguePicker(leagues);
     localStorage.setItem(LS_USERNAME, username);
+    // The username lookup is the one place we learn the manager's Sleeper
+    // user_id, which is what decides whose keepers they're allowed to edit.
+    // The manual league-ID path never gets here, so that route falls back to
+    // picking a team by hand in Settings.
+    setCurrentUserId(user.user_id);
     $('#leaguePickerField')!.removeAttribute('hidden');
   } catch {
     showSetupError('Could not reach Sleeper. Check your connection and try again.');
@@ -146,7 +154,9 @@ export function showSetupScreen(): void {
 export function enterApp(): void {
   $('#setupScreen')!.style.display = 'none';
   $('#app')!.style.display = 'flex';
+  loadCurrentUserId();
   loadKeepersFromStorage();
+  loadSharedKeepersCacheFromStorage();
   loadRulesFromStorage();
   loadRosters(false);
 }
