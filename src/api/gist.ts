@@ -22,6 +22,39 @@ import { EMPTY_SHARED_KEEPERS } from '../domain/keeperShare';
 const GIST_API = 'https://api.github.com/gists';
 const KEEPERS_FILENAME = 'keepers.json';
 
+/** Who to chase when the shared list's write token needs renewing. */
+export const LEAGUE_ADMIN = 'Garrett';
+
+/**
+ * GitHub rejected the built-in token — almost always because the PAT expired
+ * (fine-grained gist tokens have a maximum lifetime, so this is a *when*, not
+ * an *if*). Distinct from an ordinary network failure because it's neither
+ * transient nor worth retrying: nothing will save again until the token is
+ * replaced and the site redeployed.
+ */
+export class GistAuthError extends Error {
+  constructor() {
+    super(
+      `The league’s shared keeper list is read-only right now — its access token has expired. ` +
+        `Your picks are safe in this browser. Reach out to ${LEAGUE_ADMIN} to renew it, then save again.`,
+    );
+    this.name = 'GistAuthError';
+  }
+}
+
+// Latches once GitHub turns the token down, so the app stops presenting save
+// controls that cannot possibly work and every read afterwards skips straight
+// to the unauthenticated path.
+let tokenRejected = false;
+
+export function isTokenRejected(): boolean {
+  return tokenRejected;
+}
+
+function isAuthFailure(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
 // Configured only at build time (GitHub Actions for the deploy, a local
 // .env.local for development). There is deliberately no in-app field for
 // either value: a token box in the UI invites pasting a credential into a page
@@ -45,7 +78,7 @@ export function canReadShared(): boolean {
 }
 /** Shared picks can be saved from this browser. */
 export function canWriteShared(): boolean {
-  return !!gistId() && !!gistToken();
+  return !!gistId() && !!gistToken() && !tokenRejected;
 }
 
 function headers(auth: boolean): Record<string, string> {
@@ -62,13 +95,21 @@ function headers(auth: boolean): Record<string, string> {
  * yet (the normal state before anyone's first save).
  */
 export async function fetchSharedKeepers(): Promise<SharedKeepers> {
-  const id = gistId();
   // Cache-bust: GitHub serves gist reads through a CDN, and a manager checking
   // for someone else's just-saved picks must not get a cached copy.
-  const res = await fetch(`${GIST_API}/${id}?t=${Date.now()}`, {
-    headers: headers(!!gistToken()),
-    cache: 'no-store',
-  });
+  const url = `${GIST_API}/${gistId()}?t=${Date.now()}`;
+  const withToken = !!gistToken() && !tokenRejected;
+  let res = await fetch(url, { headers: headers(withToken), cache: 'no-store' });
+
+  // An expired token must not cost the league its *read* access. The gist is
+  // fetchable by anyone holding its ID, so drop the bad credential and ask
+  // again unauthenticated — everyone keeps seeing the locked-in picks, and only
+  // saving is lost until the token is renewed.
+  if (!res.ok && withToken && isAuthFailure(res.status)) {
+    tokenRejected = true;
+    res = await fetch(url, { headers: headers(false), cache: 'no-store' });
+  }
+
   if (!res.ok) throw new Error(`HTTP ${res.status} reading shared keepers`);
   const body = (await res.json()) as { files?: Record<string, { content?: string } | null> };
   const raw = body.files?.[KEEPERS_FILENAME]?.content;
@@ -84,5 +125,10 @@ export async function writeSharedKeepers(doc: SharedKeepers): Promise<void> {
       files: { [KEEPERS_FILENAME]: { content: JSON.stringify(doc, null, 2) } },
     }),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} saving shared keepers`);
+  if (res.ok) return;
+  if (isAuthFailure(res.status)) {
+    tokenRejected = true;
+    throw new GistAuthError();
+  }
+  throw new Error(`HTTP ${res.status} saving shared keepers`);
 }

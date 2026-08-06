@@ -1,4 +1,4 @@
-import { canReadShared, canWriteShared } from '../api/gist';
+import { canReadShared, canWriteShared, isTokenRejected, LEAGUE_ADMIN } from '../api/gist';
 import { hasKnownDraftOrder } from '../domain/draftOrder';
 import { myRosterId, state, teamNameForRoster } from '../state';
 import { $ } from './dom';
@@ -88,6 +88,13 @@ export function updateSyncBadge(): void {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'League sync · syncing…';
     badge.title = 'Fetching the league’s shared keeper picks.';
+  } else if (isTokenRejected()) {
+    // Reads still work (they fall back to unauthenticated), so this isn't
+    // "offline" — it's specifically saving that's broken, and it needs a person
+    // rather than a retry.
+    badge.className = 'adp-badge adp-badge-error';
+    badge.textContent = 'League sync · token expired';
+    badge.title = `Everyone’s locked keepers still load, but saving is turned off until the shared list’s access token is renewed. Reach out to ${LEAGUE_ADMIN}.`;
   } else if (!canWriteShared()) {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'League sync · read-only';

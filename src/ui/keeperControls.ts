@@ -5,7 +5,7 @@
 // the only part of that tab that writes to the league. Takes an `onChange`
 // callback rather than importing rosters.ts back, to keep the dependency
 // one-way.
-import { canReadShared, canWriteShared } from '../api/gist';
+import { canReadShared, canWriteShared, isTokenRejected, LEAGUE_ADMIN } from '../api/gist';
 import { isLockedRoster, myRosterId, setCurrentUserId, state, teamNameForRoster } from '../state';
 import {
   cancelEditingMyKeepers,
@@ -129,12 +129,21 @@ export function renderKeeperActions(rosterId: number, onChange: () => void): HTM
   const row = el('div', { class: 'keeper-actions' });
 
   if (!canWriteShared()) {
+    // Two different read-only states that need different things from the
+    // reader: one is how this build was deployed, the other is a break someone
+    // has to go fix.
     row.appendChild(
-      el(
-        'div',
-        { class: 'keeper-actions-note' },
-        'This build can’t save to the league — you can see everyone’s locked keepers but not publish your own.',
-      ),
+      isTokenRejected()
+        ? el(
+            'div',
+            { class: 'keeper-actions-error' },
+            `Saving is turned off — the league’s shared list token has expired. Your picks are safe in this browser, and everyone’s locked keepers still show. Reach out to ${LEAGUE_ADMIN} to renew it, then save again.`,
+          )
+        : el(
+            'div',
+            { class: 'keeper-actions-note' },
+            'This build can’t save to the league — you can see everyone’s locked keepers but not publish your own.',
+          ),
     );
     return row;
   }

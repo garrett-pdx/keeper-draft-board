@@ -7,7 +7,13 @@
 // the opposite — they retry, verify, and throw if they can't confirm, because
 // silently losing a manager's keeper picks is the one failure this app can't
 // shrug off.
-import { canReadShared, canWriteShared, fetchSharedKeepers, writeSharedKeepers } from './api/gist';
+import {
+  canReadShared,
+  canWriteShared,
+  fetchSharedKeepers,
+  GistAuthError,
+  writeSharedKeepers,
+} from './api/gist';
 import type { SharedKeepers } from './api/schemas';
 import {
   lockedTeamsFor,
@@ -116,7 +122,14 @@ async function commitSharedChange(
         state.syncedAt = new Date();
         return;
       }
-    } catch {
+    } catch (e) {
+      // A rejected token is neither transient nor racy — retrying just burns
+      // three round trips to be told no again. Surface it straight away, with
+      // the message that tells the manager who can actually fix it.
+      if (e instanceof GistAuthError) {
+        state.syncStatus = 'error';
+        throw e;
+      }
       /* network/API failure — retried below, same as a lost write */
     }
     if (attempt < COMMIT_ATTEMPTS) await delay(backoffMs(attempt));

@@ -320,6 +320,18 @@ localStorage-only — every team's stars stay interactive, there's no lock conce
 changes. A build with an ID but no token is a supported **read-only** mode
 (`canWriteShared()` false, "League sync · read-only" badge).
 
+**An expired token degrades to read-only, it doesn't take the league down.**
+Fine-grained gist PATs have a maximum lifetime, so this is a _when_, not an _if_. When
+GitHub turns the credential down (401/403), `fetchSharedKeepers` drops it and re-requests
+**unauthenticated** — the gist is fetchable by anyone holding its ID, so everyone keeps
+seeing the locked-in picks and only _saving_ is lost. `isTokenRejected()` latches so the
+app stops offering save controls that cannot work, `commitSharedChange` throws
+`GistAuthError` immediately instead of burning three retries on a "no" that won't change,
+and both the header badge ("League sync · token expired") and the manager's own roster
+card say plainly that the token needs renewing and to contact `LEAGUE_ADMIN`
+(`src/api/gist.ts`) — a broken credential needs a person, not a retry. Renewing it means
+updating the `KEEPER_GIST_TOKEN` secret and redeploying.
+
 There is deliberately **no in-app field for the gist ID or the token**, and adding one
 back would be a mistake on two counts: a token box invites a manager to paste a
 credential into a page that already ships one (teaching exactly the wrong habit for a
