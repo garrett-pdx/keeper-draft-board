@@ -128,7 +128,12 @@ export const AdpSnapshotPlayerSchema = z.object({
   low: z.number().nullish(),
 });
 export const AdpSnapshotEntrySchema = z.object({
-  teams: z.number(),
+  // Optional because current snapshots don't carry it: FFC ignores its own
+  // `teams` parameter (verified — every format returns identical data for
+  // 8/10/12/14), so the generator stopped emitting a dimension that never
+  // varied. Kept nullish so a snapshot cached before that change still
+  // validates instead of dropping the app to the rank proxy.
+  teams: z.number().nullish(),
   format: z.string(),
   meta: z
     .object({

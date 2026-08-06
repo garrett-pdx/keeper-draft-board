@@ -80,10 +80,9 @@ export async function ensureAdpLoaded(force?: boolean) {
   let rangeMap: Record<string, { high: number | null; low: number | null }> = {};
   try {
     const snapshot = await fetchAdpSnapshot();
-    const teamCount = state.rosters.length || 10;
     const recPoints = state.league?.scoring_settings?.rec;
     const superflex = isSuperflexLeague(state.league?.roster_positions);
-    const ranked = rankAdpEntries(snapshot.entries, teamCount, recPoints, superflex);
+    const ranked = rankAdpEntries(snapshot.entries, recPoints, superflex);
     if (ranked.length) {
       const players = await ensurePlayersLoaded(false);
       const matched = matchAdpToPlayers(ranked, players);

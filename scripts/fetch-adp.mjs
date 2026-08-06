@@ -16,7 +16,16 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TEAM_COUNTS = [8, 10, 12, 14];
+// One entry per format, and deliberately NOT a format x team-count matrix.
+//
+// FFC's API takes a `teams` parameter but ignores it: confirmed live on
+// 2026-08-06, all four of these formats return byte-identical player lists,
+// ADPs, highs, lows and draft counts for teams=8/10/12/14. Fetching the matrix
+// produced 16 entries of which 12 were exact duplicates and quadrupled the
+// snapshot the browser downloads. If FFC ever starts segmenting by league size,
+// reintroduce the loop here and restore the team-count preference in
+// rankAdpEntries — the runtime still tolerates a `teams` field on old snapshots.
+//
 // '2qb' is FFC's superflex/2QB market. It is kept strictly separate from the
 // 1QB formats at runtime (see rankAdpEntries) rather than blended with them —
 // starting a second QB reprices the position entirely (Josh Allen: 25.6
@@ -30,8 +39,8 @@ const OUT_PATH = path.join(
   'adp-snapshot.json',
 );
 
-async function fetchOne(format, teams) {
-  const url = `https://fantasyfootballcalculator.com/api/v1/adp/${format}?teams=${teams}&year=${YEAR}`;
+async function fetchOne(format) {
+  const url = `https://fantasyfootballcalculator.com/api/v1/adp/${format}?year=${YEAR}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   const data = await res.json();
@@ -39,7 +48,6 @@ async function fetchOne(format, teams) {
     throw new Error(`Unexpected response shape for ${url}`);
   }
   return {
-    teams,
     format,
     meta: {
       totalDrafts: data.meta?.total_drafts ?? 0,
@@ -60,19 +68,17 @@ async function fetchOne(format, teams) {
 async function main() {
   const entries = [];
   for (const format of FORMATS) {
-    for (const teams of TEAM_COUNTS) {
-      try {
-        const entry = await fetchOne(format, teams);
-        entries.push(entry);
-        console.log(
-          `fetched ${format} / ${teams} teams: ${entry.players.length} players (${entry.meta.totalDrafts} drafts)`,
-        );
-      } catch (err) {
-        console.error(`skipping ${format} / ${teams} teams: ${err.message}`);
-      }
-      // Be polite — FFC's own docs ask us not to hammer the API.
-      await new Promise((r) => setTimeout(r, 300));
+    try {
+      const entry = await fetchOne(format);
+      entries.push(entry);
+      console.log(
+        `fetched ${format}: ${entry.players.length} players (${entry.meta.totalDrafts} drafts)`,
+      );
+    } catch (err) {
+      console.error(`skipping ${format}: ${err.message}`);
     }
+    // Be polite — FFC's own docs ask us not to hammer the API.
+    await new Promise((r) => setTimeout(r, 300));
   }
   if (!entries.length) {
     console.error('No ADP entries fetched at all — leaving any existing snapshot in place.');

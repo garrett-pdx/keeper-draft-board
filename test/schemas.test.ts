@@ -215,6 +215,27 @@ describe('AdpSnapshotSchema', () => {
     expect(parsed.entries[0].players[0].team).toBeUndefined();
   });
 
+  it('accepts an entry with no teams field (the current shape)', () => {
+    // The generator stopped emitting `teams` once FFC was confirmed to ignore
+    // its own teams parameter.
+    const parsed = AdpSnapshotSchema.parse({
+      fetchedAt: '2026-08-06T00:00:00.000Z',
+      entries: [{ format: '2qb', players: [{ name: 'Josh Allen', position: 'QB', adp: 1.4 }] }],
+    });
+    expect(parsed.entries[0].teams).toBeUndefined();
+    expect(parsed.entries[0].format).toBe('2qb');
+  });
+
+  it('still accepts a legacy entry that carries teams', () => {
+    // Browsers cache the snapshot, so one written before the change must not
+    // fail validation and drop the app to the rank proxy.
+    const parsed = AdpSnapshotSchema.parse({
+      fetchedAt: '2026-07-06T00:00:00.000Z',
+      entries: [{ teams: 10, format: 'ppr', players: [] }],
+    });
+    expect(parsed.entries[0].teams).toBe(10);
+  });
+
   it('rejects an entry missing the required players array', () => {
     expect(() =>
       AdpSnapshotSchema.parse({

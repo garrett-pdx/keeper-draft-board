@@ -126,10 +126,15 @@ export const SUPERFLEX_FORMAT = '2qb';
  * Superflex leagues still fall back to the 1QB entries when the snapshot has
  * no 2qb data (an older snapshot, or FFC dropping the format) — a slightly
  * mispriced QB beats an empty board.
+ *
+ * There is deliberately no league-size preference: FFC ignores its own `teams`
+ * parameter (verified — every format returns identical data for 8/10/12/14), so
+ * ranking on it was sorting by a field that never differed while implying a
+ * precision this data doesn't have. If FFC ever segments by league size, take
+ * the team count back as an argument and prefer the closest entry.
  */
 export function rankAdpEntries(
   entries: AdpSnapshotEntry[],
-  teamCount: number,
   recPoints: number | null | undefined,
   superflex = false,
 ): AdpSnapshotEntry[] {
@@ -139,16 +144,11 @@ export function rankAdpEntries(
   const pool = superflex && superflexEntries.length ? superflexEntries : singleQbEntries;
   if (!pool.length) return [];
 
-  const closestTeamCount = pool
-    .map((e) => e.teams)
-    .reduce((best, t) => (Math.abs(t - teamCount) < Math.abs(best - teamCount) ? t : best));
-  const atTeamCount = pool.filter((e) => e.teams === closestTeamCount);
-
   // FFC publishes one 2qb set rather than a per-scoring-format matrix, so for a
   // superflex league this sort is a no-op — the partition already picked the
   // market, and reception points only break ties within the 1QB set.
   const targetRec = recPoints ?? 0.5;
-  return atTeamCount.slice().sort((a, b) => {
+  return pool.slice().sort((a, b) => {
     const ra = FORMAT_REC[a.format] ?? 0.5;
     const rb = FORMAT_REC[b.format] ?? 0.5;
     return Math.abs(ra - targetRec) - Math.abs(rb - targetRec);

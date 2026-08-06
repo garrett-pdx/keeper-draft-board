@@ -258,17 +258,25 @@ runtime:
 > `2026-08-01..2026-08-06`, 1731 drafts). So there is no staleness knob to turn — the
 > freshness lever is purely our refresh cadence, which is why it's daily.
 
-- `scripts/fetch-adp.mjs` pulls a small matrix (`teams` × `8,10,12,14`, `format` ×
-  `standard,half-ppr,ppr`) from Fantasy Football Calculator's public REST API (free for
-  personal/commercial use, attribution requested — see the footer credit in `index.html`)
-  and writes `public/adp-snapshot.json`.
+- `scripts/fetch-adp.mjs` pulls **one entry per format** (`standard`, `half-ppr`, `ppr`,
+  `2qb`) from Fantasy Football Calculator's public REST API (free for personal/commercial
+  use, attribution requested — see the footer credit in `index.html`) and writes
+  `public/adp-snapshot.json`. It deliberately does **not** fetch a format × team-count
+  matrix: FFC accepts a `teams` parameter and ignores it — verified 2026-08-06, all four
+  formats return byte-identical players, ADPs, highs, lows and draft counts for
+  `teams=8/10/12/14`. The matrix produced 16 entries of which 12 were exact duplicates
+  and made the snapshot the browser downloads 4× larger (620KB → 151KB after the trim,
+  which matters more now that the fetch is cache-busted). If FFC ever segments by league
+  size, restore the loop here and take the team count back as an argument in
+  `rankAdpEntries`; the schema still tolerates a `teams` field so snapshots cached before
+  the change keep validating.
 - `.github/workflows/refresh-adp.yml` runs it on a schedule (Monday + Friday) and
   `workflow_dispatch`, committing the snapshot to `main` if it changed — which then
   triggers the normal `deploy.yml` (any push to `main`) to rebuild and redeploy.
 - At runtime, `ensureAdpLoaded` (`src/data.ts`) fetches this snapshot same-origin (no
   CORS problem — it's our own static asset), ranks this league's entries via
-  `rankAdpEntries` (nearest team count, then nearest scoring format from the league's
-  `scoring_settings.rec`), and matches FFC's name-keyed players against Sleeper's
+  `rankAdpEntries` (superflex partition first, then nearest scoring format from the
+  league's `scoring_settings.rec`), and matches FFC's name-keyed players against Sleeper's
   id-keyed player dictionary via `matchAdpToPlayers`, which tries the ranked entries in
   priority order. **A lower-sample format can genuinely omit real players present in
   another** — confirmed live: FFC's half-ppr set (394 drafts) is missing ~38 players,

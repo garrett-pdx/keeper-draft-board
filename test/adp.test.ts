@@ -203,74 +203,69 @@ describe('matchAdpToPlayers', () => {
 
 describe('rankAdpEntries', () => {
   const entries: AdpSnapshotEntry[] = [
-    { teams: 8, format: 'standard', players: [] },
-    { teams: 8, format: 'half-ppr', players: [] },
-    { teams: 8, format: 'ppr', players: [] },
-    { teams: 12, format: 'standard', players: [] },
-    { teams: 12, format: 'half-ppr', players: [] },
-    { teams: 12, format: 'ppr', players: [] },
+    { format: 'standard', players: [] },
+    { format: 'half-ppr', players: [] },
+    { format: 'ppr', players: [] },
   ];
 
   it('returns an empty array for an empty entry list', () => {
-    expect(rankAdpEntries([], 10, 0.5)).toEqual([]);
+    expect(rankAdpEntries([], 0.5)).toEqual([]);
   });
 
-  it('ranks the closest team count by closest scoring format first', () => {
-    const ranked = rankAdpEntries(entries, 10, 0.5);
-    expect(ranked.every((e) => e.teams === 8)).toBe(true); // |8-10| === |12-10|, first group wins the tie
-    expect(ranked.map((e) => e.format)).toEqual(['half-ppr', 'standard', 'ppr']);
+  it('ranks by closest scoring format first', () => {
+    expect(rankAdpEntries(entries, 0.5).map((e) => e.format)).toEqual([
+      'half-ppr',
+      'standard',
+      'ppr',
+    ]);
   });
 
   it('ranks standard first for rec=0', () => {
-    expect(rankAdpEntries(entries, 12, 0)[0].format).toBe('standard');
+    expect(rankAdpEntries(entries, 0)[0].format).toBe('standard');
   });
 
   it('ranks ppr first for rec=1', () => {
-    expect(rankAdpEntries(entries, 12, 1)[0].format).toBe('ppr');
+    expect(rankAdpEntries(entries, 1)[0].format).toBe('ppr');
   });
 
   it('defaults to half-ppr first when recPoints is unknown', () => {
-    expect(rankAdpEntries(entries, 12, null)[0].format).toBe('half-ppr');
-    expect(rankAdpEntries(entries, 12, undefined)[0].format).toBe('half-ppr');
+    expect(rankAdpEntries(entries, null)[0].format).toBe('half-ppr');
+    expect(rankAdpEntries(entries, undefined)[0].format).toBe('half-ppr');
   });
 
-  it('picks the nearer team count when not tied', () => {
-    expect(rankAdpEntries(entries, 13, 0.5)[0].teams).toBe(12);
-    expect(rankAdpEntries(entries, 9, 0.5)[0].teams).toBe(8);
+  it('still ranks snapshots that carry a legacy teams field', () => {
+    // Snapshots generated before the team-count dimension was dropped are
+    // cached in browsers; they must keep working rather than falling through
+    // to the rank proxy.
+    const legacy: AdpSnapshotEntry[] = [
+      { teams: 12, format: 'ppr', players: [] },
+      { teams: 12, format: 'half-ppr', players: [] },
+    ];
+    expect(rankAdpEntries(legacy, 0.5)[0].format).toBe('half-ppr');
   });
 
   describe('superflex partitioning', () => {
-    const withSuperflex: AdpSnapshotEntry[] = [
-      ...entries,
-      { teams: 8, format: '2qb', players: [] },
-      { teams: 12, format: '2qb', players: [] },
-    ];
+    const withSuperflex: AdpSnapshotEntry[] = [...entries, { format: '2qb', players: [] }];
 
     it('gives a superflex league only 2qb entries', () => {
-      const ranked = rankAdpEntries(withSuperflex, 12, 0.5, true);
-      expect(ranked.map((e) => e.format)).toEqual(['2qb']);
+      expect(rankAdpEntries(withSuperflex, 0.5, true).map((e) => e.format)).toEqual(['2qb']);
     });
 
     it('never leaks 2qb pricing into a single-QB league', () => {
       // The whole point of partitioning rather than ranking: a QB missing from
       // every 1QB format must show no ADP, not a superflex first-round price.
-      const ranked = rankAdpEntries(withSuperflex, 12, 0.5, false);
-      expect(ranked.some((e) => e.format === '2qb')).toBe(false);
+      expect(rankAdpEntries(withSuperflex, 0.5, false).some((e) => e.format === '2qb')).toBe(false);
     });
 
     it('defaults to single-QB when the flag is omitted', () => {
-      expect(rankAdpEntries(withSuperflex, 12, 0.5).some((e) => e.format === '2qb')).toBe(false);
+      expect(rankAdpEntries(withSuperflex, 0.5).some((e) => e.format === '2qb')).toBe(false);
     });
 
     it('falls back to single-QB entries when the snapshot has no 2qb data', () => {
       // An older snapshot shouldn't leave a superflex league with an empty board.
-      const ranked = rankAdpEntries(entries, 12, 0.5, true);
+      const ranked = rankAdpEntries(entries, 0.5, true);
       expect(ranked.length).toBeGreaterThan(0);
       expect(ranked[0].format).toBe('half-ppr');
-    });
-
-    it('still honours team-count proximity within the superflex pool', () => {
-      expect(rankAdpEntries(withSuperflex, 13, 0.5, true)[0].teams).toBe(12);
     });
   });
 });
