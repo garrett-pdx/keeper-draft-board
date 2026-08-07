@@ -417,10 +417,22 @@ change doesn't assume the same constraints:
   instead, same cadence as ADP, purely for performance/consistency (one static snapshot
   beats every page load hitting a third party we have no support relationship with) — not
   because of a CORS block.
-- Matching against Sleeper's player dictionary is a **direct `espn_id` lookup**, not fuzzy
-  name matching — Sleeper's own player objects carry an `espn_id` field (confirmed live:
-  Josh Allen is Sleeper id `4984`, `espn_id: 3918298`, which is exactly ESPN's own id for
-  him), so there's no ambiguity/normalization problem like FFC's name-keyed data has.
+- Matching is by **id, never by name** — but NOT by Sleeper's own `espn_id` alone. That
+  field exists (Josh Allen is Sleeper `4984`, `espn_id: 3918298`) but is far too sparse to
+  rely on: measured live, only ~35% of the top 200 fantasy players carry one, and the gaps
+  are the biggest names on the board — Bijan Robinson, Gibbs, Ja'Marr Chase, Puka Nacua,
+  Amon-Ra St. Brown. Matching on it alone left **~70% of draftable players with no
+  outlook**, silently, for months.
+  So `scripts/fetch-outlooks.mjs` builds an **id bridge at CI time**: FantasyCalc publishes
+  both `sleeperId` and `espnId` on every row (198/198), which resolves most of the board,
+  with Sleeper's own `espn_id` filling in anyone FantasyCalc doesn't rank. Each snapshot
+  entry then carries a `sleeperId` alongside its `espnId`. Coverage of the top 50 went
+  **30% → 98%** (the one straggler is a retired player with no outlook to have).
+  At runtime `outlookFor` tries the Sleeper id first, then the ESPN id. Map keys are
+  **namespaced** (`sleeper:<id>` / `espn:<id>`) so a Sleeper id can never collide with a
+  numerically equal ESPN id. **Bump `LS_OUTLOOK_CACHE_PREFIX` whenever that key shape
+  changes** — a stale cache of the old shape validates fine and matches nothing, so every
+  player silently loses its outlook until the cache ages out.
 
 - `scripts/fetch-outlooks.mjs` fetches each offense-relevant position slot (QB/RB/WR/TE/
   DEF/K — ESPN's own `filterSlotIds`) and keeps only players with a non-empty

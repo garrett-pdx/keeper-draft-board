@@ -15,6 +15,7 @@ import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
 import { describeValueEntry, matchValueToPlayers, pickValueEntry } from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague } from './domain/leagueSettings';
+import { espnKey, sleeperKey } from './domain/outlook';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { OutlookMap, PlayersMap, PrevDraftMap } from './types';
 
@@ -185,8 +186,10 @@ export async function ensureOutlookLoaded(force?: boolean): Promise<OutlookMap> 
   const outlookMap: OutlookMap = {};
   try {
     const snapshot = await fetchOutlookSnapshot();
+    // Indexed under both ids so a player matches on whichever the app knows.
     snapshot.players.forEach((p) => {
-      outlookMap[String(p.espnId)] = p.outlook;
+      outlookMap[espnKey(p.espnId)] = p.outlook;
+      if (p.sleeperId) outlookMap[sleeperKey(p.sleeperId)] = p.outlook;
     });
   } catch {
     /* leave empty — outlook teasers just won't render */

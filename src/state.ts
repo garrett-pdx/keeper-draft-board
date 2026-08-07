@@ -32,7 +32,11 @@ export const LS_PLAYERS_CACHE = 'kdb_players_cache_v3'; // v3: added espnId
 // superflex league and a 1QB league in the same season must not share an entry
 // or whichever loaded first would price the other's QBs completely wrong.
 export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v3_';
-export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v1_';
+// v2: keys are namespaced ("sleeper:<id>" / "espn:<id>") rather than bare ESPN
+// ids. The prefix MUST be bumped whenever that shape changes — a cached v1 map
+// looks perfectly valid to the loader but matches nothing, so every player
+// would silently show no outlook until the 20h cache aged out.
+export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v2_';
 export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 // ADP moves daily and is the number people second-guess the app over ("he is

@@ -577,7 +577,7 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     const birthDateText = formatBirthDate(p?.birthDate) || 'Unknown';
     const starSignText = starSignFor(p?.birthDate) || 'Unknown';
 
-    const outlook = outlookFor(p?.espnId ?? null, state.outlookMap);
+    const outlook = outlookFor(pid, p?.espnId ?? null, state.outlookMap);
     const outlookBlock = outlook
       ? el(
           'div',

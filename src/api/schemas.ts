@@ -208,6 +208,10 @@ export type SharedKeepers = z.infer<typeof SharedKeepersSchema>;
 // espnId is matched against Sleeper's own espn_id field on each player.
 export const OutlookSnapshotPlayerSchema = z.object({
   espnId: z.number(),
+  // Resolved at CI time via FantasyCalc's id bridge; null when that player
+  // isn't ranked there and Sleeper carries no espn_id either. Optional so
+  // snapshots predating the bridge still validate.
+  sleeperId: z.string().nullable().optional(),
   name: z.string(),
   outlook: z.string(),
 });

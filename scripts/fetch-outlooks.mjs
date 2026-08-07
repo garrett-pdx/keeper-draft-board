@@ -59,6 +59,52 @@ async function fetchOne(position, slotId) {
     .map((p) => ({ espnId: p.id, name: p.fullName, outlook: p.seasonOutlook.trim() }));
 }
 
+/**
+ * ESPN id -> Sleeper id.
+ *
+ * Sleeper's own player dictionary carries an `espn_id`, but it is far too
+ * sparse to rely on: measured live, only ~35% of the top 200 fantasy players
+ * have one, and the gaps are the biggest names on the board (Bijan Robinson,
+ * Gibbs, Ja'Marr Chase, Puka Nacua). Matching outlooks on that field alone left
+ * roughly 70% of draftable players with no outlook at all.
+ *
+ * FantasyCalc publishes BOTH ids on every row (verified 198/198), so it's used
+ * as the primary bridge, with Sleeper's own espn_id filling in anyone
+ * FantasyCalc doesn't rank. Reconciled here at CI time rather than in the
+ * browser so runtime stays a direct lookup with no extra fetch.
+ */
+async function buildIdBridge() {
+  const bridge = new Map();
+  try {
+    // Both QB formats: the two lists rank slightly different player pools.
+    for (const numQbs of [1, 2]) {
+      const rows = await (
+        await fetch(
+          `https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=${numQbs}&numTeams=10&ppr=0.5`,
+        )
+      ).json();
+      for (const row of rows) {
+        const { sleeperId, espnId } = row.player ?? {};
+        if (sleeperId && espnId) bridge.set(String(espnId), String(sleeperId));
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  } catch (err) {
+    console.error(`FantasyCalc id bridge unavailable (${err.message}) — falling back to Sleeper`);
+  }
+  try {
+    const players = await (await fetch('https://api.sleeper.app/v1/players/nfl')).json();
+    for (const [sleeperId, p] of Object.entries(players)) {
+      if (p?.espn_id == null) continue;
+      const key = String(p.espn_id);
+      if (!bridge.has(key)) bridge.set(key, sleeperId);
+    }
+  } catch (err) {
+    console.error(`Sleeper player dictionary unavailable (${err.message})`);
+  }
+  return bridge;
+}
+
 async function main() {
   const byEspnId = new Map();
   for (const [position, slotId] of Object.entries(POSITION_SLOTS)) {
@@ -77,10 +123,20 @@ async function main() {
     console.error('No outlooks fetched at all — leaving any existing snapshot in place.');
     process.exit(1);
   }
+  const bridge = await buildIdBridge();
+  const players = [...byEspnId.values()].map((p) => ({
+    ...p,
+    sleeperId: bridge.get(String(p.espnId)) ?? null,
+  }));
+  const resolved = players.filter((p) => p.sleeperId).length;
+  console.log(
+    `resolved a Sleeper id for ${resolved}/${players.length} outlooks (bridge size ${bridge.size})`,
+  );
+
   const snapshot = {
     fetchedAt: new Date().toISOString(),
     attribution: 'Player outlooks provided by ESPN Fantasy Football',
-    players: [...byEspnId.values()],
+    players,
   };
   await writeFile(OUT_PATH, JSON.stringify(snapshot, null, 2) + '\n');
   console.log(`Wrote ${snapshot.players.length} player outlooks to ${OUT_PATH}`);
