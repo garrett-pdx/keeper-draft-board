@@ -14,7 +14,7 @@ import {
   startEditingMyKeepers,
 } from '../sync';
 import { el } from './dom';
-import { hideBusy, showBusy } from './overlay';
+import { withBusy } from './overlay';
 
 // Error text from the most recent save/withdraw, shown inline in the actions
 // row. Only ever one team's controls are on screen, so a single slot is enough.
@@ -36,15 +36,12 @@ function formatSavedAt(iso: string): string {
 /** Run a shared-list write behind the blocking overlay, surfacing failures. */
 async function runAction(message: string, action: () => Promise<void>, onChange: () => void) {
   actionError = null;
-  showBusy(message);
   try {
-    await action();
+    await withBusy(message, action);
   } catch (e) {
     actionError = e instanceof Error ? e.message : 'Something went wrong';
-  } finally {
-    hideBusy();
-    onChange();
   }
+  onChange();
 }
 
 /**

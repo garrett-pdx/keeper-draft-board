@@ -49,3 +49,20 @@ export function hideBusy(): void {
   if (lastFocused instanceof HTMLElement && document.contains(lastFocused)) lastFocused.focus();
   lastFocused = null;
 }
+
+/**
+ * Run a deliberate action behind the overlay, always clearing it afterwards.
+ *
+ * Callers own the busy state rather than the loaders themselves: a loader that
+ * raised its own overlay couldn't be composed into a bigger action (Refresh all
+ * runs three of them) without the modal flickering between each step, or
+ * needing nested show/hide bookkeeping to suppress it.
+ */
+export async function withBusy<T>(message: string, action: () => Promise<T>): Promise<T> {
+  showBusy(message);
+  try {
+    return await action();
+  } finally {
+    hideBusy();
+  }
+}

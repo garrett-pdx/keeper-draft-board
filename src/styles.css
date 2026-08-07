@@ -992,6 +992,20 @@ a {
   color: var(--turf-bright);
 }
 
+/* Partial-refresh notice, between the scoreboard and the tabs — it applies to
+   more than one tab, so it can't live inside any of them. */
+.refresh-warning {
+  background: rgba(245, 165, 36, 0.1);
+  border-bottom: 1px solid rgba(245, 165, 36, 0.35);
+  color: var(--flag);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 28px;
+}
+.refresh-warning[hidden] {
+  display: none;
+}
+
 /* ---------- Blocking "working" overlay ---------- */
 .busy-overlay {
   display: none;

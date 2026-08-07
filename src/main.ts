@@ -1,6 +1,8 @@
 import './styles.css';
 import { LS_LEAGUE_ID, LS_SEASON, state } from './state';
-import { $, $all } from './ui/dom';
+import { $, $all, setSpin } from './ui/dom';
+import { refreshAll } from './refresh';
+import { withBusy } from './ui/overlay';
 import { loadBoard } from './ui/board';
 import { loadDraft, renderDraft } from './ui/draft';
 import { loadRosters, rerenderAfterKeeperChange } from './ui/rosters';
@@ -33,6 +35,38 @@ function switchTab(tab: TabName): void {
   if (tab === 'settings') {
     renderSettings();
   }
+}
+
+async function handleRefreshAll(): Promise<void> {
+  const btn = $('#refreshAllBtn') as HTMLButtonElement;
+  btn.disabled = true;
+  setSpin('refreshAllSpin', true);
+  try {
+    const failed = await withBusy('Refreshing everything…', () =>
+      refreshAll({ rosters: loadRosters, draft: loadDraft, board: loadBoard }),
+    );
+    // Each tab renders its own error banner, so there's nothing to add when
+    // everything worked — but a partial refresh is worth saying out loud, or
+    // the untouched tabs quietly look as fresh as the rest.
+    if (failed.length) {
+      showRefreshWarning(`Couldn’t refresh: ${failed.join(', ')}. Everything else is up to date.`);
+    } else {
+      clearRefreshWarning();
+    }
+  } finally {
+    setSpin('refreshAllSpin', false);
+    btn.disabled = false;
+  }
+}
+
+function showRefreshWarning(message: string): void {
+  const box = $('#refreshWarning')!;
+  box.textContent = message;
+  box.removeAttribute('hidden');
+}
+
+function clearRefreshWarning(): void {
+  $('#refreshWarning')!.setAttribute('hidden', '');
 }
 
 function init(): void {
@@ -71,9 +105,19 @@ function init(): void {
     b.addEventListener('click', () => switchTab(b.dataset.tab as TabName)),
   );
 
-  $('#refreshRosters')!.addEventListener('click', () => loadRosters(true));
-  $('#refreshDraft')!.addEventListener('click', () => loadDraft(true));
-  $('#refreshBoard')!.addEventListener('click', () => loadBoard(true));
+  // The overlay is raised here rather than inside the loaders, so the same
+  // loader can serve a single-tab refresh and the composite Refresh all
+  // without the modal flickering between its three steps.
+  $('#refreshRosters')!.addEventListener('click', () =>
+    withBusy('Refreshing rosters and league keepers…', () => loadRosters(true)),
+  );
+  $('#refreshDraft')!.addEventListener('click', () =>
+    withBusy('Refreshing the draft list…', () => loadDraft(true)),
+  );
+  $('#refreshBoard')!.addEventListener('click', () =>
+    withBusy('Refreshing the draft board…', () => loadBoard(true)),
+  );
+  $('#refreshAllBtn')!.addEventListener('click', handleRefreshAll);
 
   $('#draftSearch')!.addEventListener('input', () => {
     if (state.adpMap) renderDraft();

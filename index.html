@@ -98,9 +98,14 @@
           <span class="adp-badge" id="syncBadge" hidden></span>
           <span class="adp-badge" id="pickSourceBadge" hidden></span>
           <span class="adp-badge" id="adpSourceBadge" hidden></span>
+          <button class="btn btn-ghost btn-icon" id="refreshAllBtn" type="button">
+            <span class="spin-icon" id="refreshAllSpin">⟳</span> <span>Refresh all</span>
+          </button>
           <button class="btn btn-ghost" id="changeLeagueBtn">Change league</button>
         </div>
       </div>
+
+      <div class="refresh-warning" id="refreshWarning" role="status" hidden></div>
 
       <div class="tabs">
         <button class="tab-btn active" data-tab="rosters">Rosters &amp; Keepers</button>

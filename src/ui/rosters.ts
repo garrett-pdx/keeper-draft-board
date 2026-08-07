@@ -41,14 +41,10 @@ import {
   updateSyncBadge,
 } from './header';
 import { openOutlookDrawer } from './outlookDrawer';
-import { hideBusy, showBusy } from './overlay';
 
 export async function loadRosters(force?: boolean): Promise<void> {
   setSpin('rostersSpin', true);
   ($('#refreshRosters') as HTMLButtonElement).disabled = true;
-  // Only a deliberate Refresh blocks the page; the initial load has its own
-  // skeleton, and background polling must never throw up a modal.
-  if (force) showBusy('Refreshing rosters and league keepers…');
   try {
     const [league, users, rosters] = await Promise.all([
       sleeper.league(state.leagueId!),
@@ -118,7 +114,6 @@ export async function loadRosters(force?: boolean): Promise<void> {
       ),
     );
   } finally {
-    if (force) hideBusy();
     setSpin('rostersSpin', false);
     ($('#refreshRosters') as HTMLButtonElement).disabled = false;
   }
