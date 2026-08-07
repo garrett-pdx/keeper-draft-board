@@ -270,7 +270,7 @@ runtime:
   size, restore the loop here and take the team count back as an argument in
   `rankAdpEntries`; the schema still tolerates a `teams` field so snapshots cached before
   the change keep validating.
-- `.github/workflows/refresh-adp.yml` runs it on a schedule (Monday + Friday) and
+- `.github/workflows/refresh-adp.yml` runs it on a schedule (daily) and
   `workflow_dispatch`, committing the snapshot to `main` if it changed — which then
   triggers the normal `deploy.yml` (any push to `main`) to rebuild and redeploy.
 - At runtime, `ensureAdpLoaded` (`src/data.ts`) fetches this snapshot same-origin (no
@@ -306,6 +306,26 @@ Detection (`isSuperflexLeague`) accepts **either** an explicit `SUPER_FLEX` slot
 two or more `QB` starters. Both are real: confirmed live, one of this user's leagues
 starts `QB,QB,...` with no `SUPER_FLEX` slot anywhere, so a `SUPER_FLEX`-only check would
 silently miss it and price that league off 1QB ADP.
+
+### Snapshot freshness (two caches, both of which have bitten us)
+
+The snapshots are static assets with **stable filenames**, which is the trap: Vite
+content-hashes `dist/assets/*.js|css`, but anything in `public/` keeps its name forever,
+so nothing about the URL changes when the contents do. Two layers can therefore serve
+stale ADP, and both are handled deliberately:
+
+- **HTTP/CDN cache.** `fetchAdpSnapshot`/`fetchOutlookSnapshot` (`src/api/`) append
+  `?t=${Date.now()}` and pass `cache: 'no-store'`. Without this the browser and Pages'
+  CDN will happily hold a copy indefinitely — confirmed the hard way: a stale cached
+  snapshot pinned Christian McCaffrey at his 2026-07-27 ADP (#4 overall) for a user long
+  after the committed snapshot had moved him to #6, which reads as "the app's ADP is
+  wrong" rather than "this file is old". If you add another `public/` data asset,
+  cache-bust it the same way.
+- **localStorage cache.** ADP uses its own `ADP_MAX_AGE_MS` (4h, `src/state.ts`), NOT the
+  20h `PLAYERS_MAX_AGE_MS` it originally shared with the player dictionary. Sleeper's
+  player dict genuinely only changes about daily; ADP moves continuously and is the number
+  people second-guess the app over, so it gets a much shorter leash. The snapshot is a
+  small static file — refetching it is cheap.
 
 ## League settings import
 

@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Lets CI be started by hand. Push and pull_request are both *webhook*
+  # events, so a GitHub incident that throttles webhooks stops CI running at
+  # exactly the moment you most want to confirm a commit is sound (confirmed
+  # during the 2026-08-06 Actions outage: pushes triggered nothing, while
+  # workflow_dispatch — an API call, not a webhook — went through fine).
+  workflow_dispatch:
 
 jobs:
   build:
