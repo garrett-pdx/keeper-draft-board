@@ -152,6 +152,27 @@ export const AdpSnapshotSchema = z.object({
 export type AdpSnapshot = z.infer<typeof AdpSnapshotSchema>;
 export type AdpSnapshotEntry = z.infer<typeof AdpSnapshotEntrySchema>;
 
+// FantasyCalc player values, our own generated asset (scripts/fetch-fantasycalc.mjs).
+// Keyed by Sleeper id — FantasyCalc supplies one on every row, so no name
+// matching is needed. `rank` is a *value* ranking, not ADP; see
+// src/domain/marketValue.ts for why that distinction matters.
+export const ValueSnapshotEntrySchema = z.object({
+  numQbs: z.number(),
+  players: z.array(
+    z.object({
+      id: z.string(),
+      rank: z.number(),
+      value: z.number().nullable().optional(),
+    }),
+  ),
+});
+export const ValueSnapshotSchema = z.object({
+  fetchedAt: z.string(),
+  attribution: z.string().optional(),
+  entries: z.array(ValueSnapshotEntrySchema),
+});
+export type ValueSnapshot = z.infer<typeof ValueSnapshotSchema>;
+
 // The league's shared keeper picks, stored as a single JSON file in a GitHub
 // Gist so every manager sees the same locked-in selections — see CLAUDE.md's
 // "Shared keeper picks". This is the one piece of app data that isn't

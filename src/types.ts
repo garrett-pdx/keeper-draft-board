@@ -15,7 +15,15 @@ export type PlayersMap = Record<string, SlimPlayer>;
 
 /** player_id -> ADP pick number (or a rank proxy when ADP is unavailable). */
 export type AdpMap = Record<string, number>;
-export type AdpSource = 'adp' | 'rank' | null;
+// Where the market price shown in the UI actually came from. 'adp' is real
+// average draft position (Fantasy Football Calculator), 'value' is a trade-value
+// ranking used as an implied pick (FantasyCalc), 'rank' is the last-resort
+// Sleeper search_rank proxy. The UI must distinguish these — presenting a value
+// rank as "ADP" would misdescribe the data.
+export type AdpSource = 'adp' | 'value' | 'rank' | null;
+
+/** Which market-price source a league prefers. */
+export type MarketSource = 'value' | 'adp';
 
 /**
  * player_id -> the earliest/latest pick this player was actually taken across
@@ -59,6 +67,10 @@ export interface KeeperCostItem {
 /** Per-league configurable rules. Persisted per-league; see state.ts LS_RULES_PREFIX. */
 export interface LeagueRules {
   maxKeepers: number; // default 2, UI-capped 1-4
+  // Defaults to FantasyCalc's value ranking: it's steadier than crowd ADP,
+  // which can run hard on a week of news (see CLAUDE.md's "Market value
+  // sources"). Switchable per league.
+  marketSource: MarketSource;
   inflationRounds: number; // default 1 — round bump for a same-manager repeat keep
   noKeeperCost: boolean; // default false — "taxi squad" mode: keepers cost no draft pick at all
 }
@@ -66,6 +78,7 @@ export interface LeagueRules {
 // used both as the initial state and as the Settings tab's explicit reset target.
 export const DEFAULT_LEAGUE_RULES: LeagueRules = {
   maxKeepers: 2,
+  marketSource: 'value',
   inflationRounds: 1,
   noKeeperCost: false,
 };

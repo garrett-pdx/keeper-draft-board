@@ -13,7 +13,14 @@ export function updateAdpSourceBadge(): void {
     return;
   }
   badge.removeAttribute('hidden');
-  if (state.adpSource === 'adp') {
+  if (state.adpSource === 'value') {
+    // Deliberately NOT labelled "ADP": this is a trade-value ranking used as an
+    // implied pick, and calling it average draft position would misdescribe it.
+    badge.className = 'adp-badge adp-badge-live';
+    badge.textContent = 'Value rank · FantasyCalc';
+    badge.title =
+      'Player value ranking from FantasyCalc (fantasycalc.com), refreshed daily and matched by Sleeper id. This is “how good is this player”, used as an implied draft pick — not real average draft position. Switch to ADP in Settings.';
+  } else if (state.adpSource === 'adp') {
     badge.className = 'adp-badge adp-badge-live';
     badge.textContent = 'ADP · Fantasy Football Calculator';
     badge.title =

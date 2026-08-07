@@ -41,6 +41,7 @@ directly — see "Or paste a league ID directly" on the setup screen) and a seas
 | `npm run format`         | Prettier (write)                                                      |
 | `npm run fetch-adp`      | Refresh `public/adp-snapshot.json` from Fantasy Football Calculator   |
 | `npm run fetch-outlooks` | Refresh `public/outlook-snapshot.json` from ESPN's public fantasy API |
+| `npm run fetch-values`   | Refresh `public/value-snapshot.json` from FantasyCalc                 |
 
 Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typecheck`,
 `npm test`, `npm run build`.
@@ -54,7 +55,7 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
   last season's finish, the defending champion gets a gold tile, and same-manager repeat
   keepers are flagged. With keeper sharing on, only **your** team's stars are interactive —
   every other team's are a read-only indicator, with a 🔒 on any team that has locked in.
-- **Draft List** — every draftable player sorted by ADP, with search + position filter.
+- **Draft List** — every draftable player sorted by market price, with search + position filter.
   Keepers are greyed out and tagged with the keeping team.
 - **Draft Board** — a grid, one column per team (drag or arrow-key the header to reorder,
   order persisted), one row per round. Keeper picks are placed at their cost round, tagged
@@ -167,39 +168,30 @@ and only saving stops, with the UI naming who to contact.
 - Players with no current ADP get a sentinel value so they're never recommended, and
   render as a dashed "no ADP" badge.
 
-## ADP data source
+## Market price sources
 
-Real, crowd-sourced ADP comes from [Fantasy Football
-Calculator](https://fantasyfootballcalculator.com) — Sleeper has no official ADP
-endpoint (verified by GraphQL introspection: 240 query fields, none of them ADP), and
-every free real-ADP API we could find (including FFC's) sends no CORS headers, so it
-can't be called live from a browser. Instead, a scheduled GitHub Actions workflow
-(`.github/workflows/refresh-adp.yml`, **daily**) runs `scripts/fetch-adp.mjs`
-server-side and commits a static snapshot (`public/adp-snapshot.json`) that the app
-fetches same-origin and matches against Sleeper's player dictionary by name (see
-`src/domain/adp.ts`). If fewer than 20 players match for your league's format, the app
-falls back to Sleeper's overall player ranking as a proxy and says so in the UI.
+The keeper metric needs one number per player: the pick at which the market prices him.
+Two sources can supply that, and **they are not the same quantity** — pick which in
+Settings (default: FantasyCalc).
 
-**Superflex / 2QB is a separate market, not a variant.** The snapshot carries FFC's `2qb`
-set alongside the 1QB formats, and a league draws from one or the other — never a blend.
-Starting a second QB reprices the position entirely (Josh Allen: **25.6** in half-PPR,
-**1.4** in 2QB), so a mispriced fallback would be worse than showing nothing. Detection
-accepts either an explicit `SUPER_FLEX` slot **or** two or more `QB` starters — both are
-real, and a `SUPER_FLEX`-only check silently misses true 2QB leagues.
+| Source                          | What it measures                          | Notes                                                               |
+| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
+| **FantasyCalc** (default)       | Trade value — _how good is this player_   | Steadier; matched by exact Sleeper id                               |
+| **Fantasy Football Calculator** | Real ADP — _what does it cost to get him_ | Literally the keeper question, but can swing hard on a week of news |
 
-**The snapshot has no team-count dimension**, because FFC's `teams` parameter doesn't do
-anything: all four formats return byte-identical players, ADPs, highs, lows and draft
-counts for `teams=8/10/12/14` (verified live). It used to be fetched as a format × team
-matrix, which made 16 entries of which 12 were exact duplicates and the downloaded asset
-4× larger than it needed to be. If FFC ever starts segmenting by league size, restore the
-loop in `scripts/fetch-adp.mjs` and take the team count back as an argument in
-`rankAdpEntries`; the schema still tolerates a `teams` field so older snapshots keep
-validating.
+FFC's ADP is the more directly relevant measure, but it's a rolling recent window and
+reacts fast. A real example: Rashee Rice sat at ADP ~27 for three weeks, then ran to 12.7
+in six days — while FantasyCalc still had him near 40. Neither source is simply right, so
+the app ships both and **always labels which is in use** ("Value rank · FantasyCalc" vs
+"ADP · Fantasy Football Calculator"); a value ranking is never presented as ADP.
 
-Player **season outlooks** come from ESPN's public fantasy API on the same daily schedule
-(`scripts/fetch-outlooks.mjs` → `public/outlook-snapshot.json`), matched by Sleeper's own
-`espn_id` field, so there's no fuzzy name-matching involved. Coverage is
-skill-positions-only in practice; anyone without one just shows no teaser.
+Both are fetched **server-side at CI time** — neither API sends CORS headers a browser
+will accept — by `scripts/fetch-fantasycalc.mjs` and `scripts/fetch-adp.mjs`, committed as
+static snapshots under `public/`, and served same-origin. A scheduled workflow
+(`.github/workflows/refresh-adp.yml`) refreshes them daily. Superflex leagues get their own
+partition from both sources, since starting a second QB reprices the position completely.
+If neither snapshot matches enough players, the app falls back to Sleeper's overall player
+ranking and says so.
 
 ## Project layout
 

@@ -51,12 +51,15 @@ scripts/
   fetch-adp.mjs       # CI-only Node script: pulls real ADP from Fantasy Football
                       #   Calculator, writes public/adp-snapshot.json (run by
                       #   .github/workflows/refresh-adp.yml, daily)
+  fetch-fantasycalc.mjs # CI-only Node script: pulls FantasyCalc player values,
+                      #   writes public/value-snapshot.json (same workflow/cadence)
   fetch-outlooks.mjs  # CI-only Node script: pulls season-outlook paragraphs from
                       #   ESPN's public fantasy API, writes public/outlook-snapshot.json
                       #   (same workflow/cadence as ADP)
 public/
   adp-snapshot.json      # generated, committed — served same-origin, matched at
                         #   runtime against Sleeper's player dictionary
+  value-snapshot.json    # generated, committed — FantasyCalc values keyed by Sleeper id
   outlook-snapshot.json  # generated, committed — served same-origin, matched at
                         #   runtime against Sleeper's player dictionary via espn_id
 src/
@@ -99,6 +102,8 @@ src/
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
     outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
+    marketValue.ts    #   pickValueEntry, matchValueToPlayers — FantasyCalc value ranks
+                      #   as implied market picks (see "Market value sources")
     leagueSettings.ts #   isSuperflexLeague, maxKeepersFromLeague,
                       #   suggestedRulesFromLeague, initialRulesForLeague — reading
                       #   a Sleeper league's own config (see "League settings import")
@@ -217,6 +222,39 @@ import no state.
   is this player," since there's no cost to weigh it against. The Draft Board
   (`src/ui/board.ts`) reflects this by leaving every round open (no keeper ever occupies a
   cell) and listing each team's taxi squad in a summary panel above the grid instead.
+
+## Market value sources
+
+The keeper metric needs one number per player: the pick at which the market prices him.
+**Two sources can supply it, and they are not the same quantity** — the per-league
+`rules.marketSource` setting picks which, defaulting to `'value'`:
+
+- **`'value'` — FantasyCalc** (`scripts/fetch-fantasycalc.mjs` → `public/value-snapshot.json`).
+  A **trade-value ranking**, answering "how good is this player". `overallRank` is used
+  directly as an implied pick number. Steadier than crowd ADP, and matched by **exact
+  Sleeper id** — FantasyCalc supplies `sleeperId` on every row (verified: 198/198), so none
+  of the name-normalisation guesswork below applies.
+- **`'adp'` — Fantasy Football Calculator**. Real average draft position, answering "what
+  does it cost to get him" — which is literally the keeper question, and the reason this
+  was the original source. But it is a rolling recent window and can run hard on a week of
+  news: confirmed live, Rashee Rice sat at ADP ~27 for three weeks (six consecutive
+  snapshots) then ran to 12.7 in six days, while FantasyCalc and FFC's own longer-window
+  2QB set both still had him near 40.
+
+Neither is strictly better, which is why this is a setting rather than a decision baked
+into the code. **The UI must always say which is in use** — the header badge reads
+"Value rank · FantasyCalc" or "ADP · Fantasy Football Calculator", never labelling a value
+rank as ADP. `ensureAdpLoaded` tries the preferred source first and falls back to the
+other before resorting to Sleeper's `search_rank` proxy, so one bad snapshot degrades to
+the other real source. **`marketSource` is part of the ADP cache key** — without that, a
+map built from the other source is returned before the preference is ever consulted and
+switching appears to do nothing.
+
+> FantasyCalc has **no ADP**: there is no ADP endpoint (404) and `maybeAdp` is null on
+> every row across both redraft (198) and dynasty (474). Don't go looking for one again.
+> Only `numQbs` meaningfully varies its output — measured as mean/max shift in rank
+> position, team count moved players 0.25-0.64 (max 4) and PPR 0.19-0.24 (max 3), while
+> 1QB→2QB moved them **25.25 on average, max 103**. Hence two entries, not a matrix.
 
 ## ADP data pipeline
 

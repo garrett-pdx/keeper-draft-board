@@ -203,6 +203,14 @@
             <label for="inflationRoundsInput">Inflation rounds (same-manager repeat keep)</label>
             <input type="number" id="inflationRoundsInput" min="0" step="1" />
           </div>
+          <div class="field">
+            <label for="marketSourceInput">Market price source</label>
+            <select id="marketSourceInput">
+              <option value="value">FantasyCalc — value ranking</option>
+              <option value="adp">Fantasy Football Calculator — real ADP</option>
+            </select>
+            <div class="setup-hint" id="marketSourceHint"></div>
+          </div>
           <div class="field field-checkbox">
             <label for="noKeeperCostInput">
               <input type="checkbox" id="noKeeperCostInput" />

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { state, toggleKeeper, keeperListFor } from '../src/state';
+import { DEFAULT_LEAGUE_RULES } from '../src/types';
 
 const ROSTER = 1;
 
@@ -19,7 +20,7 @@ class MemoryStorage {
 describe('toggleKeeper', () => {
   beforeEach(() => {
     state.keepers = {};
-    state.rules = { maxKeepers: 2, inflationRounds: 1, noKeeperCost: false };
+    state.rules = { ...DEFAULT_LEAGUE_RULES, maxKeepers: 2 };
     state.leagueId = 'test-league';
   });
 

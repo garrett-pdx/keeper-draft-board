@@ -1,10 +1,19 @@
 import { DEFAULT_LEAGUE_RULES } from '../types';
 import { suggestedRulesFromLeague } from '../domain/leagueSettings';
 import { state, updateRules } from '../state';
+import { ensureAdpLoaded } from '../data';
+import { updateAdpSourceBadge } from './header';
 import { $, el } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
 import { renderRosters } from './rosters';
+
+async function reloadMarketData(): Promise<void> {
+  await ensureAdpLoaded(true);
+  updateAdpSourceBadge();
+  renderSettings();
+  rerenderLoadedTabs();
+}
 
 function rerenderLoadedTabs(): void {
   renderRosters();
@@ -18,6 +27,11 @@ export function renderSettings(): void {
   const noKeeperCostInput = $('#noKeeperCostInput') as HTMLInputElement;
   noKeeperCostInput.checked = state.rules.noKeeperCost;
   ($('#inflationRoundsInput') as HTMLInputElement).disabled = state.rules.noKeeperCost;
+  ($('#marketSourceInput') as HTMLSelectElement).value = state.rules.marketSource;
+  $('#marketSourceHint')!.textContent =
+    state.rules.marketSource === 'value'
+      ? 'How good each player is, from FantasyCalc’s trade values. Steadier than draft data, and matched by exact Sleeper id.'
+      : 'Where players actually go, averaged over recent real drafts. Closest to “what will it cost to get him back”, but can swing hard on a week of news.';
   renderSleeperHint();
 }
 
@@ -82,6 +96,15 @@ function handleInflationRoundsChange(): void {
   rerenderLoadedTabs();
 }
 
+function handleMarketSourceChange(): void {
+  const input = $('#marketSourceInput') as HTMLSelectElement;
+  updateRules({ marketSource: input.value === 'adp' ? 'adp' : 'value' });
+  // The market map itself has to be rebuilt from the other snapshot, so this
+  // reloads rather than just re-rendering what's already in memory.
+  state.adpMap = null;
+  void reloadMarketData();
+}
+
 function handleNoKeeperCostChange(): void {
   const input = $('#noKeeperCostInput') as HTMLInputElement;
   updateRules({ noKeeperCost: input.checked });
@@ -99,5 +122,6 @@ export function wireSettingsEvents(): void {
   $('#maxKeepersInput')!.addEventListener('change', handleMaxKeepersChange);
   $('#inflationRoundsInput')!.addEventListener('change', handleInflationRoundsChange);
   $('#noKeeperCostInput')!.addEventListener('change', handleNoKeeperCostChange);
+  $('#marketSourceInput')!.addEventListener('change', handleMarketSourceChange);
   $('#resetRulesBtn')!.addEventListener('click', handleResetRules);
 }

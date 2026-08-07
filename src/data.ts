@@ -12,6 +12,8 @@ import {
 } from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
+import { matchValueToPlayers, pickValueEntry } from './domain/marketValue';
+import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague } from './domain/leagueSettings';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { OutlookMap, PlayersMap, PrevDraftMap } from './types';
@@ -61,7 +63,11 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
 // ---------- ADP (real data, snapshotted at build time — see domain/adp.ts) ----------
 export async function ensureAdpLoaded(force?: boolean) {
   if (state.adpMap && !force) return { adpMap: state.adpMap, source: state.adpSource };
-  const cacheKey = `${LS_ADP_CACHE_PREFIX}${state.season}_${state.leagueId}`;
+  // The source is part of the key, not just the payload: without it a cached
+  // map built from the other source is handed back before the preference is
+  // ever consulted, so switching sources appears to do nothing until the cache
+  // expires.
+  const cacheKey = `${LS_ADP_CACHE_PREFIX}${state.season}_${state.leagueId}_${state.rules.marketSource}`;
   if (!force) {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
@@ -76,29 +82,55 @@ export async function ensureAdpLoaded(force?: boolean) {
     }
   }
 
+  const superflex = isSuperflexLeague(state.league?.roster_positions);
   let adpMap: Record<string, number> | null = null;
   let rangeMap: Record<string, { high: number | null; low: number | null }> = {};
-  try {
-    const snapshot = await fetchAdpSnapshot();
-    const recPoints = state.league?.scoring_settings?.rec;
-    const superflex = isSuperflexLeague(state.league?.roster_positions);
-    const ranked = rankAdpEntries(snapshot.entries, recPoints, superflex);
-    if (ranked.length) {
-      const players = await ensurePlayersLoaded(false);
-      const matched = matchAdpToPlayers(ranked, players);
-      if (Object.keys(matched.adp).length >= 20) {
-        adpMap = matched.adp;
-        rangeMap = matched.range;
+  let source: 'adp' | 'value' | null = null;
+
+  // FantasyCalc's value ranking is the default (steadier than crowd ADP), but
+  // either source can be chosen per league. Whichever is asked for is tried
+  // first; the other is a fallback, so a single bad snapshot degrades to the
+  // other real source rather than straight to Sleeper's crude rank proxy.
+  const preferred = state.rules.marketSource;
+  const attempts: Array<'value' | 'adp'> =
+    preferred === 'adp' ? ['adp', 'value'] : ['value', 'adp'];
+
+  for (const attempt of attempts) {
+    if (adpMap) break;
+    try {
+      if (attempt === 'value') {
+        const snapshot = await fetchValueSnapshot();
+        const entry = pickValueEntry(snapshot.entries, superflex);
+        const players = await ensurePlayersLoaded(false);
+        const matched = matchValueToPlayers(entry, players);
+        if (Object.keys(matched).length >= 20) {
+          adpMap = matched;
+          rangeMap = {}; // a value rank has no real draft-position spread
+          source = 'value';
+        }
+      } else {
+        const snapshot = await fetchAdpSnapshot();
+        const recPoints = state.league?.scoring_settings?.rec;
+        const ranked = rankAdpEntries(snapshot.entries, recPoints, superflex);
+        if (ranked.length) {
+          const players = await ensurePlayersLoaded(false);
+          const matched = matchAdpToPlayers(ranked, players);
+          if (Object.keys(matched.adp).length >= 20) {
+            adpMap = matched.adp;
+            rangeMap = matched.range;
+            source = 'adp';
+          }
+        }
       }
+    } catch {
+      /* try the next source, then the rank proxy */
     }
-  } catch {
-    /* fall through to rank proxy */
   }
 
   if (adpMap) {
     state.adpMap = adpMap;
     state.adpRangeMap = rangeMap;
-    state.adpSource = 'adp';
+    state.adpSource = source;
   } else {
     const players = await ensurePlayersLoaded(false);
     const rankMap: Record<string, number> = {};
