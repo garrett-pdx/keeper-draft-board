@@ -311,6 +311,24 @@ a {
   color: var(--chalk);
   border-bottom-color: var(--turf-bright);
 }
+/* Always in the DOM, merely invisible when idle, so a tab doesn't change width
+   the moment it starts loading and shove its neighbours sideways. */
+.tab-spin {
+  display: inline-block;
+  visibility: hidden;
+  font-size: 14px;
+  color: var(--turf-bright);
+  transform-origin: 50% 50%;
+}
+.tab-btn.loading .tab-spin {
+  visibility: visible;
+  animation: spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-btn.loading .tab-spin {
+    animation-duration: 2.4s;
+  }
+}
 .tab-btn:hover {
   color: var(--chalk);
 }

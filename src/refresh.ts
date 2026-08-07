@@ -5,6 +5,23 @@
 // one of them loads. Takes its loaders as arguments rather than importing them,
 // so the ordering and force-flag rules below are unit-testable without a DOM.
 
+/**
+ * How long a tab's data may sit before merely looking at it refreshes it.
+ *
+ * Refreshing on *every* tab click is the obvious reading of "refresh when you
+ * open a tab", but it turns flipping between tabs — which people do constantly
+ * while weighing keepers — into a network round trip each time, stalling on
+ * data fetched seconds ago. Two minutes is long enough that browsing stays
+ * instant, short enough that a tab you come back to reflects other managers'
+ * moves.
+ */
+export const TAB_STALE_MS = 2 * 60 * 1000;
+
+/** Never loaded counts as stale, so a first visit always loads. */
+export function isTabStale(loadedAt: Date | null, now: number = Date.now()): boolean {
+  return !loadedAt || now - loadedAt.getTime() > TAB_STALE_MS;
+}
+
 export interface RefreshTargets {
   rosters: (force: boolean) => Promise<void>;
   draft: (force: boolean) => Promise<void>;

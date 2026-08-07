@@ -108,9 +108,15 @@
       <div class="refresh-warning" id="refreshWarning" role="status" hidden></div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="rosters">Rosters &amp; Keepers</button>
-        <button class="tab-btn" data-tab="draft">Draft List</button>
-        <button class="tab-btn" data-tab="board">Draft Board</button>
+        <button class="tab-btn active" data-tab="rosters">
+          Rosters &amp; Keepers <span class="tab-spin" id="spin-rosters" aria-hidden="true">⟳</span>
+        </button>
+        <button class="tab-btn" data-tab="draft">
+          Draft List <span class="tab-spin" id="spin-draft" aria-hidden="true">⟳</span>
+        </button>
+        <button class="tab-btn" data-tab="board">
+          Draft Board <span class="tab-spin" id="spin-board" aria-hidden="true">⟳</span>
+        </button>
         <button class="tab-btn" data-tab="settings">Settings</button>
       </div>
 
@@ -118,9 +124,6 @@
       <div class="panel active" id="panel-rosters">
         <div class="panel-toolbar">
           <div class="sync-readout">
-            <button class="refresh-btn" id="refreshRosters">
-              <span class="spin-icon" id="rostersSpin">⟳</span> Refresh
-            </button>
             <div class="last-updated mono">Last updated: <b id="rostersUpdated">never</b></div>
           </div>
         </div>
@@ -138,9 +141,6 @@
       <div class="panel" id="panel-draft">
         <div class="panel-toolbar">
           <div class="sync-readout">
-            <button class="refresh-btn" id="refreshDraft">
-              <span class="spin-icon" id="draftSpin">⟳</span> Refresh
-            </button>
             <div class="last-updated mono">Last updated: <b id="draftUpdated">never</b></div>
           </div>
           <div class="toolbar-controls">
@@ -180,9 +180,6 @@
       <div class="panel" id="panel-board">
         <div class="panel-toolbar">
           <div class="sync-readout">
-            <button class="refresh-btn" id="refreshBoard">
-              <span class="spin-icon" id="boardSpin">⟳</span> Refresh
-            </button>
             <div class="last-updated mono">Last updated: <b id="boardUpdated">never</b></div>
           </div>
         </div>

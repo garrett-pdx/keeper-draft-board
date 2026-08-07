@@ -7,7 +7,8 @@ import { loadBoard } from './ui/board';
 import { loadDraft, renderDraft } from './ui/draft';
 import { loadRosters, rerenderAfterKeeperChange } from './ui/rosters';
 import { openClaimPicker } from './ui/keeperControls';
-import { renderSettings, wireSettingsEvents } from './ui/settings';
+import { wireSettingsEvents } from './ui/settings';
+import { switchTab, type TabName } from './ui/tabs';
 import {
   enterApp,
   handleConfirmLeague,
@@ -17,25 +18,6 @@ import {
   showSetupScreen,
   toggleManualEntry,
 } from './ui/setup';
-
-type TabName = 'rosters' | 'draft' | 'board' | 'settings';
-
-function switchTab(tab: TabName): void {
-  $all('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
-  $('#panel-rosters')!.classList.toggle('active', tab === 'rosters');
-  $('#panel-draft')!.classList.toggle('active', tab === 'draft');
-  $('#panel-board')!.classList.toggle('active', tab === 'board');
-  $('#panel-settings')!.classList.toggle('active', tab === 'settings');
-  if (tab === 'draft' && !state.adpMap) {
-    loadDraft(false);
-  }
-  if (tab === 'board' && !state.boardLoadedAt) {
-    loadBoard(false);
-  }
-  if (tab === 'settings') {
-    renderSettings();
-  }
-}
 
 async function handleRefreshAll(): Promise<void> {
   const btn = $('#refreshAllBtn') as HTMLButtonElement;
@@ -105,18 +87,6 @@ function init(): void {
     b.addEventListener('click', () => switchTab(b.dataset.tab as TabName)),
   );
 
-  // The overlay is raised here rather than inside the loaders, so the same
-  // loader can serve a single-tab refresh and the composite Refresh all
-  // without the modal flickering between its three steps.
-  $('#refreshRosters')!.addEventListener('click', () =>
-    withBusy('Refreshing rosters and league keepers…', () => loadRosters(true)),
-  );
-  $('#refreshDraft')!.addEventListener('click', () =>
-    withBusy('Refreshing the draft list…', () => loadDraft(true)),
-  );
-  $('#refreshBoard')!.addEventListener('click', () =>
-    withBusy('Refreshing the draft board…', () => loadBoard(true)),
-  );
   $('#refreshAllBtn')!.addEventListener('click', handleRefreshAll);
 
   $('#draftSearch')!.addEventListener('input', () => {

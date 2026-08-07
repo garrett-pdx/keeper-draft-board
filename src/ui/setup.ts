@@ -5,6 +5,7 @@ import {
   loadKeepersFromStorage,
   loadRulesFromStorage,
   loadSharedKeepersCacheFromStorage,
+  resetLeagueScopedState,
   LS_LEAGUE_ID,
   LS_SEASON,
   LS_USERNAME,
@@ -12,7 +13,8 @@ import {
   state,
 } from '../state';
 import { $, el } from './dom';
-import { loadRosters, rerenderAfterKeeperChange } from './rosters';
+import { rerenderAfterKeeperChange } from './rosters';
+import { loadTab } from './tabs';
 import { startSharedKeeperPolling } from '../sync';
 
 export function initSeasonOptions(): void {
@@ -50,10 +52,21 @@ async function commitLeagueAndEnter(leagueId: string, season: string): Promise<v
     if (!league || !league.league_id) {
       throw new Error('not found');
     }
+    // Always, even when re-picking the same league: anything held from the
+    // previous one is wrong here, and the ensure* loaders would happily keep
+    // serving it (they short-circuit on in-memory state). Clearing it is also
+    // what makes the reload below a genuine refresh without a `force` flag —
+    // every league-scoped resource has to be refetched because none of it is
+    // in memory any more.
+    resetLeagueScopedState();
     localStorage.setItem(LS_LEAGUE_ID, leagueId);
     localStorage.setItem(LS_SEASON, season);
     state.leagueId = leagueId;
     state.season = season;
+    // Deliberately NOT forced. Forcing would also re-download Sleeper's
+    // multi-megabyte player dictionary and the outlook snapshot, which are
+    // keyed by player rather than by league and cannot be stale in a way that
+    // switching leagues fixes.
     enterApp();
   } catch {
     showSetupError("Couldn't load that league. Double check it's public/accessible.");
@@ -159,7 +172,11 @@ export function enterApp(): void {
   loadKeepersFromStorage();
   loadSharedKeepersCacheFromStorage();
   loadRulesFromStorage();
-  loadRosters(false);
+  // Never forced: what makes this a real refresh when arriving from the setup
+  // screen is resetLeagueScopedState() having just emptied everything
+  // league-scoped, not a force flag. The panel's own skeleton covers the wait,
+  // so there's no modal here.
+  void loadTab('rosters');
   // Managers watch this page live during keeper season, so pick up everyone
   // else's saves without them having to think to hit Refresh.
   startSharedKeeperPolling(rerenderAfterKeeperChange);

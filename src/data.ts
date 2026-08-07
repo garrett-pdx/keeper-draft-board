@@ -61,7 +61,7 @@ export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> 
 // ---------- ADP (real data, snapshotted at build time — see domain/adp.ts) ----------
 export async function ensureAdpLoaded(force?: boolean) {
   if (state.adpMap && !force) return { adpMap: state.adpMap, source: state.adpSource };
-  const cacheKey = LS_ADP_CACHE_PREFIX + state.season;
+  const cacheKey = `${LS_ADP_CACHE_PREFIX}${state.season}_${state.leagueId}`;
   if (!force) {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');

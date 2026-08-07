@@ -27,7 +27,11 @@ export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
 export const LS_RULES_PREFIX = 'kdb_rules_';
 export const LS_PLAYERS_CACHE = 'kdb_players_cache_v3'; // v3: added espnId
-export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v2_'; // v2: added high/low range
+// v3: keyed per league, not just per season. What's cached is the *resolved*
+// ADP map — already matched to Sleeper ids through this league's format — so a
+// superflex league and a 1QB league in the same season must not share an entry
+// or whichever loaded first would price the other's QBs completely wrong.
+export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v3_';
 export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v1_';
 export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
@@ -105,6 +109,44 @@ export const state: AppState = {
   draftLoadedAt: null,
   boardLoadedAt: null,
 };
+
+/**
+ * Drop everything that belongs to the league we're leaving.
+ *
+ * Call this when switching leagues, BEFORE loading the new one. Every `ensure*`
+ * loader in data.ts short-circuits on in-memory state (`if (state.draft &&
+ * !force) return state.draft`), so without this the previous league's draft
+ * history, draft order, traded picks and board rounds all survive into the next
+ * one — and keeper costs get computed from the wrong league's draft entirely.
+ *
+ * `playersMap` and `outlookMap` deliberately survive: they're keyed by player,
+ * not league, and re-downloading Sleeper's multi-megabyte player dictionary on
+ * every league switch would be pure waste. `adpMap` does NOT survive — it's the
+ * resolved map for one league's scoring format and superflex-ness.
+ */
+export function resetLeagueScopedState(): void {
+  state.league = null;
+  state.users = [];
+  state.rosters = [];
+  state.adpMap = null;
+  state.adpRangeMap = {};
+  state.adpSource = null;
+  state.keepers = {};
+  state.sharedKeepers = null;
+  state.keeperLocks = {};
+  state.editingRosterId = null;
+  state.syncStatus = 'off';
+  state.syncedAt = null;
+  state.prevDraftMap = null;
+  state.prevDraftLoaded = false;
+  state.boardRounds = null;
+  state.boardOrder = null;
+  state.draft = null;
+  state.tradedPicks = null;
+  state.rostersLoadedAt = null;
+  state.draftLoadedAt = null;
+  state.boardLoadedAt = null;
+}
 
 // ---------- keepers persistence ----------
 function keepersKey(): string {

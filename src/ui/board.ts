@@ -11,7 +11,7 @@ import { getRosterKeeperCostsFor } from '../selectors';
 import { ensureBoardOrder, saveBoardOrder, state, teamNameForRoster } from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
 import { formatTime } from '../util';
-import { $, el, setSpin } from './dom';
+import { $, el } from './dom';
 import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
 function reorderBoardColumns(draggedId: string, targetId: string): void {
@@ -42,8 +42,6 @@ function moveColumn(rid: string, direction: -1 | 1): void {
 }
 
 export async function loadBoard(force?: boolean): Promise<void> {
-  setSpin('boardSpin', true);
-  ($('#refreshBoard') as HTMLButtonElement).disabled = true;
   try {
     await ensurePlayersLoaded(force);
     await ensurePrevDraftLoaded(force);
@@ -74,9 +72,6 @@ export async function loadBoard(force?: boolean): Promise<void> {
         document.createTextNode('Check your connection, then hit refresh.'),
       ),
     );
-  } finally {
-    setSpin('boardSpin', false);
-    ($('#refreshBoard') as HTMLButtonElement).disabled = false;
   }
 }
 

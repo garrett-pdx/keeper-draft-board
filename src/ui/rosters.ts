@@ -31,7 +31,7 @@ import { refreshSharedKeepers } from '../sync';
 import { renderClaimTeamPrompt, renderKeeperActions } from './keeperControls';
 import type { SleeperRoster, SurplusValue } from '../types';
 import { displayNameFor, formatBirthDate, formatTime, starSignFor } from '../util';
-import { $, el, setSpin } from './dom';
+import { $, el } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
 import {
@@ -43,8 +43,6 @@ import {
 import { openOutlookDrawer } from './outlookDrawer';
 
 export async function loadRosters(force?: boolean): Promise<void> {
-  setSpin('rostersSpin', true);
-  ($('#refreshRosters') as HTMLButtonElement).disabled = true;
   try {
     const [league, users, rosters] = await Promise.all([
       sleeper.league(state.leagueId!),
@@ -113,9 +111,6 @@ export async function loadRosters(force?: boolean): Promise<void> {
         ),
       ),
     );
-  } finally {
-    setSpin('rostersSpin', false);
-    ($('#refreshRosters') as HTMLButtonElement).disabled = false;
   }
 }
 

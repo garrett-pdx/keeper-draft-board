@@ -1,12 +1,10 @@
 import { ensureAdpLoaded, ensurePlayersLoaded } from '../data';
 import { allKeeperIdsWithTeam, state } from '../state';
 import { formatTime } from '../util';
-import { $, el, setSpin } from './dom';
+import { $, el } from './dom';
 import { updateAdpSourceBadge } from './header';
 
 export async function loadDraft(force?: boolean): Promise<void> {
-  setSpin('draftSpin', true);
-  ($('#refreshDraft') as HTMLButtonElement).disabled = true;
   try {
     await ensurePlayersLoaded(force);
     await ensureAdpLoaded(force);
@@ -24,9 +22,6 @@ export async function loadDraft(force?: boolean): Promise<void> {
         document.createTextNode('Check your connection, then hit refresh.'),
       ),
     );
-  } finally {
-    setSpin('draftSpin', false);
-    ($('#refreshDraft') as HTMLButtonElement).disabled = false;
   }
 }
 
