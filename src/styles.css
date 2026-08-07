@@ -1293,8 +1293,52 @@ table.board-table {
   padding: 24px;
   max-width: 420px;
 }
+.settings-card + .settings-card {
+  margin-top: 16px;
+}
 .settings-card .field input[type='number'] {
   width: 100px;
+}
+.settings-heading {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-blurb {
+  margin: 0 0 16px;
+  color: var(--slate);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+/* Read-only "here's what we detected" list. Two columns so the labels form a
+   scannable left rail and the values line up beside them. */
+.league-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 16px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.league-facts dt {
+  color: var(--slate);
+  white-space: nowrap;
+}
+.league-facts dd {
+  margin: 0;
+  color: var(--chalk);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  word-break: break-word;
+}
+@media (max-width: 480px) {
+  .league-facts {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+  .league-facts dd {
+    margin-bottom: 8px;
+  }
 }
 .settings-card .btn-ghost {
   margin-top: 4px;

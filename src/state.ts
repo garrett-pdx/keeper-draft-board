@@ -57,6 +57,8 @@ interface AppState {
   adpMap: AdpMap | null;
   adpRangeMap: AdpRangeMap;
   adpSource: AdpSource;
+  /** Which snapshot entry the market data came from, e.g. "1 QB · 10-team · half PPR". */
+  marketEntryLabel: string | null;
   outlookMap: OutlookMap;
   keepers: Record<string, string[]>;
   /** Last-known shared doc, kept so an edit can be cancelled back to it. */
@@ -91,6 +93,7 @@ export const state: AppState = {
   adpMap: null,
   adpRangeMap: {},
   adpSource: null,
+  marketEntryLabel: null,
   outlookMap: {},
   keepers: {},
   sharedKeepers: null,
@@ -131,6 +134,7 @@ export function resetLeagueScopedState(): void {
   state.adpMap = null;
   state.adpRangeMap = {};
   state.adpSource = null;
+  state.marketEntryLabel = null;
   state.keepers = {};
   state.sharedKeepers = null;
   state.keeperLocks = {};

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  describeValueEntry,
   matchValueToPlayers,
   pickValueEntry,
+  pprLabel,
+  type LeagueShape,
   type ValueSnapshotEntry,
 } from '../src/domain/marketValue';
 import type { PlayersMap } from '../src/types';
@@ -18,6 +21,8 @@ const playersMap: PlayersMap = {
 
 const oneQb: ValueSnapshotEntry = {
   numQbs: 1,
+  numTeams: 10,
+  ppr: 0.5,
   players: [
     { id: 'p1', rank: 3 },
     { id: 'qb1', rank: 40 },
@@ -25,32 +30,115 @@ const oneQb: ValueSnapshotEntry = {
 };
 const superflex: ValueSnapshotEntry = {
   numQbs: 2,
+  numTeams: 10,
+  ppr: 0.5,
   players: [
     { id: 'qb1', rank: 2 },
     { id: 'p1', rank: 9 },
   ],
 };
 
+const shape = (over: Partial<LeagueShape> = {}): LeagueShape => ({
+  teams: 10,
+  recPoints: 0.5,
+  superflex: false,
+  ...over,
+});
+
+/** A full matrix, like the real snapshot: teams x scoring x QB count. */
+function matrix(): ValueSnapshotEntry[] {
+  const out: ValueSnapshotEntry[] = [];
+  for (const numQbs of [1, 2])
+    for (const numTeams of [8, 10, 12, 14])
+      for (const ppr of [0, 0.5, 1])
+        out.push({ numQbs, numTeams, ppr, players: [{ id: 'p1', rank: 1 }] });
+  return out;
+}
+
 describe('pickValueEntry', () => {
   it('takes the 1QB entry for a normal league', () => {
-    expect(pickValueEntry([oneQb, superflex], false)?.numQbs).toBe(1);
+    expect(pickValueEntry([oneQb, superflex], shape())?.numQbs).toBe(1);
   });
 
   it('takes the 2QB entry for a superflex league', () => {
     // Worth pinning: switching QB count moves players a mean of 25 rank
     // positions, so picking the wrong entry badly misprices every quarterback.
-    expect(pickValueEntry([oneQb, superflex], true)?.numQbs).toBe(2);
+    expect(pickValueEntry([oneQb, superflex], shape({ superflex: true }))?.numQbs).toBe(2);
   });
 
-  it('falls back to whatever exists rather than returning nothing', () => {
+  it('matches the league’s own size and scoring out of the matrix', () => {
+    const picked = pickValueEntry(matrix(), shape({ teams: 12, recPoints: 1 }));
+    expect(picked).toMatchObject({ numQbs: 1, numTeams: 12, ppr: 1 });
+  });
+
+  it('matches standard scoring and a small league', () => {
+    const picked = pickValueEntry(matrix(), shape({ teams: 8, recPoints: 0 }));
+    expect(picked).toMatchObject({ numQbs: 1, numTeams: 8, ppr: 0 });
+  });
+
+  it('keeps the QB partition even when another size matches better', () => {
+    // QB count dominates every other dimension, so it must never be traded away
+    // to get a closer team count.
+    const picked = pickValueEntry(matrix(), shape({ teams: 14, superflex: true }));
+    expect(picked?.numQbs).toBe(2);
+    expect(picked?.numTeams).toBe(14);
+  });
+
+  it('snaps to the nearest size and scoring when there is no exact entry', () => {
+    const picked = pickValueEntry(matrix(), shape({ teams: 11, recPoints: 0.4 }));
+    expect(picked?.numTeams).toBe(10);
+    expect(picked?.ppr).toBe(0.5);
+  });
+
+  it('defaults unknown scoring to half PPR', () => {
+    expect(pickValueEntry(matrix(), shape({ recPoints: null }))?.ppr).toBe(0.5);
+    expect(pickValueEntry(matrix(), shape({ recPoints: undefined }))?.ppr).toBe(0.5);
+  });
+
+  it('still works on a snapshot predating the matrix', () => {
+    // Older snapshots carry numQbs only; they must not be discarded.
+    const legacy: ValueSnapshotEntry[] = [{ numQbs: 1, players: [{ id: 'p1', rank: 1 }] }];
+    expect(pickValueEntry(legacy, shape({ teams: 12 }))?.numQbs).toBe(1);
+  });
+
+  it('falls back across the QB partition rather than returning nothing', () => {
     // A slightly mispriced QB beats an empty board.
-    expect(pickValueEntry([oneQb], true)?.numQbs).toBe(1);
-    expect(pickValueEntry([superflex], false)?.numQbs).toBe(2);
+    expect(pickValueEntry([oneQb], shape({ superflex: true }))?.numQbs).toBe(1);
+    expect(pickValueEntry([superflex], shape())?.numQbs).toBe(2);
   });
 
   it('returns null only when there are no entries at all', () => {
-    expect(pickValueEntry([], false)).toBeNull();
-    expect(pickValueEntry([], true)).toBeNull();
+    expect(pickValueEntry([], shape())).toBeNull();
+    expect(pickValueEntry([], shape({ superflex: true }))).toBeNull();
+  });
+});
+
+describe('describeValueEntry', () => {
+  it('describes the entry in the terms a manager would recognise', () => {
+    expect(describeValueEntry(oneQb)).toBe('1 QB · 10-team · half PPR');
+    expect(describeValueEntry({ ...superflex, numTeams: 8, ppr: 1 })).toBe(
+      'superflex · 8-team · full PPR',
+    );
+  });
+
+  it('omits dimensions a legacy snapshot never carried', () => {
+    expect(describeValueEntry({ numQbs: 1, players: [] })).toBe('1 QB');
+  });
+
+  it('returns null when nothing was selected', () => {
+    expect(describeValueEntry(null)).toBeNull();
+  });
+});
+
+describe('pprLabel', () => {
+  it('names the common scoring formats', () => {
+    expect(pprLabel(0)).toBe('standard');
+    expect(pprLabel(0.5)).toBe('half PPR');
+    expect(pprLabel(1)).toBe('full PPR');
+  });
+
+  it('falls back to the raw number for an unusual setting', () => {
+    expect(pprLabel(0.25)).toBe('0.25 PPR');
   });
 });
 

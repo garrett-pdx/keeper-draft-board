@@ -185,6 +185,12 @@ in six days — while FantasyCalc still had him near 40. Neither source is simpl
 the app ships both and **always labels which is in use** ("Value rank · FantasyCalc" vs
 "ADP · Fantasy Football Calculator"); a value ranking is never presented as ADP.
 
+Both snapshots are matched to your league's actual shape, and the Settings tab shows what
+was detected (size, scoring, QB count, Sleeper's keeper cap) alongside **which entry it
+selected** — so a number that looks wrong can be traced rather than guessed at.
+FantasyCalc keeps a full matrix of team count × scoring × QB count; FFC's ADP varies only
+by scoring, because its league-size parameter returns byte-identical data for every size.
+
 Both are fetched **server-side at CI time** — neither API sends CORS headers a browser
 will accept — by `scripts/fetch-fantasycalc.mjs` and `scripts/fetch-adp.mjs`, committed as
 static snapshots under `public/`, and served same-origin. A scheduled workflow

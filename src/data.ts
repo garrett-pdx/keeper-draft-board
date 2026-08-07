@@ -12,7 +12,7 @@ import {
 } from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
-import { matchValueToPlayers, pickValueEntry } from './domain/marketValue';
+import { describeValueEntry, matchValueToPlayers, pickValueEntry } from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague } from './domain/leagueSettings';
 import type { TradedPicksList } from './domain/tradedPicks';
@@ -75,6 +75,7 @@ export async function ensureAdpLoaded(force?: boolean) {
         state.adpMap = cached.data;
         state.adpRangeMap = cached.range || {};
         state.adpSource = cached.source;
+        state.marketEntryLabel = cached.entryLabel ?? null;
         return { adpMap: state.adpMap, source: state.adpSource };
       }
     } catch {
@@ -100,13 +101,18 @@ export async function ensureAdpLoaded(force?: boolean) {
     try {
       if (attempt === 'value') {
         const snapshot = await fetchValueSnapshot();
-        const entry = pickValueEntry(snapshot.entries, superflex);
+        const entry = pickValueEntry(snapshot.entries, {
+          teams: state.rosters.length || 10,
+          recPoints: state.league?.scoring_settings?.rec,
+          superflex,
+        });
         const players = await ensurePlayersLoaded(false);
         const matched = matchValueToPlayers(entry, players);
         if (Object.keys(matched).length >= 20) {
           adpMap = matched;
           rangeMap = {}; // a value rank has no real draft-position spread
           source = 'value';
+          state.marketEntryLabel = describeValueEntry(entry);
         }
       } else {
         const snapshot = await fetchAdpSnapshot();
@@ -119,6 +125,9 @@ export async function ensureAdpLoaded(force?: boolean) {
             adpMap = matched.adp;
             rangeMap = matched.range;
             source = 'adp';
+            // FFC has no league-size dimension (byte-identical across sizes),
+            // so its entry is described by scoring format alone.
+            state.marketEntryLabel = ranked[0].format;
           }
         }
       }
@@ -138,6 +147,7 @@ export async function ensureAdpLoaded(force?: boolean) {
     state.adpMap = rankMap;
     state.adpRangeMap = {}; // rank proxy has no real draft-position range to show
     state.adpSource = 'rank';
+    state.marketEntryLabel = null;
   }
   try {
     localStorage.setItem(
@@ -147,6 +157,7 @@ export async function ensureAdpLoaded(force?: boolean) {
         data: state.adpMap,
         range: state.adpRangeMap,
         source: state.adpSource,
+        entryLabel: state.marketEntryLabel,
       }),
     );
   } catch {

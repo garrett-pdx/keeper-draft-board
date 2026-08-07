@@ -1,5 +1,6 @@
 import { DEFAULT_LEAGUE_RULES } from '../types';
-import { suggestedRulesFromLeague } from '../domain/leagueSettings';
+import { isSuperflexLeague, suggestedRulesFromLeague } from '../domain/leagueSettings';
+import { pprLabel } from '../domain/marketValue';
 import { state, updateRules } from '../state';
 import { ensureAdpLoaded } from '../data';
 import { updateAdpSourceBadge } from './header';
@@ -32,7 +33,62 @@ export function renderSettings(): void {
     state.rules.marketSource === 'value'
       ? 'How good each player is, from FantasyCalc’s trade values. Steadier than draft data, and matched by exact Sleeper id.'
       : 'Where players actually go, averaged over recent real drafts. Closest to “what will it cost to get him back”, but can swing hard on a week of news.';
+  renderLeagueFacts();
   renderSleeperHint();
+}
+
+/**
+ * Read-only summary of what was pulled from Sleeper, and which market-data
+ * entry it selected as a result.
+ *
+ * The point is auditability: the app silently makes several inferences from a
+ * league's config — superflex-ness, scoring, size — and each one changes the
+ * numbers on every other tab. Showing the inputs and the resulting choice side
+ * by side means a number that looks wrong can be traced instead of guessed at.
+ */
+function renderLeagueFacts(): void {
+  const box = $('#leagueFacts')!;
+  box.replaceChildren();
+  const league = state.league;
+  if (!league) {
+    box.appendChild(el('div', { class: 'setup-hint' }, 'Load a league to see its settings.'));
+    return;
+  }
+
+  const rec = league.scoring_settings?.rec;
+  const superflex = isSuperflexLeague(league.roster_positions);
+  const qbSlots = (league.roster_positions || []).filter((slot) => slot === 'QB').length;
+  const starters = (league.roster_positions || []).filter((slot) => slot !== 'BN');
+  const sleeperMax = league.settings?.max_keepers;
+
+  const facts: Array<[string, string]> = [
+    ['League', league.name || '—'],
+    ['Season', String(league.season ?? '—')],
+    ['Teams', String(state.rosters.length || league.total_rosters || '—')],
+    ['Scoring', typeof rec === 'number' ? `${pprLabel(rec)} (${rec} per reception)` : 'unknown'],
+    [
+      'Quarterbacks',
+      superflex
+        ? `superflex — ${(league.roster_positions || []).includes('SUPER_FLEX') ? 'SUPER_FLEX slot' : `${qbSlots} QB starters`}`
+        : '1 QB',
+    ],
+    ['Starting lineup', starters.length ? starters.join(', ') : '—'],
+    ['Sleeper max keepers', typeof sleeperMax === 'number' ? String(sleeperMax) : 'not set'],
+    ['Market data in use', marketDataLabel()],
+  ];
+
+  for (const [label, value] of facts) {
+    box.appendChild(el('dt', null, label));
+    box.appendChild(el('dd', null, value));
+  }
+}
+
+function marketDataLabel(): string {
+  if (!state.adpSource) return 'not loaded yet';
+  if (state.adpSource === 'rank') return 'Sleeper rank proxy (no snapshot matched)';
+  const which =
+    state.adpSource === 'value' ? 'FantasyCalc value rank' : 'Fantasy Football Calculator ADP';
+  return state.marketEntryLabel ? `${which} — ${state.marketEntryLabel}` : which;
 }
 
 /**

@@ -158,6 +158,12 @@ export type AdpSnapshotEntry = z.infer<typeof AdpSnapshotEntrySchema>;
 // src/domain/marketValue.ts for why that distinction matters.
 export const ValueSnapshotEntrySchema = z.object({
   numQbs: z.number(),
+  // Optional so snapshots taken before the matrix existed still validate. These
+  // MUST be declared: zod strips undeclared keys, so omitting them silently
+  // discards the league-size/scoring dimensions and every entry collapses to
+  // "1 QB" with no way to tell which one was picked.
+  numTeams: z.number().optional(),
+  ppr: z.number().optional(),
   players: z.array(
     z.object({
       id: z.string(),

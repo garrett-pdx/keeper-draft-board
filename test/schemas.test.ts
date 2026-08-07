@@ -10,6 +10,7 @@ import {
   TradedPicksSchema,
   UserLookupSchema,
   UsersSchema,
+  ValueSnapshotSchema,
 } from '../src/api/schemas';
 
 describe('LeagueSchema', () => {
@@ -279,5 +280,35 @@ describe('PicksSchema', () => {
 
   it('rejects a pick with a non-numeric round', () => {
     expect(() => PicksSchema.parse([{ player_id: 'x', round: '3', roster_id: 1 }])).toThrow();
+  });
+});
+
+describe('ValueSnapshotSchema', () => {
+  const entry = (over = {}) => ({ numQbs: 1, players: [{ id: '10229', rank: 40 }], ...over });
+
+  it('keeps the league-size and scoring dimensions', () => {
+    // Regression guard: zod strips undeclared keys, so leaving numTeams/ppr out
+    // of the schema silently collapsed every entry to "1 QB" and made it
+    // impossible to tell which one had been selected.
+    const parsed = ValueSnapshotSchema.parse({
+      fetchedAt: '2026-08-07T00:00:00.000Z',
+      entries: [entry({ numTeams: 12, ppr: 1 })],
+    });
+    expect(parsed.entries[0].numTeams).toBe(12);
+    expect(parsed.entries[0].ppr).toBe(1);
+  });
+
+  it('still accepts a snapshot taken before the matrix existed', () => {
+    const parsed = ValueSnapshotSchema.parse({
+      fetchedAt: '2026-08-07T00:00:00.000Z',
+      entries: [entry()],
+    });
+    expect(parsed.entries[0].numTeams).toBeUndefined();
+    expect(parsed.entries[0].ppr).toBeUndefined();
+  });
+
+  it('rejects a payload missing the pieces the app relies on', () => {
+    expect(() => ValueSnapshotSchema.parse({ entries: [entry()] })).toThrow();
+    expect(() => ValueSnapshotSchema.parse({ fetchedAt: 'x', entries: [{ numQbs: 1 }] })).toThrow();
   });
 });

@@ -19,27 +19,66 @@ import type { PlayersMap } from '../types';
 
 export interface ValueSnapshotEntry {
   numQbs: number;
+  /** Absent on snapshots taken before the matrix existed. */
+  numTeams?: number;
+  ppr?: number;
   players: Array<{ id: string; rank: number; value?: number | null }>;
 }
 
+export interface LeagueShape {
+  teams: number;
+  /** Points per reception, or null when the league's scoring is unknown. */
+  recPoints: number | null | undefined;
+  superflex: boolean;
+}
+
+/** Human-readable description of the entry actually in use, for the UI. */
+export function describeValueEntry(entry: ValueSnapshotEntry | null): string | null {
+  if (!entry) return null;
+  const bits = [`${entry.numQbs === 2 ? 'superflex' : '1 QB'}`];
+  if (entry.numTeams != null) bits.push(`${entry.numTeams}-team`);
+  if (entry.ppr != null) bits.push(pprLabel(entry.ppr));
+  return bits.join(' · ');
+}
+
+export function pprLabel(ppr: number): string {
+  if (ppr === 0) return 'standard';
+  if (ppr === 1) return 'full PPR';
+  if (ppr === 0.5) return 'half PPR';
+  return `${ppr} PPR`;
+}
+
 /**
- * Pick the entry matching this league's QB requirement.
+ * Pick the entry closest to this league's shape.
  *
- * Superflex is the only dimension FantasyCalc varies meaningfully — measured
- * live, switching numQbs moves players a mean of 25 rank positions (max 103),
- * while team count and PPR move them under one slot. So this is a partition on
- * QB count alone, mirroring the ADP snapshot's superflex split.
+ * QB count is a **hard partition**, not a tiebreak: switching it moves players
+ * a mean of 25 rank positions (max 103), so a 1QB league drawing on superflex
+ * values would misprice every quarterback. Team count and PPR are then matched
+ * nearest-wins — they shift players well under a slot on average, but they do
+ * vary, so a league is priced against its own shape rather than a nominal one.
  *
- * Falls back to the other entry rather than returning nothing: a slightly
- * mispriced QB beats an empty board.
+ * Falls back across the QB partition rather than returning nothing when a
+ * snapshot lacks the wanted side: a slightly mispriced QB beats an empty board.
  */
 export function pickValueEntry(
   entries: ValueSnapshotEntry[],
-  superflex: boolean,
+  shape: LeagueShape,
 ): ValueSnapshotEntry | null {
   if (!entries.length) return null;
-  const wanted = superflex ? 2 : 1;
-  return entries.find((e) => e.numQbs === wanted) ?? entries[0];
+  const wantedQbs = shape.superflex ? 2 : 1;
+  const pool = entries.filter((e) => e.numQbs === wantedQbs);
+  const candidates = pool.length ? pool : entries;
+
+  const targetRec = shape.recPoints ?? 0.5;
+  return candidates.slice().sort((a, b) => {
+    // Nearest team count first, then nearest scoring. Entries predating the
+    // matrix carry neither, and sort last rather than being discarded.
+    const teamDelta =
+      Math.abs((a.numTeams ?? Infinity) - shape.teams) -
+      Math.abs((b.numTeams ?? Infinity) - shape.teams);
+    if (teamDelta !== 0) return teamDelta;
+    return Math.abs((a.ppr ?? targetRec) - targetRec) - Math.abs((b.ppr ?? targetRec) - targetRec);
+  })[0];
 }
 
 /**

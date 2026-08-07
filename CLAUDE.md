@@ -250,11 +250,27 @@ the other real source. **`marketSource` is part of the ADP cache key** — witho
 map built from the other source is returned before the preference is ever consulted and
 switching appears to do nothing.
 
+The value snapshot is a **matrix**: team count (8/10/12/14) × scoring (0/0.5/1 PPR) ×
+QB count (1/2), 24 entries, ~117KB. `pickValueEntry` partitions **hard** on QB count and
+then matches nearest team count, then nearest scoring. Measured as mean/max shift in rank
+position, team count moves players 0.25-0.64 (max 4) and PPR 0.19-0.24 (max 3) — small,
+but genuinely non-zero, so a league is priced against its own shape. 1QB→2QB moves them
+**25.25 on average, max 103**, which is why that one is a partition and never a tiebreak.
+
+> **`numTeams` and `ppr` MUST stay declared in `ValueSnapshotEntrySchema`.** zod strips
+> undeclared keys, so omitting them doesn't fail loudly — it silently drops both
+> dimensions, collapses every entry's description to "1 QB", and leaves the app unable to
+> say which entry it picked. Cost real debugging time; there's a regression test pinning it.
+
 > FantasyCalc has **no ADP**: there is no ADP endpoint (404) and `maybeAdp` is null on
 > every row across both redraft (198) and dynasty (474). Don't go looking for one again.
-> Only `numQbs` meaningfully varies its output — measured as mean/max shift in rank
-> position, team count moved players 0.25-0.64 (max 4) and PPR 0.19-0.24 (max 3), while
-> 1QB→2QB moved them **25.25 on average, max 103**. Hence two entries, not a matrix.
+
+**Contrast with FFC, and why the two sources are shaped differently.** Fantasy Football
+Calculator's `teams` parameter is a **no-op** — re-verified across all four formats, it
+returns byte-identical players, ADPs, highs, lows and draft counts for 8/10/12/14. So the
+ADP snapshot has no league-size dimension to retain (there is nothing there to store), and
+varies only by scoring format plus the 2qb split. FantasyCalc's equivalent parameters do
+vary, so it keeps the full matrix. Same question, opposite answer, because the data differs.
 
 ## ADP data pipeline
 
