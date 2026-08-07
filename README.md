@@ -14,7 +14,9 @@ computed keeper **value** metric, and lay it all out on a draggable draft board.
   this app writes anywhere — a single GitHub Gist. It's **optional**: build without a Gist
   configured and the app is purely local, exactly as it was before the feature existed.
   See [Shared keeper picks](#shared-keeper-picks).
-- **Static.** Builds to a plain `dist/` you can host anywhere (e.g. GitHub Pages).
+- **Static.** Builds to a plain `dist/` you can host anywhere (e.g. GitHub Pages). A small
+  optional Cloudflare Worker (`worker/`) proxies fantasy platforms whose APIs browsers
+  can't call — it's stateless, stores nothing, and the app works without it for Sleeper.
 - **Vanilla + typed.** Vite + TypeScript, vanilla DOM, near-zero runtime dependencies
   (just `zod`, to validate everything at the fetch boundary).
 

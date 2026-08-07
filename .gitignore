@@ -8,3 +8,7 @@ coverage/
 # Machine-local Claude Code settings (keep launch.json tracked)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Cloudflare Worker
+worker/node_modules/
+worker/.wrangler/

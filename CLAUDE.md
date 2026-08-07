@@ -20,16 +20,21 @@ keepers, computes a keeper "value" metric, and renders a draggable draft board.
 
 ## Hard constraints (do not break these)
 
-- **Static, no backend.** All persistence is `localStorage`, with one deliberate
-  exception: **keeper picks are shared league-wide via a GitHub Gist** (see "Shared
-  keeper picks" below), because the whole point of that feature is for one manager's
-  picks to show up on every other manager's device, which no localStorage-only design
-  can do. That gist is the only thing this app ever writes to anywhere. Never introduce
-  a server component beyond it, and never send data anywhere else except read-only GETs
-  to Sleeper. The build output must be a static site. ADP is a second, read-only
-  exception: it's fetched at **CI/build time** (never at runtime, never in the browser)
-  from Fantasy Football Calculator and baked into a static asset — see "ADP data
-  pipeline" below for why.
+- **Static front end; one tiny stateless backend.** The site itself still builds to a
+  plain `dist/` and all user state lives in `localStorage`, with two deliberate
+  exceptions:
+  1. **Keeper picks are shared league-wide via a GitHub Gist** (see "Shared keeper picks"),
+     because the whole point is for one manager's picks to appear on every other manager's
+     device, which no localStorage-only design can do.
+  2. **A Cloudflare Worker proxies fantasy platforms whose APIs a browser cannot call**
+     (see "Backend (Cloudflare Worker)"). This was previously forbidden outright; the
+     constraint was revised deliberately, because CORS — not authentication — is what
+     blocks every platform except Sleeper, and CORS can only be bypassed server-side.
+     The Worker is **stateless**: no database, no user data at rest, no business logic. Keep
+     it that way. Domain logic belongs in `src/domain/`, where it's pure and tested. ADP is a
+     third, read-only exception: it's fetched at **CI/build time** (never at runtime, never in
+     the browser) from Fantasy Football Calculator and baked into a static asset — see "ADP
+     data pipeline" below for why.
 - **Keep runtime dependencies near-zero.** Dev tooling (Vite, Vitest, ESLint, Prettier,
   TypeScript) is welcome; think hard before adding a _runtime_ dependency — prefer writing
   it by hand. The only external runtime requests are Google Fonts and the Sleeper API (ADP
@@ -222,6 +227,40 @@ import no state.
   is this player," since there's no cost to weigh it against. The Draft Board
   (`src/ui/board.ts`) reflects this by leaving every round open (no keeper ever occupies a
   cell) and listing each team's taxi squad in a summary panel above the grid instead.
+
+## Backend (Cloudflare Worker)
+
+`worker/` is a small Cloudflare Worker deployed separately from the site. It exists for
+exactly one reason: **CORS, not auth, is what blocks other platforms.** Verified live —
+Yahoo's Fantasy API returns no `access-control-*` headers on either the endpoint or its
+preflight, so even a perfectly valid OAuth token is unusable from a browser. MyFantasyLeague
+echoes its own domain; Fleaflicker sends nothing. Only Sleeper (`*`) and ESPN (reflects the
+caller) can be called directly. A server-side hop is the only fix, and Cloudflare's free
+plan covers it with room to spare (100k requests/day against a realistic ~7k; no card
+required).
+
+**It is not an open proxy, and must never become one.** An arbitrary-destination CORS proxy
+lets anyone bypass other sites' CORS protections and reach hosts from your infrastructure.
+Four properties in `worker/src/upstreams.ts` prevent that, and all four must survive any
+change:
+
+- The client names an upstream by **key** (`/api/yahoo/...`), never by URL. There is no
+  `?url=` parameter — an arbitrary destination is _not expressible_.
+- Each upstream declares the **path prefixes** it will serve; anything else 404s.
+- Only **our own origins** get CORS headers, so it isn't a free proxy for the web.
+- GET and OPTIONS only, with a fixed forwardable-header list.
+
+Paths are **rejected, not sanitised** — `new URL()` normalises `..` and encoded separators
+before the prefix check, so anything escaping its prefix simply fails to match. Every one of
+these is pinned by tests in `worker/test/upstreams.test.ts`, and verified against a running
+Worker (disallowed origin → 403, unknown upstream → 404, traversal → 404, `?url=` inert).
+
+Upstream responses are **rebuilt, not passed through**, so an upstream's CORS headers (or
+lack of them) can't leak into a response we're vouching for. Upstream failure is a 502, not
+a 500, so a client can tell "Yahoo is down" from "the proxy is broken".
+
+`npm run dev` / `npm run deploy` inside `worker/`. Deploying needs a Cloudflare login; the
+site keeps working without the Worker — it only gates non-Sleeper platforms.
 
 ## Market value sources
 

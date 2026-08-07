@@ -1,0 +1,7 @@
+name = "keeper-draft-board-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# Free plan. Deliberately no KV, D1 or Durable Objects binding: this Worker
+# stores nothing. See CLAUDE.md's "Backend (Cloudflare Worker)".
+workers_dev = true
