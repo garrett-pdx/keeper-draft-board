@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state, toggleKeeper, keeperListFor } from '../src/state';
+import {
+  state,
+  toggleKeeper,
+  keeperListFor,
+  ensureBoardOrder,
+  markBoardOrderCustomized,
+  saveBoardOrder,
+} from '../src/state';
 import { DEFAULT_LEAGUE_RULES } from '../src/types';
+import type { SleeperRoster } from '../src/types';
 
 const ROSTER = 1;
 
@@ -13,6 +21,9 @@ class MemoryStorage {
   }
   setItem(key: string, value: string): void {
     this.store.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.store.delete(key);
   }
 }
 (globalThis as unknown as { localStorage: MemoryStorage }).localStorage = new MemoryStorage();
@@ -52,5 +63,70 @@ describe('toggleKeeper', () => {
     toggleKeeper(ROSTER, 'p2');
     expect(toggleKeeper(ROSTER, 'p1')).toBe(true);
     expect(keeperListFor(ROSTER)).toEqual(['p2']);
+  });
+});
+
+function roster(id: number): SleeperRoster {
+  return { roster_id: id, owner_id: `owner${id}`, players: [] };
+}
+
+describe('ensureBoardOrder', () => {
+  beforeEach(() => {
+    state.leagueId = 'board-order-league';
+    state.rosters = [roster(3), roster(1), roster(2)];
+    state.draft = null;
+    localStorage.removeItem('kdb_board_order_' + state.leagueId);
+    localStorage.removeItem('kdb_board_order_custom_' + state.leagueId);
+  });
+
+  it('falls back to the rosters’ own order before the draft order is known', () => {
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['3', '1', '2']);
+  });
+
+  it('auto-sorts by real draft slot once known, with no manual reorder yet', () => {
+    state.draft = {
+      type: 'snake',
+      draft_order: { ownerA: 1 },
+      slot_to_roster_id: { '1': 2, '2': 3, '3': 1 },
+    };
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['2', '3', '1']); // slot 1 -> roster 2, slot 2 -> roster 3, slot 3 -> roster 1
+  });
+
+  it('re-sorts by slot on every call as long as nothing has been manually reordered', () => {
+    ensureBoardOrder(); // pre-order: roster_id order
+    expect(state.boardOrder).toEqual(['3', '1', '2']);
+    state.draft = {
+      type: 'snake',
+      draft_order: { ownerA: 1 },
+      slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
+    };
+    ensureBoardOrder(); // order becomes known on a later load — should self-correct
+    expect(state.boardOrder).toEqual(['1', '2', '3']);
+  });
+
+  it('never overwrites a manual reorder, even after the real draft order becomes known', () => {
+    ensureBoardOrder();
+    state.boardOrder = ['2', '1', '3'];
+    markBoardOrderCustomized();
+    saveBoardOrder();
+    state.draft = {
+      type: 'snake',
+      draft_order: { ownerA: 1 },
+      slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
+    };
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['2', '1', '3']);
+  });
+
+  it('still drops stale ids and appends new ones once customized', () => {
+    ensureBoardOrder();
+    state.boardOrder = ['2', '1', '3'];
+    markBoardOrderCustomized();
+    saveBoardOrder();
+    state.rosters = [roster(1), roster(2), roster(4)]; // roster 3 gone, roster 4 new
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['2', '1', '4']);
   });
 });

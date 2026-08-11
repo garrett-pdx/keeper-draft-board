@@ -50,3 +50,33 @@ export function exactPickForRoster(
   const slot = slotForRoster(draft!.slot_to_roster_id as Record<string, number>, rosterId);
   return slot === null ? null : exactPickNumber(round, slot, teamCount);
 }
+
+/**
+ * True if `draftSlot` (the slot a specific pick was actually made from)
+ * differs from `rosterId`'s own natural snake-draft slot — i.e. that pick was
+ * exercised using one acquired via trade, not the roster's own original slot.
+ *
+ * This exists because Sleeper's own `is_keeper` flag on a draft pick is
+ * confirmed to never be set for a pick made this way (verified live: every
+ * real is_keeper:true pick in a real league's draft landed on the drafting
+ * roster's own natural slot, none on an acquired one) — Sleeper's
+ * keeper-preassignment can only bind to a team's own original slot. So a
+ * manager who kept a player using a traded pick reads as a non-keeper from
+ * is_keeper alone. Combined with is_keeper in ensurePrevDraftLoaded
+ * (src/data.ts) so the "was this a real keeper" signal covers both cases
+ * without loosening to "any repeat pick", which would also catch a manager
+ * coincidentally re-drafting the same player twice with their own picks.
+ *
+ * Never guesses: returns false (not "true", not "unknown") whenever the
+ * order isn't known — a missed traded-pick keeper degrades to the prior
+ * behavior rather than risking a false positive from bad slot data.
+ */
+export function pickWasAcquiredViaTrade(
+  draft: SleeperDraft | null | undefined,
+  rosterId: number,
+  draftSlot: number | null | undefined,
+): boolean {
+  if (!hasKnownDraftOrder(draft) || draftSlot == null) return false;
+  const naturalSlot = slotForRoster(draft!.slot_to_roster_id as Record<string, number>, rosterId);
+  return naturalSlot !== null && naturalSlot !== draftSlot;
+}

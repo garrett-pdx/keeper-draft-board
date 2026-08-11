@@ -27,7 +27,10 @@ export async function loadDraft(force?: boolean): Promise<void> {
 
 export function renderDraft(): void {
   const note = $('#draftNote')!;
-  if (state.adpSource === 'adp') {
+  if (state.adpSource === 'value') {
+    note.textContent =
+      'Ordered by FantasyCalc’s value ranking (how good a player is, used as an implied pick) — not real average draft position. Switch to ADP in Settings.';
+  } else if (state.adpSource === 'adp') {
     note.textContent =
       'Ordered by real average draft position from Fantasy Football Calculator, refreshed daily.';
   } else if (state.adpSource === 'rank') {
@@ -39,6 +42,7 @@ export function renderDraft(): void {
 
   const search = ($('#draftSearch') as HTMLInputElement).value.trim().toLowerCase();
   const posFilter = ($('#draftPosFilter') as HTMLSelectElement).value;
+  const hideKept = ($('#draftHideKept') as HTMLInputElement).checked;
   const playersMap = state.playersMap || {};
   const adpMap = state.adpMap || {};
   const keeperMap = allKeeperIdsWithTeam();
@@ -50,6 +54,7 @@ export function renderDraft(): void {
 
   rows = rows.filter((r) => r.p.pos && r.p.pos !== '—');
   if (posFilter) rows = rows.filter((r) => r.p.pos === posFilter);
+  if (hideKept) rows = rows.filter((r) => !keeperMap.has(r.pid));
   if (search) {
     rows = rows.filter((r) => `${r.p.first} ${r.p.last}`.toLowerCase().includes(search));
   }
@@ -67,7 +72,14 @@ export function renderDraft(): void {
       el(
         'tr',
         null,
-        el('th', null, state.adpSource === 'rank' ? 'Rank' : 'ADP'),
+        // Deliberately not always "ADP" — a value rank is a different quantity
+        // and mislabeling it would misdescribe the sort, same principle as the
+        // header badge (see updateAdpSourceBadge in ui/header.ts).
+        el(
+          'th',
+          null,
+          state.adpSource === 'value' ? 'Value' : state.adpSource === 'rank' ? 'Rank' : 'ADP',
+        ),
         el('th', null, 'Player'),
         el('th', null, 'Pos'),
         el('th', null, 'Team'),

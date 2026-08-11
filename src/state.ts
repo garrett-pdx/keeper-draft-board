@@ -13,6 +13,7 @@ import type {
   SleeperUser,
 } from './types';
 import { canReadShared } from './api/gist';
+import { hasKnownDraftOrder, slotForRoster } from './domain/draftOrder';
 import { lockedTeamsFor } from './domain/keeperShare';
 import { initialRulesForLeague } from './domain/leagueSettings';
 import { DEFAULT_LEAGUE_RULES } from './types';
@@ -25,6 +26,11 @@ export const LS_USERNAME = 'kdb_username';
 export const LS_USER_ID = 'kdb_user_id'; // the signed-in manager's Sleeper user_id
 export const LS_KEEPERS_PREFIX = 'kdb_keepers_';
 export const LS_BOARD_ORDER_PREFIX = 'kdb_board_order_';
+// Tracks whether the manager has ever manually dragged/arrow-key-reordered a
+// board column. Until they have, ensureBoardOrder() is free to keep
+// recomputing the order from the real draft slot as soon as it's known — see
+// ensureBoardOrder below.
+export const LS_BOARD_ORDER_CUSTOM_PREFIX = 'kdb_board_order_custom_';
 export const LS_RULES_PREFIX = 'kdb_rules_';
 export const LS_PLAYERS_CACHE = 'kdb_players_cache_v3'; // v3: added espnId
 // v3: keyed per league, not just per season. What's cached is the *resolved*
@@ -241,11 +247,48 @@ export function allKeeperIdsWithTeam(): Map<string, string> {
 function boardOrderKey(): string {
   return LS_BOARD_ORDER_PREFIX + state.leagueId;
 }
+function boardOrderCustomKey(): string {
+  return LS_BOARD_ORDER_CUSTOM_PREFIX + state.leagueId;
+}
 export function saveBoardOrder(): void {
   localStorage.setItem(boardOrderKey(), JSON.stringify(state.boardOrder));
 }
+// Called only from an explicit user reorder (drag or arrow-key) — see
+// board.ts's reorderBoardColumns. Once set, ensureBoardOrder never overwrites
+// the manager's own arrangement, even after the real draft order becomes known.
+export function markBoardOrderCustomized(): void {
+  localStorage.setItem(boardOrderCustomKey(), '1');
+}
+function isBoardOrderCustomized(): boolean {
+  return localStorage.getItem(boardOrderCustomKey()) === '1';
+}
+
+// Draft-slot order (1..N) when the commissioner has set it, else the rosters'
+// existing (roster_id-ascending) order — the only thing available pre-order.
+function naturalBoardOrder(currentIds: string[]): string[] {
+  const draft = state.draft;
+  if (!hasKnownDraftOrder(draft)) return currentIds.slice();
+  const slotToRosterId = draft!.slot_to_roster_id as Record<string, number>;
+  const withSlot = currentIds
+    .map((id) => ({ id, slot: slotForRoster(slotToRosterId, Number(id)) }))
+    .filter((x): x is { id: string; slot: number } => x.slot !== null);
+  withSlot.sort((a, b) => a.slot - b.slot);
+  const ordered = withSlot.map((x) => x.id);
+  const withoutSlot = currentIds.filter((id) => !ordered.includes(id));
+  return ordered.concat(withoutSlot);
+}
+
 export function ensureBoardOrder(): void {
   const currentIds = state.rosters.map((r) => String(r.roster_id));
+  if (!isBoardOrderCustomized()) {
+    // No manual reorder yet — keep tracking the real draft order (or the
+    // roster_id fallback pre-order) so the board self-corrects the moment
+    // the commissioner sets it, instead of freezing on whatever was true the
+    // first time this league was loaded.
+    state.boardOrder = naturalBoardOrder(currentIds);
+    saveBoardOrder();
+    return;
+  }
   let order: unknown = null;
   try {
     order = JSON.parse(localStorage.getItem(boardOrderKey()) || 'null');

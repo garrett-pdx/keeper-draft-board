@@ -95,6 +95,9 @@ function init(): void {
   $('#draftPosFilter')!.addEventListener('change', () => {
     if (state.adpMap) renderDraft();
   });
+  $('#draftHideKept')!.addEventListener('change', () => {
+    if (state.adpMap) renderDraft();
+  });
 
   wireSettingsEvents();
 

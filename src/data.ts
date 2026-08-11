@@ -12,6 +12,7 @@ import {
 } from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
+import { pickWasAcquiredViaTrade } from './domain/draftOrder';
 import { describeValueEntry, matchValueToPlayers, pickValueEntry } from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague } from './domain/leagueSettings';
@@ -232,6 +233,17 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
       /* fall back to raw roster_id matching */
     }
 
+    // Best-effort: lets wasKeeper below also catch a keeper picked with a
+    // traded pick, which Sleeper's own is_keeper flag can never reflect (see
+    // pickWasAcquiredViaTrade). Missing/unavailable just means that fallback
+    // stays off — is_keeper alone still works for ordinary keepers.
+    let prevDraft: SleeperDraft | null = null;
+    try {
+      prevDraft = await sleeper.draft(prevLeague.draft_id);
+    } catch {
+      /* fall through — is_keeper alone still covers ordinary keepers */
+    }
+
     const picks = await sleeper.draftPicks(prevLeague.draft_id);
     const map: PrevDraftMap = {};
     for (const pick of picks) {
@@ -241,7 +253,9 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
         round: pick.round,
         rosterId: pick.roster_id, // raw prev-season roster_id (fallback only)
         ownerId: prevRosterOwner[prevRid] || null, // stable manager id (preferred)
-        wasKeeper: pick.is_keeper === true,
+        wasKeeper:
+          pick.is_keeper === true ||
+          pickWasAcquiredViaTrade(prevDraft, pick.roster_id, pick.draft_slot),
       };
     }
     state.prevDraftMap = map;

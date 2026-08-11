@@ -426,6 +426,23 @@ a {
 .toolbar-controls input[type='search'] {
   min-width: 200px;
 }
+.toggle-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--slate);
+  font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.toggle-check input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--turf);
+  cursor: pointer;
+}
 
 .empty-state,
 .error-banner {

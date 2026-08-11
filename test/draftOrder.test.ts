@@ -4,6 +4,7 @@ import {
   slotForRoster,
   exactPickNumber,
   exactPickForRoster,
+  pickWasAcquiredViaTrade,
 } from '../src/domain/draftOrder';
 import type { SleeperDraft } from '../src/api/schemas';
 
@@ -135,5 +136,39 @@ describe('exactPickForRoster', () => {
   it('returns null when the draft is null/undefined', () => {
     expect(exactPickForRoster(null, 1, 1, 10)).toBeNull();
     expect(exactPickForRoster(undefined, 1, 1, 10)).toBeNull();
+  });
+});
+
+describe('pickWasAcquiredViaTrade', () => {
+  // Real case this exists for: roster 1's natural slot is 5 (see
+  // COMPLETE_DRAFT.slot_to_roster_id), but they drafted Jayden Daniels from
+  // draft_slot 10 (roster 6's original slot, acquired via trade) — confirmed
+  // live against the real 2025 Mudd League draft, where Sleeper's own
+  // is_keeper flag came back null for that exact pick despite it genuinely
+  // being a keeper.
+  it('is true when the pick came from a different slot than the roster’s own', () => {
+    expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 1, 10)).toBe(true);
+  });
+
+  it('is false when the pick came from the roster’s own natural slot', () => {
+    expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 1, 5)).toBe(false);
+  });
+
+  it('is false against the pre-draft placeholder (order not actually known)', () => {
+    expect(pickWasAcquiredViaTrade(PRE_DRAFT, 1, 10)).toBe(false);
+  });
+
+  it('is false when draft is null/undefined', () => {
+    expect(pickWasAcquiredViaTrade(null, 1, 10)).toBe(false);
+    expect(pickWasAcquiredViaTrade(undefined, 1, 10)).toBe(false);
+  });
+
+  it('is false when draftSlot is null/undefined (never guesses)', () => {
+    expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 1, null)).toBe(false);
+    expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 1, undefined)).toBe(false);
+  });
+
+  it('is false for a roster not present in slot_to_roster_id', () => {
+    expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 999, 10)).toBe(false);
   });
 });

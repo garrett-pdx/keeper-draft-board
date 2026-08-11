@@ -72,6 +72,15 @@ export const PickSchema = z.object({
   round: z.number(),
   roster_id: z.number(),
   is_keeper: z.boolean().nullish(),
+  // The slot this specific pick was made from. Compared against the roster's
+  // own natural slot (slot_to_roster_id) to tell whether it was exercised
+  // using a pick acquired via trade — see domain/draftOrder.ts's
+  // pickWasAcquiredViaTrade, used because Sleeper's own is_keeper flag is
+  // confirmed to never be set on a traded-in pick (verified live: 18/18 real
+  // is_keeper:true picks in a real league's draft landed on the roster's own
+  // natural slot, zero on an acquired one) — so a manager who keeps a player
+  // using a traded pick silently reads as a non-keeper without this.
+  draft_slot: z.number().nullish(),
 });
 export const PicksSchema = z.array(PickSchema);
 

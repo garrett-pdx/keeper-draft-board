@@ -8,7 +8,13 @@ import {
 import { exactPickForRoster } from '../domain/draftOrder';
 import { pickCapacity } from '../domain/tradedPicks';
 import { getRosterKeeperCostsFor } from '../selectors';
-import { ensureBoardOrder, saveBoardOrder, state, teamNameForRoster } from '../state';
+import {
+  ensureBoardOrder,
+  markBoardOrderCustomized,
+  saveBoardOrder,
+  state,
+  teamNameForRoster,
+} from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
 import { formatTime } from '../util';
 import { $, el } from './dom';
@@ -23,6 +29,7 @@ function reorderBoardColumns(draggedId: string, targetId: string): void {
   order.splice(from, 1);
   order.splice(to, 0, draggedId);
   state.boardOrder = order;
+  markBoardOrderCustomized();
   saveBoardOrder();
   renderBoard();
   // renderBoard() rebuilds the whole table, destroying the focused <th> —
