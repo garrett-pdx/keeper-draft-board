@@ -215,61 +215,79 @@ describe('filterByStarterPriority', () => {
     def1: 'IDP',
   };
   const positionOf = (pid: string) => positions[pid];
+  // A standard 1QB league's starting slots (no FLEX eligibility needed for these tests).
+  const starting1qb = { QB: 1, RB: 2, WR: 2, TE: 1 };
 
-  it('blocks a 5th WR before the team has its first QB', () => {
-    const result = filterByStarterPriority(['wr1', 'te1'], positionOf, {
-      WR: 4,
-      QB: 0,
-    });
+  it('blocks the 2nd bench WR before the starting QB is filled', () => {
+    const result = filterByStarterPriority(['wr1', 'te1'], positionOf, { WR: 3, QB: 0 }, starting1qb);
     expect(result).toEqual(['te1']);
   });
 
-  it('blocks a 5th RB before the team has its first TE', () => {
-    const result = filterByStarterPriority(['rb1', 'qb1'], positionOf, {
-      RB: 4,
-      TE: 0,
-    });
+  it('allows the 1st bench WR regardless of QB — only the 2nd bench WR is gated', () => {
+    const result = filterByStarterPriority(['wr1'], positionOf, { WR: 2, QB: 0 }, starting1qb);
+    expect(result).toEqual(['wr1']);
+  });
+
+  it('blocks the 3rd bench RB before the starting TE is filled', () => {
+    const result = filterByStarterPriority(['rb1', 'qb1'], positionOf, { RB: 4, TE: 0 }, starting1qb);
     expect(result).toEqual(['qb1']);
   });
 
-  it('blocks a 2nd TE before the team has its first QB', () => {
-    const result = filterByStarterPriority(['te1', 'wr1'], positionOf, {
-      TE: 1,
-      QB: 0,
-    });
+  it('blocks the 1st bench TE before the starting QB is filled', () => {
+    const result = filterByStarterPriority(['te1', 'wr1'], positionOf, { TE: 1, QB: 0 }, starting1qb);
     expect(result).toEqual(['wr1']);
   });
 
-  it('blocks a 2nd QB before the team has its first TE', () => {
-    const result = filterByStarterPriority(['qb1', 'wr1'], positionOf, {
-      QB: 1,
-      TE: 0,
-    });
+  it('blocks the 1st bench QB before the starting TE is filled', () => {
+    const result = filterByStarterPriority(['qb1', 'wr1'], positionOf, { QB: 1, TE: 0 }, starting1qb);
     expect(result).toEqual(['wr1']);
   });
 
-  it('allows a 5th WR once the team already has both a QB and a TE', () => {
-    const result = filterByStarterPriority(['wr1'], positionOf, { WR: 4, QB: 1, TE: 1 });
+  it('allows the 2nd bench WR once the team already has its starting QB and TE', () => {
+    const result = filterByStarterPriority(
+      ['wr1'],
+      positionOf,
+      { WR: 3, QB: 1, TE: 1 },
+      starting1qb,
+    );
     expect(result).toEqual(['wr1']);
   });
 
-  it('allows a 2nd QB once the team already has a TE', () => {
-    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 1 });
+  it('allows the 1st bench QB once the team already has its starting TE', () => {
+    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 1 }, starting1qb);
     expect(result).toEqual(['qb1']);
+  });
+
+  it('scales to a 2QB league: a 2nd QB is still a starter, not gated by TE', () => {
+    const starting2qb = { QB: 2, RB: 2, WR: 2, TE: 1 };
+    // QB count 1 -> nextCount 2, which only reaches starting(QB)=2, not a bench pick yet.
+    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 0 }, starting2qb);
+    expect(result).toEqual(['qb1']);
+  });
+
+  it('scales to a 2QB league: the 1st bench QB (3rd overall) is gated by TE', () => {
+    const starting2qb = { QB: 2, RB: 2, WR: 2, TE: 1 };
+    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 2, TE: 0 }, starting2qb);
+    expect(result).toEqual([]);
   });
 
   it('never restricts a position with no prerequisite rule, or an unknown position', () => {
-    const result = filterByStarterPriority(['rb1', 'def1'], positionOf, { RB: 1, IDP: 99 });
+    const result = filterByStarterPriority(['rb1', 'def1'], positionOf, { RB: 1, IDP: 99 }, starting1qb);
     expect(result).toEqual(['rb1', 'def1']);
   });
 
+  it('degrades to no restriction when startingSlots is empty (unknown roster_positions)', () => {
+    const result = filterByStarterPriority(['wr1', 'qb1'], positionOf, { WR: 10, QB: 0 }, {});
+    expect(result).toEqual(['wr1', 'qb1']);
+  });
+
   it('is a no-op below every threshold', () => {
-    const result = filterByStarterPriority(['wr1', 'rb1', 'te1', 'qb1'], positionOf, {
-      WR: 2,
-      RB: 2,
-      TE: 0,
-      QB: 0,
-    });
+    const result = filterByStarterPriority(
+      ['wr1', 'rb1', 'te1', 'qb1'],
+      positionOf,
+      { WR: 2, RB: 2, TE: 0, QB: 0 },
+      starting1qb,
+    );
     expect(result).toEqual(['wr1', 'rb1', 'te1', 'qb1']);
   });
 });

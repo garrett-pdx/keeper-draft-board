@@ -129,3 +129,13 @@ export function rosterPositionCountsFor(rosterId: number): Record<string, number
 export function mockDraftPositionCaps(): Record<string, number> {
   return positionCaps(state.league?.roster_positions);
 }
+
+/**
+ * This league's per-position *starting*-slot counts (no bench buffer) —
+ * what filterByStarterPriority treats as "starting QB"/"starting TE" for
+ * its prerequisite rules, so a 2-QB league's second QB reads as a starter,
+ * not a bench player.
+ */
+export function mockDraftStartingSlots(): Record<string, number> {
+  return positionCaps(state.league?.roster_positions, 0);
+}

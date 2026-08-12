@@ -262,13 +262,22 @@ to keepers-only.
   Staying under the position cap alone still lets an AI team legally front-load 2-3 QBs (or
   TEs) in the first few rounds ahead of any RB/WR — confirmed live on a real mock draft.
   `filterByStarterPriority` (`domain/mockDraft.ts`) enforces a short, explicit set of
-  prerequisites rather than a general roster-construction model: a team's first QB or TE
-  must come before its 5th RB/WR, and its first QB before a 2nd TE (and its first TE before
-  a 2nd QB) — mirroring how a real drafter seats their starters before adding depth. Applied
-  after `filterByPositionCaps`, with the same graceful-fallback shape: an empty result (every
-  remaining player would violate some prerequisite) falls back to the position-capped pool
-  rather than getting stuck. AI-only, same as the position cap — the manager's own picker is
-  never filtered by either heuristic.
+  prerequisites rather than a general roster-construction model: a team's starting QB(s)
+  must come before its 2nd bench RB/WR, its starting TE before its 3rd bench RB/WR, its
+  starting QB(s) before its 1st bench TE, and its starting TE before its 1st bench QB —
+  mirroring how a real drafter seats their starters before adding depth. **Expressed
+  relative to the league's own starting-slot counts, not fixed numbers** — `requires`
+  is satisfied once that position's count reaches `startingSlots[pos]`, and
+  `startingSlots` is `positionCaps(rosterPositions, 0)` (`selectors.mockDraftStartingSlots`),
+  i.e. the exact same starting-slot-plus-FLEX-eligibility count the position cap uses, just
+  without its bench buffer. This matters for a 2-QB league: a team's 2nd QB is still one of
+  its starters (`startingSlots.QB === 2`), so it's never gated behind a TE — only a genuine
+  3rd/bench QB is. An empty `startingSlots` (unknown `roster_positions`) makes every rule's
+  `requires` trivially satisfied, degrading to no restriction, same convention as the cap.
+  Applied after `filterByPositionCaps`, with the same graceful-fallback shape: an empty
+  result (every remaining player would violate some prerequisite) falls back to the
+  position-capped pool rather than getting stuck. AI-only, same as the position cap — the
+  manager's own picker is never filtered by either heuristic.
 - **`advance()` runs synchronously to completion of the current AI streak in one JS tick**
   (at most team-count × rounds iterations — trivial). This is exactly why "no time limit"
   needed no `setTimeout`/animation machinery: a call either lands on the manager's turn or

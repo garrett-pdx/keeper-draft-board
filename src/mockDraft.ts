@@ -16,6 +16,7 @@ import {
   keepersInCellFor,
   mockDraftAvailablePlayerIds,
   mockDraftPositionCaps,
+  mockDraftStartingSlots,
   rosterPositionCountsFor,
 } from './selectors';
 import {
@@ -155,17 +156,23 @@ export function advance(openPicker = true): void {
     //     has enough to fill its starting slots (FLEX-eligible slots
     //     included) plus a small bench buffer, so BPA can't spiral into a
     //     6th QB or 3rd TE.
-    //  2. Starter priority — fill real roster gaps before backups: a 1st
-    //     QB/TE before a 5th RB/WR, and a 1st QB before a 2nd TE (and vice
-    //     versa) — otherwise a team can legally stay under its position cap
-    //     while still front-loading 2-3 QBs in the first few rounds ahead
-    //     of any RB/WR.
+    //  2. Starter priority — fill real roster gaps before backups: the
+    //     league's starting QB(s) before a 2nd bench RB/WR, its starting TE
+    //     before a 3rd bench RB/WR, and its starting QB(s) before a 1st
+    //     bench TE (and vice versa) — otherwise a team can legally stay
+    //     under its position cap while still front-loading 2-3 QBs in the
+    //     first few rounds ahead of any RB/WR.
     const playersMap = state.playersMap || {};
     const positionOf = (pid: string) => playersMap[pid]?.pos;
     const counts = rosterPositionCountsFor(slot.rosterId);
     const capped = filterByPositionCaps(available, positionOf, counts, mockDraftPositionCaps());
     const cappedPool = capped.length ? capped : available;
-    const prioritized = filterByStarterPriority(cappedPool, positionOf, counts);
+    const prioritized = filterByStarterPriority(
+      cappedPool,
+      positionOf,
+      counts,
+      mockDraftStartingSlots(),
+    );
     const playerId = bestAvailablePlayer(
       prioritized.length ? prioritized : cappedPool,
       state.adpMap || {},
