@@ -138,3 +138,57 @@ export function filterByPositionCaps(
     return (positionCounts[pos] || 0) < caps[pos];
   });
 }
+
+interface StarterPrerequisite {
+  /** The position this rule can block. */
+  position: string;
+  /** Blocks the pick that would bring `position`'s count up to this many. */
+  atCount: number;
+  /** Only allowed once this other position has reached this count. */
+  requires: string;
+  requiresAtLeast: number;
+}
+
+/**
+ * "Fill your starters before your backups" — real drafters get their first
+ * QB and first TE seated before piling up depth elsewhere, and don't stack a
+ * 2nd QB/TE ahead of their 1st TE/QB. A fixed, explicit rule set rather than
+ * a general roster-construction model, matching the "rudimentary AI" scope
+ * everywhere else in this file: a team should draft its first QB or TE
+ * before a 5th RB/WR, and its first QB before a 2nd TE (and vice versa).
+ */
+const STARTER_PREREQUISITES: StarterPrerequisite[] = [
+  { position: 'WR', atCount: 5, requires: 'QB', requiresAtLeast: 1 },
+  { position: 'RB', atCount: 5, requires: 'QB', requiresAtLeast: 1 },
+  { position: 'WR', atCount: 5, requires: 'TE', requiresAtLeast: 1 },
+  { position: 'RB', atCount: 5, requires: 'TE', requiresAtLeast: 1 },
+  { position: 'TE', atCount: 2, requires: 'QB', requiresAtLeast: 1 },
+  { position: 'QB', atCount: 2, requires: 'TE', requiresAtLeast: 1 },
+];
+
+/**
+ * Drops players who'd violate a starter prerequisite for this roster right
+ * now — e.g. a 5th WR before the team's first QB, or a 2nd TE before its
+ * first QB. Players with no known position are never restricted. Like
+ * filterByPositionCaps, callers must fall back to the unfiltered list when
+ * this returns empty: satisfying every prerequisite simultaneously can
+ * become impossible late in a draft (e.g. only WRs left for a QB-less,
+ * TE-less team already at 4 WRs), and picking nothing is worse than picking
+ * out of sequence.
+ */
+export function filterByStarterPriority(
+  availablePlayerIds: string[],
+  positionOf: (playerId: string) => string | undefined,
+  positionCounts: Record<string, number>,
+): string[] {
+  return availablePlayerIds.filter((pid) => {
+    const pos = positionOf(pid);
+    if (!pos) return true;
+    const nextCount = (positionCounts[pos] || 0) + 1;
+    return STARTER_PREREQUISITES.every(
+      (rule) =>
+        !(pos === rule.position && nextCount >= rule.atCount) ||
+        (positionCounts[rule.requires] || 0) >= rule.requiresAtLeast,
+    );
+  });
+}

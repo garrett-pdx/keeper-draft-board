@@ -117,8 +117,11 @@ The AI isn't purely ADP-blind, though — it respects a per-position cap derived
 league's actual starting lineup (starting slots + FLEX/SUPER_FLEX eligibility + a small
 bench buffer), so opponents stop hoarding a 6th QB or 3rd TE just because those positions
 are running hot on ADP. A position with no FLEX home (QB outside superflex, TE) gets a
-tight cap; RB/WR get real headroom from FLEX eligibility. Your own picks are never capped —
-the picker always shows every available player, cap or no cap.
+tight cap; RB/WR get real headroom from FLEX eligibility. On top of that, it fills real
+roster gaps before backups — a first QB or TE before a 5th RB/WR, and a first QB before a
+2nd TE (and vice versa) — so opponents can't legally stack 2-3 QBs in the opening rounds
+just because they're staying under cap. Your own picks are never restricted by either
+heuristic — the picker always shows every available player.
 
 ## League settings import
 

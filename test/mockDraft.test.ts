@@ -4,6 +4,7 @@ import {
   bestAvailablePlayer,
   positionCaps,
   filterByPositionCaps,
+  filterByStarterPriority,
 } from '../src/domain/mockDraft';
 import type { AdpMap } from '../src/types';
 
@@ -202,5 +203,73 @@ describe('filterByPositionCaps', () => {
   it('passes everything through when caps is empty (unknown roster_positions)', () => {
     const result = filterByPositionCaps(['qb1', 'qb2', 'rb1'], positionOf, { QB: 5 }, {});
     expect(result).toEqual(['qb1', 'qb2', 'rb1']);
+  });
+});
+
+describe('filterByStarterPriority', () => {
+  const positions: Record<string, string> = {
+    qb1: 'QB',
+    te1: 'TE',
+    wr1: 'WR',
+    rb1: 'RB',
+    def1: 'IDP',
+  };
+  const positionOf = (pid: string) => positions[pid];
+
+  it('blocks a 5th WR before the team has its first QB', () => {
+    const result = filterByStarterPriority(['wr1', 'te1'], positionOf, {
+      WR: 4,
+      QB: 0,
+    });
+    expect(result).toEqual(['te1']);
+  });
+
+  it('blocks a 5th RB before the team has its first TE', () => {
+    const result = filterByStarterPriority(['rb1', 'qb1'], positionOf, {
+      RB: 4,
+      TE: 0,
+    });
+    expect(result).toEqual(['qb1']);
+  });
+
+  it('blocks a 2nd TE before the team has its first QB', () => {
+    const result = filterByStarterPriority(['te1', 'wr1'], positionOf, {
+      TE: 1,
+      QB: 0,
+    });
+    expect(result).toEqual(['wr1']);
+  });
+
+  it('blocks a 2nd QB before the team has its first TE', () => {
+    const result = filterByStarterPriority(['qb1', 'wr1'], positionOf, {
+      QB: 1,
+      TE: 0,
+    });
+    expect(result).toEqual(['wr1']);
+  });
+
+  it('allows a 5th WR once the team already has both a QB and a TE', () => {
+    const result = filterByStarterPriority(['wr1'], positionOf, { WR: 4, QB: 1, TE: 1 });
+    expect(result).toEqual(['wr1']);
+  });
+
+  it('allows a 2nd QB once the team already has a TE', () => {
+    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 1 });
+    expect(result).toEqual(['qb1']);
+  });
+
+  it('never restricts a position with no prerequisite rule, or an unknown position', () => {
+    const result = filterByStarterPriority(['rb1', 'def1'], positionOf, { RB: 1, IDP: 99 });
+    expect(result).toEqual(['rb1', 'def1']);
+  });
+
+  it('is a no-op below every threshold', () => {
+    const result = filterByStarterPriority(['wr1', 'rb1', 'te1', 'qb1'], positionOf, {
+      WR: 2,
+      RB: 2,
+      TE: 0,
+      QB: 0,
+    });
+    expect(result).toEqual(['wr1', 'rb1', 'te1', 'qb1']);
   });
 });

@@ -7,6 +7,7 @@ import {
   buildMockDraftSlots,
   bestAvailablePlayer,
   filterByPositionCaps,
+  filterByStarterPriority,
   type MockDraftSlot,
 } from './domain/mockDraft';
 import { orderRosterIdsBySlot } from './domain/draftOrder';
@@ -146,22 +147,29 @@ export function advance(openPicker = true): void {
       return;
     }
     const available = mockDraftAvailablePlayerIds();
-    // Position-cap heuristic: AI teams stop drafting a position once they
-    // already have enough to fill its starting slots (FLEX-eligible slots
-    // included) plus a small bench buffer — otherwise plain best-player-
-    // available spirals into hoarding a 6th QB or 3rd TE the moment those
-    // positions run hot on ADP. Never applied to the user's own pick, which
-    // always sees the full, unfiltered list via the picker. Falls back to
-    // the unfiltered pool if every remaining player is capped out, since a
-    // pick has to happen either way.
+    // Two AI-only heuristics, layered on top of plain best-player-available,
+    // never applied to the user's own pick (the picker always shows the
+    // full, unfiltered list). Each stage falls back to the previous pool
+    // when it empties out, since a pick has to happen either way:
+    //  1. Position cap — stop drafting a position once the roster already
+    //     has enough to fill its starting slots (FLEX-eligible slots
+    //     included) plus a small bench buffer, so BPA can't spiral into a
+    //     6th QB or 3rd TE.
+    //  2. Starter priority — fill real roster gaps before backups: a 1st
+    //     QB/TE before a 5th RB/WR, and a 1st QB before a 2nd TE (and vice
+    //     versa) — otherwise a team can legally stay under its position cap
+    //     while still front-loading 2-3 QBs in the first few rounds ahead
+    //     of any RB/WR.
     const playersMap = state.playersMap || {};
-    const capped = filterByPositionCaps(
-      available,
-      (pid) => playersMap[pid]?.pos,
-      rosterPositionCountsFor(slot.rosterId),
-      mockDraftPositionCaps(),
+    const positionOf = (pid: string) => playersMap[pid]?.pos;
+    const counts = rosterPositionCountsFor(slot.rosterId);
+    const capped = filterByPositionCaps(available, positionOf, counts, mockDraftPositionCaps());
+    const cappedPool = capped.length ? capped : available;
+    const prioritized = filterByStarterPriority(cappedPool, positionOf, counts);
+    const playerId = bestAvailablePlayer(
+      prioritized.length ? prioritized : cappedPool,
+      state.adpMap || {},
     );
-    const playerId = bestAvailablePlayer(capped.length ? capped : available, state.adpMap || {});
     if (playerId === null) {
       // Shouldn't happen in practice — hundreds of players vs. at most a few
       // hundred picks — but never crash on it; just stop where we are.
