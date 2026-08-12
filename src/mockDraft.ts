@@ -42,15 +42,26 @@ export function isMyTurn(): boolean {
 }
 
 /**
- * True once a mock draft's frozen roster order no longer matches the
- * league's current rosters (a commissioner added/removed a team since
- * Start). Never repaired automatically — board.ts shows a banner and this
- * blocks advance()/the picker until Reset.
+ * True once a mock draft's frozen snapshot no longer matches the league it
+ * was started against — either a roster it was built around is gone (a
+ * commissioner added/removed a team), or the draft's round count changed
+ * underneath it.
+ *
+ * The round check matters because board.ts renders `1..state.boardRounds`
+ * (live) rather than the frozen `rounds`: if the draft shrank, tail-round
+ * mock picks would silently vanish from the grid while their players stayed
+ * unavailable in the picker — a confusing half-state. A missing/unknown
+ * `boardRounds` is not treated as a mismatch, since that's a failed load
+ * rather than a real change.
+ *
+ * Never repaired automatically — board.ts shows a banner and this blocks
+ * advance()/the picker until Reset.
  */
-export function mockDraftRosterMismatch(): boolean {
+export function mockDraftMismatch(): boolean {
   if (!state.mockDraft) return false;
   const currentIds = new Set(state.rosters.map((r) => r.roster_id));
-  return state.mockDraft.slotOrderRosterIds.some((id) => !currentIds.has(id));
+  if (state.mockDraft.slotOrderRosterIds.some((id) => !currentIds.has(id))) return true;
+  return !!state.boardRounds && state.boardRounds !== state.mockDraft.rounds;
 }
 
 export function startMockDraft(): void {
@@ -71,13 +82,11 @@ export function startMockDraft(): void {
   );
   state.mockDraft = {
     active: true,
-    teamCount: state.rosters.length || 10,
     rounds,
     slotOrderRosterIds,
     claimedRosterId,
     slots,
     picks: slots.map(() => null),
-    startedAt: new Date().toISOString(),
   };
   saveMockDraft();
   advance();
@@ -130,7 +139,7 @@ function remainingSlotStreakForRoster(rosterId: number): number {
  * at the board doesn't shove a modal in the user's face.
  */
 export function advance(openPicker = true): void {
-  if (!state.mockDraft?.active || mockDraftRosterMismatch()) return;
+  if (!state.mockDraft?.active || mockDraftMismatch()) return;
   while (true) {
     const idx = state.mockDraft.picks.findIndex((p) => p === null);
     if (idx === -1) {
@@ -219,7 +228,7 @@ export function openPickerForCurrentTurn(): void {
 export function resumeMockDraft(): void {
   loadMockDraftFromStorage();
   if (!state.mockDraft || !state.mockDraft.active) return;
-  if (mockDraftRosterMismatch()) return; // board.ts shows a banner instead
+  if (mockDraftMismatch()) return; // board.ts shows a banner instead
   advance(false);
 }
 

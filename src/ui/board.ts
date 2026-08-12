@@ -10,7 +10,7 @@ import { pickCapacity } from '../domain/tradedPicks';
 import {
   currentSlot,
   isMyTurn,
-  mockDraftRosterMismatch,
+  mockDraftMismatch,
   openPickerForCurrentTurn,
   resumeMockDraft,
 } from '../mockDraft';
@@ -111,8 +111,8 @@ function renderMockDraftControls(): void {
   startBtn.hidden = true;
   resetBtn.hidden = false;
   statusEl.hidden = false;
-  if (mockDraftRosterMismatch()) {
-    statusEl.textContent = 'Mock draft: your league’s rosters changed — reset to continue.';
+  if (mockDraftMismatch()) {
+    statusEl.textContent = 'Mock draft: your league’s setup changed — reset to continue.';
   } else if (!md.active) {
     statusEl.textContent = 'Mock draft complete.';
   } else {
@@ -152,7 +152,7 @@ export function renderBoard(): void {
   // loop can treat them uniformly. A mismatched-roster mock draft is left
   // out entirely — the banner below tells the manager to reset instead of
   // rendering picks against roster ids that may no longer exist.
-  const mockMismatch = mockDraftRosterMismatch();
+  const mockMismatch = mockDraftMismatch();
   const mockPlacements: Record<string, Record<number, string[]>> = {};
   if (state.mockDraft && !mockMismatch) {
     state.mockDraft.slots.forEach((slot, i) => {
@@ -170,8 +170,8 @@ export function renderBoard(): void {
       el(
         'div',
         { class: 'error-banner board-mock-mismatch' },
-        'Your league’s rosters changed since this mock draft started, so it can’t continue safely. ',
-        'Reset Draft to start a fresh one.',
+        'Your league’s rosters or draft length changed since this mock draft started, so it ',
+        'can’t continue safely. Reset Draft to start a fresh one.',
       ),
     );
   }

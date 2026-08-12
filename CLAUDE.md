@@ -70,8 +70,15 @@ public/
 src/
   main.ts             # bootstrap: tab switching + init() wiring
   state.ts            # the single `state` object, constants, localStorage persistence
-  selectors.ts        # state-aware wrappers that feed the pure domain layer
+  selectors.ts        # state-aware wrappers that feed the pure domain layer —
+                      #   including allKeeperIdsWithTeam, which lives here rather
+                      #   than in state.ts because "is this player really kept"
+                      #   needs the domain layer's cannotBeKept verdict
   data.ts             # cache-aware "ensure*" loaders (honor a `force` flag)
+  refresh.ts          # cross-tab refresh coordination — isTabStale/TAB_STALE_MS
+                      #   and refreshAll (rosters first and force-loaded, the
+                      #   other two ride its warm cache); takes its loaders as
+                      #   arguments so the ordering rules are testable DOM-free
   sync.ts             # stateful glue between api/gist.ts and `state` for shared
                       #   keeper picks — refreshSharedKeepers, saveMyKeepers,
                       #   clearMyKeepers, startEditingMyKeepers/cancelEditing…,
@@ -93,8 +100,11 @@ src/
     outlookSnapshot.ts # fetchOutlookSnapshot — reads public/outlook-snapshot.json (same-origin)
     gist.ts           # fetchSharedKeepers/writeSharedKeepers — the league's shared
                       #   keeper picks, read/written in a GitHub Gist (see below)
-    schemas.ts        # zod schemas for Sleeper responses + our own ADP/outlook/keeper
-                      #   snapshots
+    valueSnapshot.ts  # fetchValueSnapshot — reads public/value-snapshot.json
+                      #   (same-origin); backs the DEFAULT market source, see
+                      #   "Market value sources"
+    schemas.ts        # zod schemas for Sleeper responses + our own ADP/value/
+                      #   outlook/keeper snapshots
   domain/             # PURE, state-free, unit-tested:
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
@@ -131,6 +141,8 @@ src/
                       #   (see below)
   ui/
     dom.ts            # $, $all, el, setSpin
+    tabs.ts           # switchTab + the per-tab lazy/stale load routing (uses
+                      #   refresh.ts's isTabStale)
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge, updateIdentityBadge,
                       #   updateSyncBadge (visible data-source/identity/sync-status
                       #   indicators; each hidden until relevant)
@@ -190,7 +202,15 @@ import no state.
   badge re-opens it to switch teams.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter + a "Hide kept players" toggle. Keepers are greyed out and tagged with
-  the keeping team by default; the toggle removes them from the list entirely.
+  the keeping team by default; the toggle removes them from the list entirely. **"Kept"
+  here means *resolved* keepers only** — `allKeeperIdsWithTeam` (`selectors.ts`) reads
+  `getRosterKeeperCostsFor` and skips `cannotBeKept` items rather than reading the raw
+  `state.keepers` selection. A selection that failed capacity resolution never occupies a
+  pick and really will be in the draft pool, so tagging it KEPT (and hiding it under the
+  toggle) told the manager a player was gone when the Board, two tabs over, was
+  simultaneously listing him as unkeepable. Reachable with no trades at all: two keepers
+  both costing round 1 is enough. Mock-draft picks deliberately do **not** count as kept
+  here — this tab describes the real draft, the simulation lives on the Board.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
   to reorder, persisted; headers are keyboard-focusable and refocus themselves after a
   move since re-render rebuilds the table). Only keeper picks are filled in, placed at
@@ -293,10 +313,20 @@ to keepers-only.
   keeper ever occupies a round-cell in that mode (`taxiSquad: true` items are excluded from
   `keepersInCellFor`), so every round is fully open, exactly mirroring how kept players
   don't consume a real pick in that mode either.
-- **Never repaired, only detected:** if a commissioner adds/removes a roster after a mock
-  draft started, `mockDraftRosterMismatch()` catches the frozen `slotOrderRosterIds` no
-  longer being a subset of `state.rosters` and blocks `advance()`/the picker behind a
-  banner telling the manager to reset — no attempt to guess a repair.
+- **Never repaired, only detected:** `mockDraftMismatch()` blocks `advance()`/the picker
+  behind a "reset to continue" banner whenever the league moved out from under a running
+  simulation — no attempt to guess a repair. Two things count as moving: the frozen
+  `slotOrderRosterIds` no longer being a subset of `state.rosters` (a commissioner
+  added/removed a team), and the frozen `rounds` no longer matching `state.boardRounds`.
+  The second is easy to overlook because `rounds` is otherwise write-only: the board
+  renders `1..state.boardRounds` (**live**, not the snapshot), so a shortened draft would
+  otherwise hide tail-round mock picks from the grid while their players stayed
+  unavailable in the picker — the frozen value exists to be *compared*, not drawn from.
+  An unknown `state.boardRounds` (failed load) is deliberately not a mismatch.
+- **`MockDraftState` stores nothing it doesn't read.** A team count and a start timestamp
+  were both dropped after review found them write-only — a snapshot field that nothing
+  consumes reads as a protection the code isn't actually providing (see `rounds` above for
+  what a real one looks like). Team count is already implied by the frozen `slots` list.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 
@@ -357,7 +387,15 @@ change:
 - The client names an upstream by **key** (`/api/yahoo/...`), never by URL. There is no
   `?url=` parameter — an arbitrary destination is _not expressible_.
 - Each upstream declares the **path prefixes** it will serve; anything else 404s.
-- Only **our own origins** get CORS headers, so it isn't a free proxy for the web.
+- Only **allow-listed origins** get CORS headers, so it isn't a free proxy for the web.
+  Be precise about what that buys, though: the list (`ALLOWED_ORIGINS`) holds the
+  deployed site **plus `localhost:5173`/`127.0.0.1:5173` for local development**, and
+  those two are not exclusively ours — they're any developer's default Vite port. So
+  the origin check is a real barrier to drive-by use from an arbitrary website, but it
+  is not an identity check. The reason that's acceptable is the other three properties:
+  a caller can only reach two fixed hosts on fixed path prefixes, read-only, supplying
+  their own upstream credentials. Drop the localhost entries if the Worker ever proxies
+  anything that doesn't hold.
 - GET and OPTIONS only, with a fixed forwardable-header list.
 
 Paths are **rejected, not sanitised** — `new URL()` normalises `..` and encoded separators

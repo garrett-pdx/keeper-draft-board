@@ -62,26 +62,33 @@ export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error';
 
 /**
  * A local-only practice simulation on the Draft Board — never touches the
- * shared Gist. `slots`/`slotOrderRosterIds`/`teamCount`/`rounds`/
- * `claimedRosterId` are all snapshotted once at Start (src/mockDraft.ts's
- * startMockDraft) so a later Refresh All, a manager dragging a board column,
- * the real draft order finally being set by the commissioner, or the
- * signed-in manager re-claiming a *different* team via the Rosters tab mid-
- * simulation can't retroactively perturb an in-progress simulation — turn
- * matching uses `claimedRosterId`, never a live `myRosterId()` read, so a
- * re-claim can't cause the AI to silently draft what should have been the
- * manager's own pick. `picks` is parallel to `slots`; `null` = not yet
- * picked, so "find the next open pick" is a single findIndex.
+ * shared Gist. `slots`/`slotOrderRosterIds`/`claimedRosterId` are snapshotted
+ * once at Start (src/mockDraft.ts's startMockDraft) so a later Refresh All, a
+ * manager dragging a board column, the real draft order finally being set by
+ * the commissioner, or the signed-in manager re-claiming a *different* team
+ * via the Rosters tab mid-simulation can't retroactively perturb an
+ * in-progress simulation — turn matching uses `claimedRosterId`, never a live
+ * `myRosterId()` read, so a re-claim can't cause the AI to silently draft what
+ * should have been the manager's own pick. `picks` is parallel to `slots`;
+ * `null` = not yet picked, so "find the next open pick" is a single findIndex.
+ *
+ * `rounds` is the one snapshot that is *checked* rather than used: the board
+ * renders `1..state.boardRounds` (live), so a commissioner shrinking the draft
+ * mid-simulation would silently hide tail-round picks while their players
+ * stayed unavailable. mockDraftMismatch() compares the two and blocks the run
+ * instead — same treatment as a roster changing underneath it.
+ *
+ * Deliberately NOT stored: a team count (the frozen `slots` list already
+ * encodes it) and a start timestamp — both were write-only fields whose
+ * presence implied a protection they didn't provide.
  */
 export interface MockDraftState {
   active: boolean;
-  teamCount: number;
   rounds: number;
   slotOrderRosterIds: number[];
   claimedRosterId: number;
   slots: MockDraftSlot[];
   picks: (string | null)[];
-  startedAt: string;
 }
 
 interface AppState {
@@ -265,16 +272,6 @@ export function cacheSharedKeepersLocally(doc: SharedKeepers | null): void {
   else localStorage.removeItem(sharedKeepersKey());
 }
 
-export function allKeeperIdsWithTeam(): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const roster of state.rosters) {
-    const list = keeperListFor(roster.roster_id);
-    const teamName = teamNameForRoster(roster.roster_id);
-    list.forEach((pid) => map.set(pid, teamName));
-  }
-  return map;
-}
-
 // ---------- board column order persistence ----------
 function boardOrderKey(): string {
   return LS_BOARD_ORDER_PREFIX + state.leagueId;
@@ -336,8 +333,20 @@ function mockDraftKey(): string {
   return LS_MOCK_DRAFT_PREFIX + state.leagueId;
 }
 export function saveMockDraft(): void {
-  if (state.mockDraft) localStorage.setItem(mockDraftKey(), JSON.stringify(state.mockDraft));
-  else localStorage.removeItem(mockDraftKey());
+  // Swallowed on purpose, unlike the keeper/rules writes above: this one is
+  // called from inside advance()'s AI loop, so a QuotaExceededError thrown
+  // here would abort a simulation mid-run and leave the board un-rendered
+  // against a half-filled picks array. A mock draft is disposable practice
+  // data — losing the save is a far smaller harm than losing the run, and
+  // quota exhaustion is a live risk here (the slimmed player dictionary alone
+  // is a multi-megabyte localStorage entry — see data.ts, where every cache
+  // write is guarded the same way).
+  try {
+    if (state.mockDraft) localStorage.setItem(mockDraftKey(), JSON.stringify(state.mockDraft));
+    else localStorage.removeItem(mockDraftKey());
+  } catch {
+    /* storage full — the simulation carries on in memory */
+  }
 }
 export function loadMockDraftFromStorage(): void {
   try {

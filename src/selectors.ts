@@ -9,7 +9,7 @@ import {
 } from './domain/keeperCost';
 import { positionCaps } from './domain/mockDraft';
 import { keeperSurplusValue } from './domain/value';
-import { keeperListFor, ownerIdOfRoster, state } from './state';
+import { keeperListFor, ownerIdOfRoster, state, teamNameForRoster } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
 
 export function potentialKeeperCostFor(playerId: string, rosterId: number): number {
@@ -40,6 +40,27 @@ export function keeperSurplusValueFor(
 export function isInflatedFor(playerId: string, rosterId: number): boolean {
   const prev = state.prevDraftMap ? state.prevDraftMap[playerId] : null;
   return isInflatedForRoster(prev, ownerIdOfRoster(rosterId), rosterId);
+}
+
+/**
+ * playerId -> the team keeping them, for every keeper that actually resolved.
+ *
+ * Lives here rather than in state.ts because "is this player really kept" is a
+ * question only the domain layer can answer: a selection whose cost resolution
+ * failed (`cannotBeKept` — no capacity left at its round or any cheaper one)
+ * never occupies a pick and will be in the real draft pool, so labelling it
+ * KEPT on the Draft List contradicts the Draft Board, which excludes it from
+ * the grid and calls it out as unkeepable.
+ */
+export function allKeeperIdsWithTeam(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const roster of state.rosters) {
+    const teamName = teamNameForRoster(roster.roster_id);
+    for (const c of getRosterKeeperCostsFor(roster.roster_id)) {
+      if (!c.cannotBeKept) map.set(c.playerId, teamName);
+    }
+  }
+  return map;
 }
 
 export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {

@@ -146,7 +146,6 @@ describe('mock draft persistence', () => {
   function sample(): MockDraftState {
     return {
       active: true,
-      teamCount: 3,
       rounds: 2,
       slotOrderRosterIds: [1, 2, 3],
       claimedRosterId: 1,
@@ -156,7 +155,6 @@ describe('mock draft persistence', () => {
         { round: 1, rosterId: 3 },
       ],
       picks: ['p1', null, null],
-      startedAt: '2026-08-01T00:00:00.000Z',
     };
   }
 
@@ -186,6 +184,23 @@ describe('mock draft persistence', () => {
     expect(state.mockDraft).toBeNull();
     loadMockDraftFromStorage();
     expect(state.mockDraft).toBeNull();
+  });
+
+  it('never throws when storage is full', () => {
+    // saveMockDraft is called from inside advance()'s AI loop, so a throw here
+    // would abort a simulation mid-run — it must degrade to "not persisted",
+    // never propagate. (The players cache alone is multi-megabyte, so hitting
+    // the quota is a real scenario in this app, not a hypothetical.)
+    state.mockDraft = sample();
+    const realSetItem = localStorage.setItem;
+    localStorage.setItem = () => {
+      throw new Error('QuotaExceededError');
+    };
+    try {
+      expect(() => saveMockDraft()).not.toThrow();
+    } finally {
+      localStorage.setItem = realSetItem;
+    }
   });
 
   it('saveMockDraft with a null state removes any stored entry', () => {

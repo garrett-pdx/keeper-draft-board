@@ -1,5 +1,6 @@
 import { ensureAdpLoaded, ensurePlayersLoaded } from '../data';
-import { allKeeperIdsWithTeam, state } from '../state';
+import { allKeeperIdsWithTeam } from '../selectors';
+import { state } from '../state';
 import { formatTime } from '../util';
 import { $, el } from './dom';
 import { updateAdpSourceBadge } from './header';

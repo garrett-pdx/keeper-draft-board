@@ -303,6 +303,11 @@ export async function ensureTradedPicksLoaded(force?: boolean): Promise<TradedPi
 }
 
 // ---------- draft round count ----------
+// Last-resort round count when neither the draft's own settings nor the
+// league's roster_positions can supply one. Shared by both readers below so
+// they can't disagree about the same number.
+const FALLBACK_DRAFT_ROUNDS = 15;
+
 export async function ensureBoardRoundsLoaded(force?: boolean): Promise<number> {
   if (state.boardRounds && !force) return state.boardRounds;
   let rounds: number | null = null;
@@ -314,24 +319,20 @@ export async function ensureBoardRoundsLoaded(force?: boolean): Promise<number> 
   } catch {
     /* fall through to estimate */
   }
-  if (!rounds) {
-    rounds =
-      state.league && Array.isArray(state.league.roster_positions)
-        ? state.league.roster_positions.length
-        : 15;
-  }
+  if (!rounds) rounds = roundsFromRosterPositions();
   state.boardRounds = rounds;
   return rounds;
 }
 
+function roundsFromRosterPositions(): number {
+  return state.league && Array.isArray(state.league.roster_positions)
+    ? state.league.roster_positions.length
+    : FALLBACK_DRAFT_ROUNDS;
+}
+
 // Last round of the draft — keeper cost for players undrafted last year.
 export function lastDraftRound(): number {
-  return (
-    state.boardRounds ||
-    (state.league && Array.isArray(state.league.roster_positions)
-      ? state.league.roster_positions.length
-      : 14)
-  );
+  return state.boardRounds || roundsFromRosterPositions();
 }
 
 // Does this player have real prior-season draft data?
