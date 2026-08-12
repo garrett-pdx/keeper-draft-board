@@ -33,6 +33,12 @@ function onKeydown(e: KeyboardEvent): void {
 }
 
 function onPointerDown(e: PointerEvent): void {
+  // The header wraps the close button too, so a pointerdown originating on
+  // it would otherwise start a drag and capture the pointer on the header —
+  // which hijacks the click that was about to fire on the button (confirmed
+  // live: a real click closed nothing, while a synthetic dispatchEvent did,
+  // isolating this as a capture issue rather than a handler-wiring one).
+  if ((e.target as HTMLElement).closest('.outlook-drawer-close')) return;
   dragging = true;
   dragStartY = e.clientY;
   drawerEl!.classList.add('dragging');
