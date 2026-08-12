@@ -7,6 +7,7 @@ import {
   isInflatedForRoster,
   potentialKeeperCost,
 } from './domain/keeperCost';
+import { positionCaps } from './domain/mockDraft';
 import { keeperSurplusValue } from './domain/value';
 import { keeperListFor, ownerIdOfRoster, state } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
@@ -96,4 +97,35 @@ export function mockDraftAvailablePlayerIds(): string[] {
     const p = playersMap[pid];
     return p.pos && p.pos !== '—' && !taken.has(pid);
   });
+}
+
+/**
+ * How many players of each position this roster already has "on the books"
+ * for the mock draft's position-cap AI heuristic: real (resolved) keepers
+ * plus whatever it's picked in the simulation so far. A `cannotBeKept`
+ * keeper never actually rosters the player, so it's excluded the same way
+ * mockDraftAvailablePlayerIds excludes it from `taken`.
+ */
+export function rosterPositionCountsFor(rosterId: number): Record<string, number> {
+  const playersMap = state.playersMap || {};
+  const counts: Record<string, number> = {};
+  const bump = (playerId: string) => {
+    const pos = playersMap[playerId]?.pos;
+    if (pos) counts[pos] = (counts[pos] || 0) + 1;
+  };
+  for (const c of getRosterKeeperCostsFor(rosterId)) {
+    if (!c.cannotBeKept) bump(c.playerId);
+  }
+  if (state.mockDraft) {
+    const { slots, picks } = state.mockDraft;
+    for (let i = 0; i < slots.length; i++) {
+      if (slots[i].rosterId === rosterId && picks[i]) bump(picks[i]!);
+    }
+  }
+  return counts;
+}
+
+/** This league's per-position mock-draft AI caps, derived from Sleeper's own roster_positions. */
+export function mockDraftPositionCaps(): Record<string, number> {
+  return positionCaps(state.league?.roster_positions);
 }

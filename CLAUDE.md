@@ -112,7 +112,8 @@ src/
                       #   actually holds per round, adjusted by trades
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
                       #   round×roster-cell pick sequence), bestAvailablePlayer
-                      #   (the rudimentary BPA-by-ADP "AI") — see "Mock draft"
+                      #   (BPA-by-ADP), positionCaps/filterByPositionCaps (the
+                      #   position-cap AI heuristic) — see "Mock draft"
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
                       #   matching against Sleeper's player dict, entries tried in
                       #   priority order so a player missing from one format can still
@@ -213,13 +214,13 @@ A local-only practice simulation layered onto the Draft Board (`src/mockDraft.ts
 `src/domain/mockDraft.ts`, `src/ui/mockDraftPicker.ts`) — never touches the shared Gist,
 never expires, no countdown timer anywhere. Click **Start Mock Draft**: every non-keeper
 cell gets auto-filled in real snake order by a rudimentary "best player available" AI
-(ascending ADP/market rank, nothing else — no positional need, no roster construction
-logic, by explicit design) until it reaches the signed-in manager's own next pick, where it
-pauses and opens a filterable player-picker drawer (search + position filter, identical
-semantics to the Draft List tab). Picking resumes auto-play through the next AI streak,
-repeating until the draft completes. **Reset Draft** (behind a `window.confirm`, the one
-deliberate exception to this app's normal no-confirm convention, since it can discard 100+
-picks with no undo) clears it back to keepers-only.
+(ascending ADP/market rank, respecting a per-position cap — see below) until it reaches the
+signed-in manager's own next pick, where it pauses and opens a filterable player-picker
+drawer (search + position filter, identical semantics to the Draft List tab). Picking
+resumes auto-play through the next AI streak, repeating until the draft completes.
+**Reset Draft** (behind a `window.confirm`, the one deliberate exception to this app's
+normal no-confirm convention, since it can discard 100+ picks with no undo) clears it back
+to keepers-only.
 
 - **Simulates at round×roster CELL granularity, not a literal 1..N pick list.** Resolving
   exactly which of a roster's multiple traded-in picks in one round interleaves at which
@@ -239,6 +240,23 @@ picks with no undo) clears it back to keepers-only.
   `state.mockDraft.slotOrderRosterIds`. A later Refresh All, a manager reordering columns,
   or the commissioner finally setting the real draft order mid-simulation can't
   retroactively perturb picks already made.
+- **AI picks respect a per-position cap; the manager's own picks never do.** Real
+  fantasy-strategy analysis of an actual mock draft on this app (see git history) showed
+  plain best-player-available spirals AI teams into hoarding a 6th QB or 3rd TE the moment
+  those positions run hot on ADP — dead roster weight in any format where QB/TE starting
+  slots are capped and get no FLEX benefit. `positionCaps` (`domain/mockDraft.ts`) derives,
+  from the league's own Sleeper `roster_positions`, how many of each position a team should
+  ever draft: every starting slot that position is eligible for (exact slots plus whichever
+  FLEX/SUPER_FLEX/WRRB_FLEX/REC_FLEX-type slots include it) plus a small fixed bench buffer
+  (2). A position with no FLEX home in this league's lineup (QB outside superflex, TE) ends
+  up tightly capped; RB/WR pick up real headroom from FLEX eligibility, mirroring the exact
+  structural asymmetry a human drafter has to respect. `filterByPositionCaps` drops
+  capped-out players from the AI's pool before `bestAvailablePlayer` runs; if every
+  remaining player is capped out (rare, late-draft), it falls back to the unfiltered pool
+  rather than getting stuck. Unknown `roster_positions` (`positionCaps` returns `{}`)
+  degrades to the old fully-uncapped behavior rather than guessing. The manager's own turn
+  always sees the full, unfiltered player list in the picker — the cap is an AI-realism
+  heuristic, never a restriction on what the user themselves can draft.
 - **`advance()` runs synchronously to completion of the current AI streak in one JS tick**
   (at most team-count × rounds iterations — trivial). This is exactly why "no time limit"
   needed no `setTimeout`/animation machinery: a call either lands on the manager's turn or

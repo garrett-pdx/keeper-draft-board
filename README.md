@@ -66,7 +66,8 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
   side, `+N incoming from team` on the receiving side). Players who can't be kept at all
   (see below) are excluded from the grid and listed in an alert underneath it. In
   "no keeper cost" leagues no keeper ever occupies a cell — every round stays open and each
-  team's kept players are listed in a summary panel above the grid instead.
+  team's kept players are listed in a summary panel above the grid instead. Also hosts a
+  **mock draft** — see below.
 - **Settings** — configurable league rules (max keepers per team, same-manager inflation
   rounds, and a "no keeper cost / taxi squad" toggle), with a one-click "Reset to Mudd
   League defaults" shortcut back to this app's original, calibrated rules. When Sleeper's
@@ -102,6 +103,22 @@ Encoded in `src/domain/` and covered by tests in `test/`:
   cost a draft pick at all: every rule above about cost rounds, inflation, collisions and
   capacity is skipped entirely, and value becomes simply "how good is this player" since
   there's no cost to weigh it against. Max keepers still applies as the squad-size cap.
+
+## Mock draft
+
+A local-only practice tool on the Draft Board — never expires, no time limit, never
+touches the shared Gist. Hit **Start Mock Draft** and every non-keeper cell fills in real
+snake order by a simple best-player-available AI, pausing the instant it's your turn with
+a filterable player picker (same search + position filter as the Draft List). Pick, and it
+resumes auto-drafting until your next turn, repeating until the draft's done. **Reset
+Draft** clears it back to keepers-only so you can run it again.
+
+The AI isn't purely ADP-blind, though — it respects a per-position cap derived from your
+league's actual starting lineup (starting slots + FLEX/SUPER_FLEX eligibility + a small
+bench buffer), so opponents stop hoarding a 6th QB or 3rd TE just because those positions
+are running hot on ADP. A position with no FLEX home (QB outside superflex, TE) gets a
+tight cap; RB/WR get real headroom from FLEX eligibility. Your own picks are never capped —
+the picker always shows every available player, cap or no cap.
 
 ## League settings import
 

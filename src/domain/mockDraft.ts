@@ -69,3 +69,72 @@ export function bestAvailablePlayer(availablePlayerIds: string[], adpMap: AdpMap
   }
   return best;
 }
+
+/** The positions this heuristic ever caps. Anything else (IDP slots, etc.) is left uncapped. */
+const CAPPED_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'] as const;
+
+/** Which capped positions a given Sleeper roster_positions slot can start. */
+const SLOT_ELIGIBILITY: Record<string, readonly string[]> = {
+  QB: ['QB'],
+  RB: ['RB'],
+  WR: ['WR'],
+  TE: ['TE'],
+  K: ['K'],
+  DEF: ['DEF'],
+  FLEX: ['RB', 'WR', 'TE'],
+  SUPER_FLEX: ['QB', 'RB', 'WR', 'TE'],
+  WRRB_FLEX: ['RB', 'WR'],
+  REC_FLEX: ['WR', 'TE'],
+};
+
+/**
+ * How many players of each position an AI team should ever draft: every
+ * starting slot that position is eligible for (exact slots plus whichever
+ * FLEX-type slots include it) plus a small bench buffer. Positions with no
+ * FLEX home (QB in a 1QB league, TE) end up with a tight cap; RB/WR pick up
+ * extra headroom from FLEX/SUPER_FLEX/WRRB_FLEX/REC_FLEX slots, exactly
+ * mirroring the structural asymmetry a real draft has to respect. Unknown
+ * roster_positions entries (IDP slots, BN, IR) grant no eligibility and are
+ * otherwise ignored.
+ *
+ * With no roster_positions known at all, returns `{}` (no caps) rather than
+ * guessing — degrades to the old uncapped BPA behavior instead of silently
+ * producing a wrong number, same convention as the rest of this codebase's
+ * "must always degrade gracefully" fallbacks.
+ */
+export function positionCaps(
+  rosterPositions: string[] | null | undefined,
+  benchBuffer = 2,
+): Record<string, number> {
+  if (!rosterPositions || !rosterPositions.length) return {};
+  const caps: Record<string, number> = {};
+  for (const pos of CAPPED_POSITIONS) caps[pos] = benchBuffer;
+  for (const slot of rosterPositions) {
+    const eligible = SLOT_ELIGIBILITY[slot];
+    if (!eligible) continue;
+    for (const pos of eligible) caps[pos] += 1;
+  }
+  return caps;
+}
+
+/**
+ * Drops players whose position has already reached its cap for this roster —
+ * the AI-only heuristic that keeps opponents from hoarding a 6th QB or 3rd TE
+ * the way plain best-player-available otherwise would. A position absent from
+ * `caps` (or a player with no known position) is never restricted. Callers
+ * must fall back to the unfiltered list when this returns empty — every
+ * remaining player being at an over-drafted position is a real possibility
+ * late in a draft, and picking nothing is worse than picking off-cap.
+ */
+export function filterByPositionCaps(
+  availablePlayerIds: string[],
+  positionOf: (playerId: string) => string | undefined,
+  positionCounts: Record<string, number>,
+  caps: Record<string, number>,
+): string[] {
+  return availablePlayerIds.filter((pid) => {
+    const pos = positionOf(pid);
+    if (!pos || !(pos in caps)) return true;
+    return (positionCounts[pos] || 0) < caps[pos];
+  });
+}

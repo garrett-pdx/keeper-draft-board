@@ -3,10 +3,20 @@
 // the only one that reads/writes state.mockDraft directly. Local-only
 // practice tool; never touches the shared Gist (see MockDraftState's doc
 // comment in state.ts).
-import { buildMockDraftSlots, bestAvailablePlayer, type MockDraftSlot } from './domain/mockDraft';
+import {
+  buildMockDraftSlots,
+  bestAvailablePlayer,
+  filterByPositionCaps,
+  type MockDraftSlot,
+} from './domain/mockDraft';
 import { orderRosterIdsBySlot } from './domain/draftOrder';
 import { pickCapacity } from './domain/tradedPicks';
-import { keepersInCellFor, mockDraftAvailablePlayerIds } from './selectors';
+import {
+  keepersInCellFor,
+  mockDraftAvailablePlayerIds,
+  mockDraftPositionCaps,
+  rosterPositionCountsFor,
+} from './selectors';
 import {
   clearMockDraft,
   loadMockDraftFromStorage,
@@ -135,7 +145,23 @@ export function advance(openPicker = true): void {
       if (openPicker) openMockDraftPicker(roundLabelFor(slot), makeUserPick);
       return;
     }
-    const playerId = bestAvailablePlayer(mockDraftAvailablePlayerIds(), state.adpMap || {});
+    const available = mockDraftAvailablePlayerIds();
+    // Position-cap heuristic: AI teams stop drafting a position once they
+    // already have enough to fill its starting slots (FLEX-eligible slots
+    // included) plus a small bench buffer — otherwise plain best-player-
+    // available spirals into hoarding a 6th QB or 3rd TE the moment those
+    // positions run hot on ADP. Never applied to the user's own pick, which
+    // always sees the full, unfiltered list via the picker. Falls back to
+    // the unfiltered pool if every remaining player is capped out, since a
+    // pick has to happen either way.
+    const playersMap = state.playersMap || {};
+    const capped = filterByPositionCaps(
+      available,
+      (pid) => playersMap[pid]?.pos,
+      rosterPositionCountsFor(slot.rosterId),
+      mockDraftPositionCaps(),
+    );
+    const playerId = bestAvailablePlayer(capped.length ? capped : available, state.adpMap || {});
     if (playerId === null) {
       // Shouldn't happen in practice — hundreds of players vs. at most a few
       // hundred picks — but never crash on it; just stop where we are.
