@@ -13,9 +13,10 @@ import type {
   SleeperUser,
 } from './types';
 import { canReadShared } from './api/gist';
-import { hasKnownDraftOrder, slotForRoster } from './domain/draftOrder';
+import { orderRosterIdsBySlot } from './domain/draftOrder';
 import { lockedTeamsFor } from './domain/keeperShare';
 import { initialRulesForLeague } from './domain/leagueSettings';
+import type { MockDraftSlot } from './domain/mockDraft';
 import { DEFAULT_LEAGUE_RULES } from './types';
 import { displayNameFor } from './util';
 
@@ -44,6 +45,10 @@ export const LS_ADP_CACHE_PREFIX = 'kdb_adp_cache_v3_';
 // would silently show no outlook until the 20h cache aged out.
 export const LS_OUTLOOK_CACHE_PREFIX = 'kdb_outlook_cache_v2_';
 export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
+// Versioned like the other caches above — bump this if MockDraftState's shape
+// ever changes, so a stale cached shape doesn't parse "successfully" and then
+// break at first use (state.mockDraft.picks etc. would just be undefined).
+export const LS_MOCK_DRAFT_PREFIX = 'kdb_mock_draft_v1_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 // ADP moves daily and is the number people second-guess the app over ("he is
 // not the 4th pick"), so it gets a much shorter leash than the player
@@ -54,6 +59,30 @@ export const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE:
 
 /** How the shared-keeper sync last went, for the header badge. */
 export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error';
+
+/**
+ * A local-only practice simulation on the Draft Board — never touches the
+ * shared Gist. `slots`/`slotOrderRosterIds`/`teamCount`/`rounds`/
+ * `claimedRosterId` are all snapshotted once at Start (src/mockDraft.ts's
+ * startMockDraft) so a later Refresh All, a manager dragging a board column,
+ * the real draft order finally being set by the commissioner, or the
+ * signed-in manager re-claiming a *different* team via the Rosters tab mid-
+ * simulation can't retroactively perturb an in-progress simulation — turn
+ * matching uses `claimedRosterId`, never a live `myRosterId()` read, so a
+ * re-claim can't cause the AI to silently draft what should have been the
+ * manager's own pick. `picks` is parallel to `slots`; `null` = not yet
+ * picked, so "find the next open pick" is a single findIndex.
+ */
+export interface MockDraftState {
+  active: boolean;
+  teamCount: number;
+  rounds: number;
+  slotOrderRosterIds: number[];
+  claimedRosterId: number;
+  slots: MockDraftSlot[];
+  picks: (string | null)[];
+  startedAt: string;
+}
 
 interface AppState {
   leagueId: string | null;
@@ -86,6 +115,7 @@ interface AppState {
   rules: LeagueRules;
   draft: SleeperDraft | null;
   tradedPicks: TradedPicksList | null;
+  mockDraft: MockDraftState | null;
   rostersLoadedAt: Date | null;
   draftLoadedAt: Date | null;
   boardLoadedAt: Date | null;
@@ -118,6 +148,7 @@ export const state: AppState = {
   rules: { ...DEFAULT_LEAGUE_RULES },
   draft: null,
   tradedPicks: null,
+  mockDraft: null,
   rostersLoadedAt: null,
   draftLoadedAt: null,
   boardLoadedAt: null,
@@ -157,6 +188,7 @@ export function resetLeagueScopedState(): void {
   state.boardOrder = null;
   state.draft = null;
   state.tradedPicks = null;
+  state.mockDraft = null;
   state.rostersLoadedAt = null;
   state.draftLoadedAt = null;
   state.boardLoadedAt = null;
@@ -266,16 +298,7 @@ function isBoardOrderCustomized(): boolean {
 // Draft-slot order (1..N) when the commissioner has set it, else the rosters'
 // existing (roster_id-ascending) order — the only thing available pre-order.
 function naturalBoardOrder(currentIds: string[]): string[] {
-  const draft = state.draft;
-  if (!hasKnownDraftOrder(draft)) return currentIds.slice();
-  const slotToRosterId = draft!.slot_to_roster_id as Record<string, number>;
-  const withSlot = currentIds
-    .map((id) => ({ id, slot: slotForRoster(slotToRosterId, Number(id)) }))
-    .filter((x): x is { id: string; slot: number } => x.slot !== null);
-  withSlot.sort((a, b) => a.slot - b.slot);
-  const ordered = withSlot.map((x) => x.id);
-  const withoutSlot = currentIds.filter((id) => !ordered.includes(id));
-  return ordered.concat(withoutSlot);
+  return orderRosterIdsBySlot(state.draft, currentIds);
 }
 
 export function ensureBoardOrder(): void {
@@ -302,6 +325,31 @@ export function ensureBoardOrder(): void {
   const missing = currentIds.filter((id) => !kept.includes(id));
   state.boardOrder = kept.concat(missing);
   saveBoardOrder();
+}
+
+// ---------- mock draft persistence ----------
+// Local-only — deliberately never touches the shared Gist (see MockDraftState
+// doc comment). src/mockDraft.ts owns all reads/writes of state.mockDraft;
+// this is just the localStorage round-trip, following the exact boardOrder
+// pattern above.
+function mockDraftKey(): string {
+  return LS_MOCK_DRAFT_PREFIX + state.leagueId;
+}
+export function saveMockDraft(): void {
+  if (state.mockDraft) localStorage.setItem(mockDraftKey(), JSON.stringify(state.mockDraft));
+  else localStorage.removeItem(mockDraftKey());
+}
+export function loadMockDraftFromStorage(): void {
+  try {
+    const raw = localStorage.getItem(mockDraftKey());
+    state.mockDraft = raw ? (JSON.parse(raw) as MockDraftState) : null;
+  } catch {
+    state.mockDraft = null;
+  }
+}
+export function clearMockDraft(): void {
+  state.mockDraft = null;
+  localStorage.removeItem(mockDraftKey());
 }
 
 // Current roster's owner user_id, for cross-season "same team" keeper matching.

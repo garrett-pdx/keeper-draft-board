@@ -186,6 +186,15 @@
           <div class="sync-readout">
             <div class="last-updated mono">Last updated: <b id="boardUpdated">never</b></div>
           </div>
+          <div class="toolbar-controls">
+            <span class="mock-draft-status mono" id="mockDraftStatus" hidden></span>
+            <button class="btn btn-ghost btn-sm" id="startMockDraftBtn" type="button">
+              Start Mock Draft
+            </button>
+            <button class="btn btn-ghost btn-sm btn-danger" id="resetMockDraftBtn" type="button" hidden>
+              Reset Draft
+            </button>
+          </div>
         </div>
         <div class="draft-note" id="boardNote">
           Drag a column header to reorder teams. Only keeper picks are filled in — everything else

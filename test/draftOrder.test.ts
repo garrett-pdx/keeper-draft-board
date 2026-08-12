@@ -5,6 +5,7 @@ import {
   exactPickNumber,
   exactPickForRoster,
   pickWasAcquiredViaTrade,
+  orderRosterIdsBySlot,
 } from '../src/domain/draftOrder';
 import type { SleeperDraft } from '../src/api/schemas';
 
@@ -170,5 +171,45 @@ describe('pickWasAcquiredViaTrade', () => {
 
   it('is false for a roster not present in slot_to_roster_id', () => {
     expect(pickWasAcquiredViaTrade(COMPLETE_DRAFT, 999, 10)).toBe(false);
+  });
+});
+
+describe('orderRosterIdsBySlot', () => {
+  it('reorders roster ids by real slot ascending when the order is known', () => {
+    // COMPLETE_DRAFT.slot_to_roster_id: slot 1->9, 2->2, 3->4, 4->5, 5->1,
+    // 6->3, 7->10, 8->7, 9->8, 10->6.
+    const rosterIdOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+    expect(orderRosterIdsBySlot(COMPLETE_DRAFT, rosterIdOrder)).toEqual([
+      '9',
+      '2',
+      '4',
+      '5',
+      '1',
+      '3',
+      '10',
+      '7',
+      '8',
+      '6',
+    ]);
+  });
+
+  it('appends a roster id missing from slot_to_roster_id at the end, in its original relative order', () => {
+    const result = orderRosterIdsBySlot(COMPLETE_DRAFT, ['999', '9', '2']);
+    expect(result).toEqual(['9', '2', '999']);
+  });
+
+  it('returns the given order unchanged against the pre-draft placeholder', () => {
+    const order = ['3', '1', '2'];
+    expect(orderRosterIdsBySlot(PRE_DRAFT, order)).toEqual(order);
+  });
+
+  it('returns the given order unchanged when draft is null/undefined', () => {
+    const order = ['3', '1', '2'];
+    expect(orderRosterIdsBySlot(null, order)).toEqual(order);
+    expect(orderRosterIdsBySlot(undefined, order)).toEqual(order);
+  });
+
+  it('returns an empty array for an empty input', () => {
+    expect(orderRosterIdsBySlot(COMPLETE_DRAFT, [])).toEqual([]);
   });
 });

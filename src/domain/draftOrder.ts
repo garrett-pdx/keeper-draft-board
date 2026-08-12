@@ -52,6 +52,35 @@ export function exactPickForRoster(
 }
 
 /**
+ * Orders roster ids by real draft slot (1..N) when the commissioner has set
+ * one, else returns `rosterIds` unchanged — the only thing available
+ * pre-order. Any id missing from `slot_to_roster_id` is appended at the end
+ * in its original relative order rather than dropped.
+ *
+ * Used to seed both the board's default column order (state.ts's
+ * naturalBoardOrder, a thin wrapper around this) and a mock draft's frozen
+ * pick sequence (src/mockDraft.ts) — the latter calls this once at Start and
+ * freezes the result, deliberately never reading state.boardOrder (the
+ * board's user-draggable *display* order, which can diverge from real slot
+ * order the moment a manager drags a column, and would otherwise let an
+ * ordinary cosmetic drag reshuffle an in-progress mock draft).
+ */
+export function orderRosterIdsBySlot(
+  draft: SleeperDraft | null | undefined,
+  rosterIds: string[],
+): string[] {
+  if (!hasKnownDraftOrder(draft)) return rosterIds.slice();
+  const slotToRosterId = draft!.slot_to_roster_id as Record<string, number>;
+  const withSlot = rosterIds
+    .map((id) => ({ id, slot: slotForRoster(slotToRosterId, Number(id)) }))
+    .filter((x): x is { id: string; slot: number } => x.slot !== null);
+  withSlot.sort((a, b) => a.slot - b.slot);
+  const ordered = withSlot.map((x) => x.id);
+  const withoutSlot = rosterIds.filter((id) => !ordered.includes(id));
+  return ordered.concat(withoutSlot);
+}
+
+/**
  * True if `draftSlot` (the slot a specific pick was actually made from)
  * differs from `rosterId`'s own natural snake-draft slot — i.e. that pick was
  * exercised using one acquired via trade, not the roster's own original slot.

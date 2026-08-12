@@ -78,6 +78,12 @@ src/
                       #   commitSharedChange (retry/verify), and the background
                       #   poll (start/stopSharedKeeperPolling)
                       #   (see "Shared keeper picks")
+  mockDraft.ts        # stateful glue for the Draft Board's mock draft —
+                      #   startMockDraft, advance, makeUserPick, resetMockDraft,
+                      #   resumeMockDraft (see "Mock draft"). Local-only; never
+                      #   touches the shared Gist. The only module that imports
+                      #   both domain/mockDraft.ts and ui/board.ts/
+                      #   ui/mockDraftPicker.ts.
   util.ts             # formatTime, displayNameFor, formatBirthDate, starSignFor
   types.ts            # shared data shapes + (loosely-typed) Sleeper payloads
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
@@ -98,9 +104,15 @@ src/
                       #   collisions AND traded-away/acquired picks, cascading toward
                       #   round 1, cannotBeKept on exhaustion)
     draftOrder.ts     #   hasKnownDraftOrder, slotForRoster, exactPickNumber,
-                      #   exactPickForRoster — snake-draft exact pick number math
+                      #   exactPickForRoster — snake-draft exact pick number math;
+                      #   orderRosterIdsBySlot — real slot order else given order,
+                      #   used both to seed the board's default column order and
+                      #   (frozen once, at Start) a mock draft's pick sequence
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
                       #   actually holds per round, adjusted by trades
+    mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
+                      #   round×roster-cell pick sequence), bestAvailablePlayer
+                      #   (the rudimentary BPA-by-ADP "AI") — see "Mock draft"
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
                       #   matching against Sleeper's player dict, entries tried in
                       #   priority order so a player missing from one format can still
@@ -137,7 +149,13 @@ src/
                       #   drawer (built lazily, appended to document.body), dismissible by
                       #   pointer-drag swipe-down, scrim click, or Escape
     draft.ts          # loadDraft + renderDraft
-    board.ts          # loadBoard + renderBoard (draggable grid)
+    board.ts          # loadBoard + renderBoard (draggable grid; also renders
+                      #   mock-drafted cells, the pending-turn highlight, and
+                      #   the Start/Reset controls — see "Mock draft")
+    mockDraftPicker.ts # openMockDraftPicker/closeMockDraftPicker — singleton
+                      #   bottom-sheet player picker for the mock draft, built
+                      #   the same way as outlookDrawer.ts but actionable
+                      #   (tap-to-draft rows) rather than read-only
     settings.ts       # renderSettings + wireSettingsEvents — league rules only
 test/                 # Vitest specs mirroring src/domain/
 ```
@@ -169,7 +187,8 @@ import no state.
   keeper), which is exactly why it lives here and not in Settings. The header identity
   badge re-opens it to switch teams.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
-  position filter. Keepers are greyed out and tagged with the keeping team.
+  position filter + a "Hide kept players" toggle. Keepers are greyed out and tagged with
+  the keeping team by default; the toggle removes them from the list entirely.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
   to reorder, persisted; headers are keyboard-focusable and refocus themselves after a
   move since re-render rebuilds the table). Only keeper picks are filled in, placed at
@@ -179,7 +198,7 @@ import no state.
   warnings per cell; unkeepable players are excluded from the grid and listed in an
   alert below it. In `noKeeperCost` ("taxi squad") leagues, no keeper ever occupies a
   cell — every round stays fully open, and each team's kept players are listed instead
-  in a summary panel above the grid.
+  in a summary panel above the grid. Also hosts the **mock draft** — see below.
 - **Settings** (`#panel-settings`): configurable league rules (max keepers, inflation
   rounds, and a "no keeper cost / taxi squad" toggle) with a "Reset to Mudd League
   defaults" shortcut. Auto-saves per league on change; re-renders every currently-loaded
@@ -187,6 +206,58 @@ import no state.
   they differ from what's set here (see "League settings import"). Deliberately nothing
   about keeper sharing lives here — see "Shared keeper picks" for why there's no in-app
   gist/token field and where the team claim went.
+
+## Mock draft
+
+A local-only practice simulation layered onto the Draft Board (`src/mockDraft.ts`,
+`src/domain/mockDraft.ts`, `src/ui/mockDraftPicker.ts`) — never touches the shared Gist,
+never expires, no countdown timer anywhere. Click **Start Mock Draft**: every non-keeper
+cell gets auto-filled in real snake order by a rudimentary "best player available" AI
+(ascending ADP/market rank, nothing else — no positional need, no roster construction
+logic, by explicit design) until it reaches the signed-in manager's own next pick, where it
+pauses and opens a filterable player-picker drawer (search + position filter, identical
+semantics to the Draft List tab). Picking resumes auto-play through the next AI streak,
+repeating until the draft completes. **Reset Draft** (behind a `window.confirm`, the one
+deliberate exception to this app's normal no-confirm convention, since it can discard 100+
+picks with no undo) clears it back to keepers-only.
+
+- **Simulates at round×roster CELL granularity, not a literal 1..N pick list.** Resolving
+  exactly which of a roster's multiple traded-in picks in one round interleaves at which
+  overall pick number is a problem this codebase has never needed to solve — the board
+  only ever renders round×roster cells, never a flat pick list (see `consumedPick` in
+  `domain/keeperCost.ts`, which only disambiguates one keeper's pick, not a full ordering).
+  So a cell needs `pickCapacity(round, rosterId) - keepersInCell(round, rosterId)` new
+  picks — 0 (skip), 1 (normal), or 2+ (a roster holding an extra pick that round via trade
+  gets consecutive picks, not interleaved by natural slot position with neighbors). The
+  whole sequence is built once, by `buildMockDraftSlots`, at Start.
+- **The pick order is frozen at Start, and deliberately never reads `state.boardOrder`.**
+  `boardOrder` is the board's user-draggable *display* order and can diverge from the real
+  draft slot the moment a manager drags a column — reading it live would let an ordinary
+  cosmetic drag reshuffle an in-progress simulation out from under the manager. Instead
+  `orderRosterIdsBySlot` (`domain/draftOrder.ts` — real slot order when known, else the
+  given roster order) is called once and the *result* is snapshotted into
+  `state.mockDraft.slotOrderRosterIds`. A later Refresh All, a manager reordering columns,
+  or the commissioner finally setting the real draft order mid-simulation can't
+  retroactively perturb picks already made.
+- **`advance()` runs synchronously to completion of the current AI streak in one JS tick**
+  (at most team-count × rounds iterations — trivial). This is exactly why "no time limit"
+  needed no `setTimeout`/animation machinery: a call either lands on the manager's turn or
+  finishes before yielding control back to the browser, so there's no mid-AI-run moment to
+  pause or resume around.
+- **The picker only auto-opens on a live AI→user transition within the session**
+  (`advance(openPicker)`), never on a cold page reload — `resumeMockDraft()` (called from
+  `loadBoard()` on every tab entry) re-derives "paused at your turn" purely from the
+  persisted `picks` array and calls `advance(false)`, so refreshing the page to glance at
+  the board doesn't shove a modal in the manager's face. The board instead renders the
+  highlighted pending cell with a tappable "Make your pick" button.
+- **`noKeeperCost` (taxi squad) leagues are not a special case — they're simpler.** No
+  keeper ever occupies a round-cell in that mode (`taxiSquad: true` items are excluded from
+  `keepersInCellFor`), so every round is fully open, exactly mirroring how kept players
+  don't consume a real pick in that mode either.
+- **Never repaired, only detected:** if a commissioner adds/removes a roster after a mock
+  draft started, `mockDraftRosterMismatch()` catches the frozen `slotOrderRosterIds` no
+  longer being a subset of `state.rosters` and blocks `advance()`/the picker behind a
+  banner telling the manager to reset — no attempt to guess a repair.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 

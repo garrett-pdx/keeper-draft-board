@@ -7,6 +7,7 @@ import { loadBoard } from './ui/board';
 import { loadDraft, renderDraft } from './ui/draft';
 import { loadRosters, rerenderAfterKeeperChange } from './ui/rosters';
 import { openClaimPicker } from './ui/keeperControls';
+import { wireMockDraftEvents } from './mockDraft';
 import { wireSettingsEvents } from './ui/settings';
 import { switchTab, type TabName } from './ui/tabs';
 import {
@@ -100,6 +101,7 @@ function init(): void {
   });
 
   wireSettingsEvents();
+  wireMockDraftEvents();
 
   const savedId = localStorage.getItem(LS_LEAGUE_ID);
   const savedSeason = localStorage.getItem(LS_SEASON);

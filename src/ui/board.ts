@@ -7,10 +7,18 @@ import {
 } from '../data';
 import { exactPickForRoster } from '../domain/draftOrder';
 import { pickCapacity } from '../domain/tradedPicks';
+import {
+  currentSlot,
+  isMyTurn,
+  mockDraftRosterMismatch,
+  openPickerForCurrentTurn,
+  resumeMockDraft,
+} from '../mockDraft';
 import { getRosterKeeperCostsFor } from '../selectors';
 import {
   ensureBoardOrder,
   markBoardOrderCustomized,
+  myRosterId,
   saveBoardOrder,
   state,
   teamNameForRoster,
@@ -66,6 +74,7 @@ export async function loadBoard(force?: boolean): Promise<void> {
     updateAdpSourceBadge();
     updatePickSourceBadge();
     ensureBoardOrder();
+    resumeMockDraft();
     renderBoard();
     state.boardLoadedAt = new Date();
     $('#boardUpdated')!.textContent = formatTime(state.boardLoadedAt);
@@ -82,7 +91,40 @@ export async function loadBoard(force?: boolean): Promise<void> {
   }
 }
 
+/** Start/Reset visibility + the status readout, kept in sync on every render. */
+function renderMockDraftControls(): void {
+  const startBtn = $('#startMockDraftBtn') as HTMLButtonElement | null;
+  const resetBtn = $('#resetMockDraftBtn') as HTMLButtonElement | null;
+  const statusEl = $('#mockDraftStatus');
+  if (!startBtn || !resetBtn || !statusEl) return;
+
+  const md = state.mockDraft;
+  if (!md) {
+    startBtn.hidden = false;
+    startBtn.disabled = myRosterId() === null;
+    startBtn.title = startBtn.disabled ? 'Claim your team on the Rosters tab first' : '';
+    resetBtn.hidden = true;
+    statusEl.hidden = true;
+    return;
+  }
+
+  startBtn.hidden = true;
+  resetBtn.hidden = false;
+  statusEl.hidden = false;
+  if (mockDraftRosterMismatch()) {
+    statusEl.textContent = 'Mock draft: your league’s rosters changed — reset to continue.';
+  } else if (!md.active) {
+    statusEl.textContent = 'Mock draft complete.';
+  } else {
+    const slot = currentSlot();
+    statusEl.textContent = slot
+      ? `Mock draft: Round ${slot.round} — ${isMyTurn() ? 'your pick' : 'on the clock'}`
+      : 'Mock draft in progress…';
+  }
+}
+
 export function renderBoard(): void {
+  renderMockDraftControls();
   const container = $('#boardContent')!;
   container.innerHTML = '';
   if (!state.rosters.length || !state.boardOrder) {
@@ -104,6 +146,35 @@ export function renderBoard(): void {
   const rounds = state.boardRounds || 15;
   const teamCount = state.rosters.length || 10;
   const trades = state.tradedPicks || [];
+
+  // Flatten the mock draft's frozen slot/pick arrays into the same
+  // round×roster cell shape `placements` already uses below, so the cell
+  // loop can treat them uniformly. A mismatched-roster mock draft is left
+  // out entirely — the banner below tells the manager to reset instead of
+  // rendering picks against roster ids that may no longer exist.
+  const mockMismatch = mockDraftRosterMismatch();
+  const mockPlacements: Record<string, Record<number, string[]>> = {};
+  if (state.mockDraft && !mockMismatch) {
+    state.mockDraft.slots.forEach((slot, i) => {
+      const pid = state.mockDraft!.picks[i];
+      if (!pid) return;
+      const rid = String(slot.rosterId);
+      mockPlacements[rid] = mockPlacements[rid] || {};
+      (mockPlacements[rid][slot.round] = mockPlacements[rid][slot.round] || []).push(pid);
+    });
+  }
+  const pendingSlot = state.mockDraft?.active && !mockMismatch ? currentSlot() : null;
+
+  if (mockMismatch) {
+    container.appendChild(
+      el(
+        'div',
+        { class: 'error-banner board-mock-mismatch' },
+        'Your league’s rosters changed since this mock draft started, so it can’t continue safely. ',
+        'Reset Draft to start a fresh one.',
+      ),
+    );
+  }
 
   // pre-compute each roster's keeper placements: round -> { players: [...] }.
   // Keepers that cannotBeKept occupy no round — collected separately for the
@@ -199,11 +270,16 @@ export function renderBoard(): void {
       if (!roster) continue;
       const ridNum = roster.roster_id;
       const cellData = placements[rid] && placements[rid][round];
+      const mockPicks = mockPlacements[rid] && mockPlacements[rid][round];
+      const hasKeeperContent = !!(cellData && cellData.players && cellData.players.length);
+      const hasMockContent = !!(mockPicks && mockPicks.length);
+      const isPending =
+        !!pendingSlot && pendingSlot.round === round && pendingSlot.rosterId === ridNum;
       const capacity = pickCapacity(trades, round, ridNum);
       const outgoing = trades.find((t) => t.round === round && t.rosterId === ridNum);
       const incoming = trades.filter((t) => t.round === round && t.ownerId === ridNum);
       const cellChildren: (HTMLElement | null)[] = [];
-      if (cellData && cellData.players && cellData.players.length) {
+      if (hasKeeperContent) {
         const parts = cellData.players.map((c) => {
           const p = playersMap[c.playerId];
           const name = p ? `${p.first} ${p.last}`.trim() : c.playerId;
@@ -246,19 +322,50 @@ export function renderBoard(): void {
         // it means this roster holds more than one pick that round (via
         // trade), not a collision. No cell-level warning needed here.
         cellChildren.push(el('div', null, parts));
-      } else if (capacity === 0 && outgoing) {
-        cellChildren.push(
-          el(
-            'span',
-            { class: 'board-cell-traded', title: 'This round’s pick was traded away' },
-            `→ ${teamNameForRoster(outgoing.ownerId)}`,
-          ),
-        );
-      } else {
-        const exactPick = exactPickForRoster(state.draft, ridNum, round, teamCount);
-        cellChildren.push(
-          el('span', { class: 'board-cell-empty' }, exactPick !== null ? `Pick ${exactPick}` : '—'),
-        );
+      }
+      if (hasMockContent) {
+        // Additive, not exclusive with the keeper branch above: a cell can
+        // legitimately hold both when a roster's trade-acquired capacity that
+        // round exceeds its keeper count (buildMockDraftSlots fills the
+        // remaining capacity with mock picks) — an else-if here would
+        // silently drop the mock pick from the cell while still correctly
+        // excluding that player from the rest of the simulation, which is
+        // worse than showing it (confirmed live: capacity 2, 1 keeper).
+        // Mock picks are visually distinct from real keepers (no cost/value
+        // math applies, it's just "who got taken here in the sim").
+        const parts = mockPicks.map((pid) => {
+          const p = playersMap[pid];
+          const name = p ? `${p.first} ${p.last}`.trim() : pid;
+          const pos = p ? p.pos : '';
+          return el(
+            'div',
+            { class: 'board-cell-player board-cell-mock' },
+            el('div', { class: 'bp-name' }, name),
+            el(
+              'div',
+              { class: 'bp-meta' },
+              pos ? el('span', { class: 'pos-tag pos-' + pos }, pos) : null,
+              el('span', { class: 'mock-tag' }, 'Mock'),
+            ),
+          );
+        });
+        cellChildren.push(el('div', null, parts));
+      }
+      if (!hasKeeperContent && !hasMockContent) {
+        if (capacity === 0 && outgoing) {
+          cellChildren.push(
+            el(
+              'span',
+              { class: 'board-cell-traded', title: 'This round’s pick was traded away' },
+              `→ ${teamNameForRoster(outgoing.ownerId)}`,
+            ),
+          );
+        } else {
+          const exactPick = exactPickForRoster(state.draft, ridNum, round, teamCount);
+          cellChildren.push(
+            el('span', { class: 'board-cell-empty' }, exactPick !== null ? `Pick ${exactPick}` : '—'),
+          );
+        }
       }
       if (incoming.length) {
         const fromNames = incoming.map((t) => teamNameForRoster(t.rosterId)).join(', ');
@@ -270,10 +377,27 @@ export function renderBoard(): void {
           ),
         );
       }
+      if (isPending) {
+        cellChildren.push(
+          el(
+            'button',
+            {
+              class: 'board-cell-pick-btn',
+              type: 'button',
+              onclick: () => openPickerForCurrentTurn(),
+            },
+            'Make your pick',
+          ),
+        );
+      }
       const cellClasses =
         'board-cell' +
-        (cellData ? ' has-player' : '') +
-        (capacity === 0 && outgoing ? ' is-traded-away' : '');
+        (hasKeeperContent ? ' has-player' : '') +
+        (hasMockContent ? ' has-mock-player' : '') +
+        (isPending ? ' board-cell-pending' : '') +
+        (!hasKeeperContent && !hasMockContent && capacity === 0 && outgoing
+          ? ' is-traded-away'
+          : '');
       tr.appendChild(el('td', { class: cellClasses }, ...cellChildren));
     }
     tbody.appendChild(tr);

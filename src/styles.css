@@ -1302,6 +1302,126 @@ table.board-table {
   cursor: grab;
 }
 
+/* ---------- Mock draft ---------- */
+.mock-draft-status {
+  color: var(--slate);
+  font-size: 12.5px;
+}
+.board-cell-mock .bp-name {
+  color: var(--wr);
+}
+.mock-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  border: 1px solid rgba(78, 161, 255, 0.35);
+  color: var(--wr);
+  white-space: nowrap;
+}
+.board-cell.has-mock-player {
+  background: rgba(78, 161, 255, 0.05);
+}
+.board-cell.board-cell-pending {
+  background: rgba(245, 165, 36, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(245, 165, 36, 0.4);
+}
+.board-cell-pick-btn {
+  appearance: none;
+  border: 1px solid rgba(245, 165, 36, 0.45);
+  background: rgba(245, 165, 36, 0.12);
+  color: var(--flag);
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.board-cell-pick-btn:hover {
+  background: rgba(245, 165, 36, 0.2);
+}
+.board-mock-mismatch {
+  margin-bottom: 14px;
+}
+
+/* ---------- Mock draft player picker (drawer shell reused from .outlook-drawer) ---------- */
+.mock-picker-drawer {
+  max-height: 80vh;
+}
+.mock-picker-filters {
+  display: flex;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mock-picker-search {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  color: var(--chalk);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+.mock-picker-pos-filter {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  color: var(--chalk);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+.mock-picker-list {
+  overflow-y: auto;
+  flex: 1;
+}
+.mock-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.mock-picker-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.mock-picker-row:focus-visible {
+  outline: 2px solid var(--turf-bright);
+  outline-offset: -2px;
+}
+.mock-picker-adp {
+  font-size: 12px;
+  color: var(--slate);
+  width: 40px;
+  flex-shrink: 0;
+}
+.mock-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+.mock-picker-name {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.mock-picker-sub {
+  font-size: 11px;
+  color: var(--slate);
+}
+.mock-picker-empty {
+  padding: 24px 18px;
+  text-align: center;
+  color: var(--slate);
+  font-size: 13.5px;
+}
+
 /* ---------- Settings panel ---------- */
 .settings-card {
   background: var(--bg-card);

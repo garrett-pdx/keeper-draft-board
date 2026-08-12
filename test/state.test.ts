@@ -6,6 +6,11 @@ import {
   ensureBoardOrder,
   markBoardOrderCustomized,
   saveBoardOrder,
+  saveMockDraft,
+  loadMockDraftFromStorage,
+  clearMockDraft,
+  LS_MOCK_DRAFT_PREFIX,
+  type MockDraftState,
 } from '../src/state';
 import { DEFAULT_LEAGUE_RULES } from '../src/types';
 import type { SleeperRoster } from '../src/types';
@@ -128,5 +133,67 @@ describe('ensureBoardOrder', () => {
     state.rosters = [roster(1), roster(2), roster(4)]; // roster 3 gone, roster 4 new
     ensureBoardOrder();
     expect(state.boardOrder).toEqual(['2', '1', '4']);
+  });
+});
+
+describe('mock draft persistence', () => {
+  beforeEach(() => {
+    state.leagueId = 'mock-draft-league';
+    state.mockDraft = null;
+    localStorage.removeItem(LS_MOCK_DRAFT_PREFIX + state.leagueId);
+  });
+
+  function sample(): MockDraftState {
+    return {
+      active: true,
+      teamCount: 3,
+      rounds: 2,
+      slotOrderRosterIds: [1, 2, 3],
+      claimedRosterId: 1,
+      slots: [
+        { round: 1, rosterId: 1 },
+        { round: 1, rosterId: 2 },
+        { round: 1, rosterId: 3 },
+      ],
+      picks: ['p1', null, null],
+      startedAt: '2026-08-01T00:00:00.000Z',
+    };
+  }
+
+  it('round-trips through localStorage', () => {
+    state.mockDraft = sample();
+    saveMockDraft();
+    state.mockDraft = null;
+    loadMockDraftFromStorage();
+    expect(state.mockDraft).toEqual(sample());
+  });
+
+  it('loads null when nothing has been saved for this league', () => {
+    loadMockDraftFromStorage();
+    expect(state.mockDraft).toBeNull();
+  });
+
+  it('loads null and does not throw on corrupt stored JSON', () => {
+    localStorage.setItem(LS_MOCK_DRAFT_PREFIX + state.leagueId, 'not json');
+    loadMockDraftFromStorage();
+    expect(state.mockDraft).toBeNull();
+  });
+
+  it('clearMockDraft nulls state and removes the stored entry', () => {
+    state.mockDraft = sample();
+    saveMockDraft();
+    clearMockDraft();
+    expect(state.mockDraft).toBeNull();
+    loadMockDraftFromStorage();
+    expect(state.mockDraft).toBeNull();
+  });
+
+  it('saveMockDraft with a null state removes any stored entry', () => {
+    state.mockDraft = sample();
+    saveMockDraft();
+    state.mockDraft = null;
+    saveMockDraft();
+    loadMockDraftFromStorage();
+    expect(state.mockDraft).toBeNull();
   });
 });
