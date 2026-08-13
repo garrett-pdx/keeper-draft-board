@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "fetch-adp": "node scripts/fetch-adp.mjs",
+    "fetch-mfl-adp": "node scripts/fetch-mfl-adp.mjs",
     "fetch-outlooks": "node scripts/fetch-outlooks.mjs",
     "fetch-values": "node scripts/fetch-fantasycalc.mjs"
   },

@@ -16,14 +16,17 @@ export type PlayersMap = Record<string, SlimPlayer>;
 /** player_id -> ADP pick number (or a rank proxy when ADP is unavailable). */
 export type AdpMap = Record<string, number>;
 // Where the market price shown in the UI actually came from. 'adp' is real
-// average draft position (Fantasy Football Calculator), 'value' is a trade-value
-// ranking used as an implied pick (FantasyCalc), 'rank' is the last-resort
-// Sleeper search_rank proxy. The UI must distinguish these — presenting a value
-// rank as "ADP" would misdescribe the data.
-export type AdpSource = 'adp' | 'value' | 'rank' | null;
+// average draft position from Fantasy Football Calculator's mock drafts,
+// 'adp-real' is average draft position from real (non-mock) redraft leagues on
+// MyFantasyLeague, 'value' is a trade-value ranking used as an implied pick
+// (FantasyCalc), 'rank' is the last-resort Sleeper search_rank proxy. The UI
+// must distinguish these — presenting a value rank as "ADP" would misdescribe
+// the data, and so would presenting mock-draft ADP as real-league ADP.
+// 'blend' is the mean of whichever of the three priced a given player.
+export type AdpSource = 'adp' | 'adp-real' | 'value' | 'blend' | 'rank' | null;
 
 /** Which market-price source a league prefers. */
-export type MarketSource = 'value' | 'adp';
+export type MarketSource = 'value' | 'adp' | 'adp-real' | 'blend';
 
 /**
  * player_id -> the earliest/latest pick this player was actually taken across

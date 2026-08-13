@@ -105,6 +105,13 @@ interface AppState {
   adpSource: AdpSource;
   /** Which snapshot entry the market data came from, e.g. "1 QB · 10-team · half PPR". */
   marketEntryLabel: string | null;
+  /**
+   * player_id -> how many sources priced him, set only when adpSource is
+   * 'blend'. Null otherwise. Coverage differs between sources (MFL prices no
+   * quarterbacks at all), so a blended number can rest on one source or three,
+   * and the UI shouldn't present those as equally settled.
+   */
+  marketSourceCount: Record<string, number> | null;
   outlookMap: OutlookMap;
   keepers: Record<string, string[]>;
   /** Last-known shared doc, kept so an edit can be cancelled back to it. */
@@ -141,6 +148,7 @@ export const state: AppState = {
   adpRangeMap: {},
   adpSource: null,
   marketEntryLabel: null,
+  marketSourceCount: null,
   outlookMap: {},
   keepers: {},
   sharedKeepers: null,
@@ -183,6 +191,7 @@ export function resetLeagueScopedState(): void {
   state.adpRangeMap = {};
   state.adpSource = null;
   state.marketEntryLabel = null;
+  state.marketSourceCount = null;
   state.keepers = {};
   state.sharedKeepers = null;
   state.keeperLocks = {};

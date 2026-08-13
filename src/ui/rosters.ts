@@ -130,8 +130,12 @@ export function renderRostersNote(): void {
     state.adpSource === 'rank'
       ? 'No ADP snapshot was available for this format, so value uses Sleeper’s overall ranking as a proxy. '
       : state.adpSource === 'adp'
-        ? 'Market value comes from real ADP data from Fantasy Football Calculator. '
-        : '';
+        ? 'Market value comes from ADP data from Fantasy Football Calculator’s mock drafts. '
+        : state.adpSource === 'adp-real'
+          ? 'Market value comes from ADP in real, non-mock redraft leagues on MyFantasyLeague. Quarterbacks aren’t priced by this source, so they show "no ADP". '
+          : state.adpSource === 'blend'
+            ? 'Market value is the average of all three sources, per player, over whichever of them price him. '
+            : '';
   const valueExplainer = state.rules.noKeeperCost
     ? `This league keeps players for free (taxi squad) — no round or pick is ever spent, so value here is just each player’s market strength. ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn’t being drafted this year.`
     : `Value = surplus between a player’s market round and their keeper cost round, with early-round surplus weighted more heavily (exponential curve). ${adpLabel}The two best-value keepers on each roster are outlined. "no ADP" means the player isn’t being drafted this year.`;
@@ -545,14 +549,26 @@ function renderTeamCard(roster: SleeperRoster): HTMLElement {
     );
 
     const cannotBeKept = active && costByPlayer[pid]?.cannotBeKept;
-    const adpIsReal = state.adpSource === 'adp';
+    // True wherever the number means a pick, so it reads as "Pick 3.2" — both
+    // real-ADP sources, and the blend, whose inputs are all implied picks. A
+    // bare value rank or the Sleeper rank proxy is not a pick and must not be
+    // rendered as one. Only the two real-ADP sources carry a high/low range;
+    // the blend's is empty, so the range lines fall back to "—" on their own.
+    const adpIsReal =
+      state.adpSource === 'adp' || state.adpSource === 'adp-real' || state.adpSource === 'blend';
     const rawAdp = state.adpMap ? state.adpMap[pid] : undefined;
     const range = state.adpRangeMap[pid];
 
+    // How many sources went into a blended number, so a two-source average
+    // isn't read as the same kind of consensus as a three-source one. Only ever
+    // set while blending; every other source is unanimous with itself.
+    const blendedFrom = state.marketSourceCount?.[pid];
+    const blendSuffix =
+      state.adpSource === 'blend' && blendedFrom ? ` (${blendedFrom} of 3 sources)` : '';
     const adpValueText = !sv.hasAdp
       ? 'No ADP — not being drafted this year'
       : adpIsReal && typeof rawAdp === 'number'
-        ? `Pick ${rawAdp.toFixed(1)}`
+        ? `Pick ${rawAdp.toFixed(1)}${blendSuffix}`
         : typeof rawAdp === 'number'
           ? `Sleeper rank ${rawAdp} (no live ADP)`
           : '—';

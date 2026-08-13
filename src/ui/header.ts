@@ -24,7 +24,23 @@ export function updateAdpSourceBadge(): void {
     badge.className = 'adp-badge adp-badge-live';
     badge.textContent = 'ADP · Fantasy Football Calculator';
     badge.title =
-      'Real average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed daily.';
+      'Average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed daily. Drawn from mock drafts run on their site.';
+  } else if (state.adpSource === 'blend') {
+    // Not labelled "ADP" for the same reason the value rank isn't: two of its
+    // three inputs are average draft position and one is a value ranking, so
+    // the result is a consensus estimate rather than a measurement.
+    badge.className = 'adp-badge adp-badge-live';
+    badge.textContent = 'Blend · 3 sources';
+    badge.title =
+      'The average of FantasyCalc’s value rank, Fantasy Football Calculator’s mock-draft ADP and MyFantasyLeague’s real-league ADP, taken per player over whichever of them price him. Smooths any one source’s bad week; not a measurement of any single market.';
+  } else if (state.adpSource === 'adp-real') {
+    // Named separately from 'adp' on purpose: both are average draft position,
+    // but one is mock drafts and the other is leagues people paid to host, and
+    // which one you're looking at changes how much to trust it.
+    badge.className = 'adp-badge adp-badge-live';
+    badge.textContent = 'ADP · MyFantasyLeague (real drafts)';
+    badge.title =
+      'Average draft position from real, non-mock redraft leagues hosted on MyFantasyLeague (myfantasyleague.com), refreshed daily. Smaller sample than the mock-draft data, and quarterbacks are not priced — that pool blends 1QB and superflex leagues.';
   } else {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'ADP · rank proxy';

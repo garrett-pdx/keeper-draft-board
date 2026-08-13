@@ -24,12 +24,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run fetch-adp
+      # One request a day against an API whose own terms invite this use. Marked
+      # continue-on-error so an MFL hiccup can't take the other three snapshots
+      # down with it — the app already falls back to another real source when
+      # one is missing, and a stale MFL snapshot is better than no refresh at all.
+      - run: npm run fetch-mfl-adp
+        continue-on-error: true
       - run: npm run fetch-outlooks
       - run: npm run fetch-values
       - name: Commit snapshots if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/adp-snapshot.json public/outlook-snapshot.json public/value-snapshot.json
+          git add public/adp-snapshot.json public/adp-real-snapshot.json public/outlook-snapshot.json public/value-snapshot.json
           git diff --cached --quiet && echo "No changes." || git commit -m "Refresh ADP, value and outlook snapshots"
           git push

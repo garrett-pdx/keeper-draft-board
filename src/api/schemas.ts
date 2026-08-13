@@ -149,6 +149,12 @@ export const AdpSnapshotEntrySchema = z.object({
       totalDrafts: z.number().optional(),
       startDate: z.string().nullish(),
       endDate: z.string().nullish(),
+      // Positions the generator deliberately left out of this entry. The MFL
+      // snapshot drops QB because that source blends 1QB and superflex leagues
+      // with no way to ask for one (see scripts/fetch-mfl-adp.mjs). MUST stay
+      // declared: zod strips undeclared keys, so leaving it out here would
+      // silently discard the field rather than fail loudly.
+      excludedPositions: z.array(z.string()).optional(),
     })
     .optional(),
   players: z.array(AdpSnapshotPlayerSchema),

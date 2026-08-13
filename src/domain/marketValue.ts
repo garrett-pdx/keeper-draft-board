@@ -1,21 +1,29 @@
 // Choosing and applying a market-price source.
 //
 // The keeper metric needs one number per player: the pick at which the market
-// prices him. Two sources can supply it, and they are NOT the same quantity:
+// prices him. Three sources can supply it, and they are NOT the same quantity:
 //
-//   'adp'   Fantasy Football Calculator — real average draft position. Answers
-//           "what does it cost to get him", which is precisely the keeper
-//           question. Crowd-sourced from a rolling recent window, so it reacts
-//           fast — and sometimes overreacts (confirmed live: Rashee Rice sat at
-//           ADP ~27 for three weeks, then ran to 12.7 in six days).
-//   'value' FantasyCalc — a trade-value ranking. Answers "how good is he".
-//           Steadier, and matched by exact Sleeper id rather than by name, but
-//           it is a proxy for draft cost, not a measurement of it.
+//   'adp'      Fantasy Football Calculator — average draft position over mock
+//              drafts run on their own site. Answers "what does it cost to get
+//              him", which is precisely the keeper question. Drawn from a
+//              rolling recent window, so it reacts fast — and sometimes
+//              overreacts (confirmed live: Rashee Rice sat at ADP ~27 for three
+//              weeks, then ran to 12.7 in six days).
+//   'adp-real' MyFantasyLeague — the same quantity, over real (non-mock)
+//              redraft leagues someone paid to host. Better-motivated drafters,
+//              far fewer of them, and no quarterbacks at all (that pool blends
+//              1QB and superflex leagues — see scripts/fetch-mfl-adp.mjs).
+//   'value'    FantasyCalc — a trade-value ranking. Answers "how good is he".
+//              Steadiest of the three, and matched by exact Sleeper id rather
+//              than by name, but it is a proxy for draft cost, not a
+//              measurement of it.
 //
-// Neither is strictly better, which is why the source is a setting rather than
-// a decision baked into the code. Whatever is chosen, the UI must say which is
-// in use — labelling a value rank as "ADP" would be a lie about the data.
-import type { PlayersMap } from '../types';
+// None is strictly better, which is why the source is a setting rather than a
+// decision baked into the code — and why 'blend' (see blendMarketMaps) is
+// offered as a fourth option. Whatever is chosen, the UI must say which is in
+// use: labelling a value rank as "ADP" would be a lie about the data, and so
+// would labelling a blend as any one of its inputs.
+import type { AdpMap, PlayersMap } from '../types';
 
 export interface ValueSnapshotEntry {
   numQbs: number;
@@ -102,4 +110,50 @@ export function matchValueToPlayers(
     if (rank > 0 && id in playersMap) out[id] = rank;
   }
   return out;
+}
+
+/**
+ * Averages several market maps into one implied pick per player.
+ *
+ * All three sources are already expressed on the same scale — an implied pick
+ * number — so the mean of them is meaningful. The point is to damp each one's
+ * characteristic failure: FFC's mock data overreacts to a week of news, MFL's
+ * real-league data is thin enough to be noisy, and FantasyCalc's value rank is
+ * steady but is a proxy for draft cost rather than a measurement of it. Errors
+ * that aren't correlated across sources partly cancel.
+ *
+ * A player is averaged over the sources that actually price him, not over all
+ * of them, because coverage genuinely differs — MFL carries no quarterbacks at
+ * all, and each source's tail ends at a different depth. The alternative,
+ * requiring every source to agree a player exists, would shrink the board to
+ * the smallest source's reach and drop real players off it.
+ *
+ * That does mean the blend is smoothed by a different amount for different
+ * players: someone priced by all three moves less than someone priced by one.
+ * Two players of genuinely equal worth can end up ordered by how many sources
+ * happened to cover them. It's a real artifact, it is small in the range that
+ * matters (the top of the board, where coverage is total), and the honest
+ * alternatives are all worse.
+ *
+ * `sourceCount` reports how many maps priced each player, so the UI can say how
+ * well-supported a number is rather than presenting a one-source average as if
+ * it were a consensus.
+ */
+export function blendMarketMaps(maps: AdpMap[]): {
+  blended: AdpMap;
+  sourceCount: Record<string, number>;
+} {
+  const totals: Record<string, number> = {};
+  const counts: Record<string, number> = {};
+  for (const map of maps) {
+    for (const pid in map) {
+      const v = map[pid];
+      if (!(v > 0)) continue;
+      totals[pid] = (totals[pid] ?? 0) + v;
+      counts[pid] = (counts[pid] ?? 0) + 1;
+    }
+  }
+  const blended: AdpMap = {};
+  for (const pid in totals) blended[pid] = totals[pid] / counts[pid];
+  return { blended, sourceCount: counts };
 }

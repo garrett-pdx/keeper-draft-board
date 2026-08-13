@@ -1,5 +1,5 @@
 // Stateful, cache-aware data loaders. Each honors a `force` flag to bypass cache.
-import { fetchAdpSnapshot } from './api/adpSnapshot';
+import { fetchAdpSnapshot, fetchRealAdpSnapshot } from './api/adpSnapshot';
 import { fetchOutlookSnapshot } from './api/outlookSnapshot';
 import { fetchJSON, sleeper } from './api/sleeper';
 import {
@@ -13,12 +13,17 @@ import {
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
 import { pickWasAcquiredViaTrade } from './domain/draftOrder';
-import { describeValueEntry, matchValueToPlayers, pickValueEntry } from './domain/marketValue';
+import {
+  blendMarketMaps,
+  describeValueEntry,
+  matchValueToPlayers,
+  pickValueEntry,
+} from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague } from './domain/leagueSettings';
 import { espnKey, sleeperKey } from './domain/outlook';
 import type { TradedPicksList } from './domain/tradedPicks';
-import type { OutlookMap, PlayersMap, PrevDraftMap } from './types';
+import type { MarketSource, OutlookMap, PlayersMap, PrevDraftMap } from './types';
 
 // ---------- players map (cached, slimmed) ----------
 export async function ensurePlayersLoaded(force?: boolean): Promise<PlayersMap> {
@@ -78,6 +83,7 @@ export async function ensureAdpLoaded(force?: boolean) {
         state.adpRangeMap = cached.range || {};
         state.adpSource = cached.source;
         state.marketEntryLabel = cached.entryLabel ?? null;
+        state.marketSourceCount = cached.sourceCount ?? null;
         return { adpMap: state.adpMap, source: state.adpSource };
       }
     } catch {
@@ -88,53 +94,97 @@ export async function ensureAdpLoaded(force?: boolean) {
   const superflex = isSuperflexLeague(state.league?.roster_positions);
   let adpMap: Record<string, number> | null = null;
   let rangeMap: Record<string, { high: number | null; low: number | null }> = {};
-  let source: 'adp' | 'value' | null = null;
+  let source: MarketSource | null = null;
 
-  // FantasyCalc's value ranking is the default (steadier than crowd ADP), but
-  // either source can be chosen per league. Whichever is asked for is tried
-  // first; the other is a fallback, so a single bad snapshot degrades to the
-  // other real source rather than straight to Sleeper's crude rank proxy.
+  // One source's worth of work, isolated so both paths below can use it: the
+  // single-source path takes the first that succeeds, and the blend needs all
+  // of them. Returns null rather than throwing on a snapshot that loads but
+  // matches too little to trust.
+  const REAL_SOURCES = ['value', 'adp', 'adp-real'] as const;
+  type RealSource = (typeof REAL_SOURCES)[number];
+  const loadOne = async (
+    which: RealSource,
+  ): Promise<{
+    adp: Record<string, number>;
+    range: Record<string, { high: number | null; low: number | null }>;
+    label: string | null;
+  } | null> => {
+    if (which === 'value') {
+      const snapshot = await fetchValueSnapshot();
+      const entry = pickValueEntry(snapshot.entries, {
+        teams: state.rosters.length || 10,
+        recPoints: state.league?.scoring_settings?.rec,
+        superflex,
+      });
+      const players = await ensurePlayersLoaded(false);
+      const matched = matchValueToPlayers(entry, players);
+      if (Object.keys(matched).length < 20) return null;
+      // A value rank has no real draft-position spread.
+      return { adp: matched, range: {}, label: describeValueEntry(entry) };
+    }
+    const snapshot = which === 'adp-real' ? await fetchRealAdpSnapshot() : await fetchAdpSnapshot();
+    const ranked = rankAdpEntries(snapshot.entries, state.league?.scoring_settings?.rec, superflex);
+    if (!ranked.length) return null;
+    const players = await ensurePlayersLoaded(false);
+    const matched = matchAdpToPlayers(ranked, players);
+    if (Object.keys(matched.adp).length < 20) return null;
+    // Neither ADP source has a league-size dimension — FFC returns
+    // byte-identical data for 8/10/12/14, and the MFL snapshot doesn't filter
+    // on FCOUNT — so an entry is described by scoring format. MFL's sample size
+    // is its main caveat, so it's named outright rather than left for someone
+    // to find in the JSON.
+    const drafts = ranked[0].meta?.totalDrafts;
+    const label =
+      which === 'adp-real' && drafts
+        ? `${ranked[0].format} · ${drafts} real drafts`
+        : ranked[0].format;
+    return { adp: matched.adp, range: matched.range, label };
+  };
+
   const preferred = state.rules.marketSource;
-  const attempts: Array<'value' | 'adp'> =
-    preferred === 'adp' ? ['adp', 'value'] : ['value', 'adp'];
 
-  for (const attempt of attempts) {
-    if (adpMap) break;
-    try {
-      if (attempt === 'value') {
-        const snapshot = await fetchValueSnapshot();
-        const entry = pickValueEntry(snapshot.entries, {
-          teams: state.rosters.length || 10,
-          recPoints: state.league?.scoring_settings?.rec,
-          superflex,
-        });
-        const players = await ensurePlayersLoaded(false);
-        const matched = matchValueToPlayers(entry, players);
-        if (Object.keys(matched).length >= 20) {
-          adpMap = matched;
-          rangeMap = {}; // a value rank has no real draft-position spread
-          source = 'value';
-          state.marketEntryLabel = describeValueEntry(entry);
+  if (preferred === 'blend') {
+    // Every source, not the first that answers — the whole point is to average
+    // them. Each is allowed to fail independently; a blend of two is still a
+    // blend. Below one, there is nothing to average and this falls through to
+    // the single-source path rather than dressing one source up as a consensus.
+    const loaded = await Promise.all(REAL_SOURCES.map((s) => loadOne(s).catch(() => null)));
+    const available = loaded.filter((r): r is NonNullable<typeof r> => r !== null);
+    if (available.length >= 2) {
+      const { blended, sourceCount } = blendMarketMaps(available.map((r) => r.adp));
+      adpMap = blended;
+      // No range: high/low describe the spread of one source's real drafts, and
+      // there is no honest way to attribute a spread to an average of three.
+      rangeMap = {};
+      source = 'blend';
+      state.marketSourceCount = sourceCount;
+      state.marketEntryLabel = `${available.length} sources averaged`;
+    }
+  }
+
+  if (!adpMap) {
+    // Whichever single source is asked for is tried first; the others are
+    // fallbacks, so a single bad snapshot degrades to another real source
+    // rather than straight to Sleeper's crude rank proxy. A 'blend' preference
+    // that couldn't gather two sources lands here too, on the normal order.
+    const attempts: RealSource[] = [
+      ...REAL_SOURCES.filter((s) => s === preferred),
+      ...REAL_SOURCES.filter((s) => s !== preferred),
+    ];
+    for (const attempt of attempts) {
+      if (adpMap) break;
+      try {
+        const result = await loadOne(attempt);
+        if (result) {
+          adpMap = result.adp;
+          rangeMap = result.range;
+          source = attempt;
+          state.marketSourceCount = null;
+          state.marketEntryLabel = result.label;
         }
-      } else {
-        const snapshot = await fetchAdpSnapshot();
-        const recPoints = state.league?.scoring_settings?.rec;
-        const ranked = rankAdpEntries(snapshot.entries, recPoints, superflex);
-        if (ranked.length) {
-          const players = await ensurePlayersLoaded(false);
-          const matched = matchAdpToPlayers(ranked, players);
-          if (Object.keys(matched.adp).length >= 20) {
-            adpMap = matched.adp;
-            rangeMap = matched.range;
-            source = 'adp';
-            // FFC has no league-size dimension (byte-identical across sizes),
-            // so its entry is described by scoring format alone.
-            state.marketEntryLabel = ranked[0].format;
-          }
-        }
+      } catch {
+        /* try the next source, then the rank proxy */
       }
-    } catch {
-      /* try the next source, then the rank proxy */
     }
   }
 
@@ -150,6 +200,7 @@ export async function ensureAdpLoaded(force?: boolean) {
     state.adpRangeMap = {}; // rank proxy has no real draft-position range to show
     state.adpSource = 'rank';
     state.marketEntryLabel = null;
+    state.marketSourceCount = null;
   }
   try {
     localStorage.setItem(
@@ -160,6 +211,7 @@ export async function ensureAdpLoaded(force?: boolean) {
         range: state.adpRangeMap,
         source: state.adpSource,
         entryLabel: state.marketEntryLabel,
+        sourceCount: state.marketSourceCount,
       }),
     );
   } catch {

@@ -1,4 +1,4 @@
-import { DEFAULT_LEAGUE_RULES } from '../types';
+import { DEFAULT_LEAGUE_RULES, type MarketSource } from '../types';
 import { isSuperflexLeague, suggestedRulesFromLeague } from '../domain/leagueSettings';
 import { pprLabel } from '../domain/marketValue';
 import { state, updateRules } from '../state';
@@ -7,7 +7,21 @@ import { updateAdpSourceBadge } from './header';
 import { $, el } from './dom';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
-import { renderRosters } from './rosters';
+import { renderRosters, renderRostersNote } from './rosters';
+
+// One line each on what the source actually measures, since the difference
+// between them is the whole reason this setting exists. The MFL hint names its
+// two caveats up front — a much smaller sample, and no quarterbacks at all
+// (see scripts/fetch-mfl-adp.mjs for why the QBs are dropped).
+const MARKET_SOURCE_HINTS: Record<MarketSource, string> = {
+  value:
+    'How good each player is, from FantasyCalc’s trade values. Steadier than draft data, and matched by exact Sleeper id.',
+  adp: 'Where players actually go, averaged over recent mock drafts on Fantasy Football Calculator. Large sample, but nobody drafting has anything at stake.',
+  'adp-real':
+    'Where players actually go in real, non-mock redraft leagues people paid to host, via MyFantasyLeague. Far fewer drafts than the mock data, and it prices no quarterbacks — that pool mixes 1QB and superflex leagues, so QB is left out rather than shown wrong.',
+  blend:
+    'The average of the other three, per player, over whichever of them price him. Smooths out any single source’s bad week, at the cost of not being a measurement of anything in particular.',
+};
 
 async function reloadMarketData(): Promise<void> {
   await ensureAdpLoaded(true);
@@ -18,6 +32,11 @@ async function reloadMarketData(): Promise<void> {
 
 function rerenderLoadedTabs(): void {
   renderRosters();
+  // The rosters explainer names the market source, so it goes stale the moment
+  // the source changes — it was only ever rendered on the initial load. That
+  // was cosmetic while the sources differed in provenance alone; it isn't now,
+  // because the MFL sentence is where "quarterbacks aren't priced" is stated.
+  renderRostersNote();
   if (state.adpMap) renderDraft();
   if (state.boardLoadedAt) renderBoard();
 }
@@ -29,10 +48,7 @@ export function renderSettings(): void {
   noKeeperCostInput.checked = state.rules.noKeeperCost;
   ($('#inflationRoundsInput') as HTMLInputElement).disabled = state.rules.noKeeperCost;
   ($('#marketSourceInput') as HTMLSelectElement).value = state.rules.marketSource;
-  $('#marketSourceHint')!.textContent =
-    state.rules.marketSource === 'value'
-      ? 'How good each player is, from FantasyCalc’s trade values. Steadier than draft data, and matched by exact Sleeper id.'
-      : 'Where players actually go, averaged over recent real drafts. Closest to “what will it cost to get him back”, but can swing hard on a week of news.';
+  $('#marketSourceHint')!.textContent = MARKET_SOURCE_HINTS[state.rules.marketSource];
   renderLeagueFacts();
   renderSleeperHint();
 }
@@ -87,7 +103,13 @@ function marketDataLabel(): string {
   if (!state.adpSource) return 'not loaded yet';
   if (state.adpSource === 'rank') return 'Sleeper rank proxy (no snapshot matched)';
   const which =
-    state.adpSource === 'value' ? 'FantasyCalc value rank' : 'Fantasy Football Calculator ADP';
+    state.adpSource === 'value'
+      ? 'FantasyCalc value rank'
+      : state.adpSource === 'adp-real'
+        ? 'MyFantasyLeague real-league ADP'
+        : state.adpSource === 'blend'
+          ? 'Blend of all sources'
+          : 'Fantasy Football Calculator ADP';
   return state.marketEntryLabel ? `${which} — ${state.marketEntryLabel}` : which;
 }
 
@@ -154,7 +176,12 @@ function handleInflationRoundsChange(): void {
 
 function handleMarketSourceChange(): void {
   const input = $('#marketSourceInput') as HTMLSelectElement;
-  updateRules({ marketSource: input.value === 'adp' ? 'adp' : 'value' });
+  const chosen: MarketSource = (['value', 'adp', 'adp-real', 'blend'] as const).includes(
+    input.value as MarketSource,
+  )
+    ? (input.value as MarketSource)
+    : 'value';
+  updateRules({ marketSource: chosen });
   // The market map itself has to be rebuilt from the other snapshot, so this
   // reloads rather than just re-rendering what's already in memory.
   state.adpMap = null;

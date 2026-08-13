@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  blendMarketMaps,
   describeValueEntry,
   matchValueToPlayers,
   pickValueEntry,
@@ -175,5 +176,43 @@ describe('matchValueToPlayers', () => {
 
   it('returns an empty map for a missing entry', () => {
     expect(matchValueToPlayers(null, playersMap)).toEqual({});
+  });
+});
+
+describe('blendMarketMaps', () => {
+  it('averages a player priced by every source', () => {
+    const { blended } = blendMarketMaps([{ p1: 3 }, { p1: 6 }, { p1: 9 }]);
+    expect(blended.p1).toBe(6);
+  });
+
+  it('averages over the sources that price a player, not over all of them', () => {
+    // Coverage genuinely differs — MFL prices no quarterbacks at all — so a
+    // missing source must not be read as a zero, which would drag every
+    // partially-covered player to the top of the board.
+    const { blended } = blendMarketMaps([{ qb: 20 }, { qb: 30 }, { rb: 5 }]);
+    expect(blended.qb).toBe(25);
+    expect(blended.rb).toBe(5);
+  });
+
+  it('reports how many sources priced each player', () => {
+    const { sourceCount } = blendMarketMaps([{ a: 1, b: 2 }, { a: 3 }, { a: 5 }]);
+    expect(sourceCount.a).toBe(3);
+    expect(sourceCount.b).toBe(1);
+  });
+
+  it('ignores non-positive picks rather than averaging them in', () => {
+    // A zero or negative pick is a broken row, not a player going first overall.
+    const { blended, sourceCount } = blendMarketMaps([{ p1: 10 }, { p1: 0 }, { p1: -4 }]);
+    expect(blended.p1).toBe(10);
+    expect(sourceCount.p1).toBe(1);
+  });
+
+  it('drops a player no source priced', () => {
+    const { blended } = blendMarketMaps([{ p1: 0 }, {}]);
+    expect('p1' in blended).toBe(false);
+  });
+
+  it('returns an empty map for no sources', () => {
+    expect(blendMarketMaps([]).blended).toEqual({});
   });
 });

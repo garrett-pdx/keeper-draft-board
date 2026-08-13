@@ -53,9 +53,12 @@ keepers, computes a keeper "value" metric, and renders a draggable draft board.
 ```
 index.html            # markup only (setup screen + app shell); loads src/main.ts
 scripts/
-  fetch-adp.mjs       # CI-only Node script: pulls real ADP from Fantasy Football
-                      #   Calculator, writes public/adp-snapshot.json (run by
+  fetch-adp.mjs       # CI-only Node script: pulls mock-draft ADP from Fantasy
+                      #   Football Calculator, writes public/adp-snapshot.json (run by
                       #   .github/workflows/refresh-adp.yml, daily)
+  fetch-mfl-adp.mjs   # CI-only Node script: pulls real (non-mock) redraft ADP from
+                      #   MyFantasyLeague, writes public/adp-real-snapshot.json
+                      #   (same workflow/cadence; no QBs — see "The MFL real-draft source")
   fetch-fantasycalc.mjs # CI-only Node script: pulls FantasyCalc player values,
                       #   writes public/value-snapshot.json (same workflow/cadence)
   fetch-outlooks.mjs  # CI-only Node script: pulls season-outlook paragraphs from
@@ -64,6 +67,7 @@ scripts/
 public/
   adp-snapshot.json      # generated, committed — served same-origin, matched at
                         #   runtime against Sleeper's player dictionary
+  adp-real-snapshot.json # generated, committed — same shape, MyFantasyLeague real drafts
   value-snapshot.json    # generated, committed — FantasyCalc values keyed by Sleeper id
   outlook-snapshot.json  # generated, committed — served same-origin, matched at
                         #   runtime against Sleeper's player dictionary via espn_id
@@ -413,29 +417,49 @@ site keeps working without the Worker — it only gates non-Sleeper platforms.
 ## Market value sources
 
 The keeper metric needs one number per player: the pick at which the market prices him.
-**Two sources can supply it, and they are not the same quantity** — the per-league
-`rules.marketSource` setting picks which, defaulting to `'value'`:
+**Three sources can supply it, and they are not the same quantity** — the per-league
+`rules.marketSource` setting picks which, defaulting to `'value'`, with a fourth option
+that averages them:
 
 - **`'value'` — FantasyCalc** (`scripts/fetch-fantasycalc.mjs` → `public/value-snapshot.json`).
   A **trade-value ranking**, answering "how good is this player". `overallRank` is used
   directly as an implied pick number. Steadier than crowd ADP, and matched by **exact
   Sleeper id** — FantasyCalc supplies `sleeperId` on every row (verified: 198/198), so none
   of the name-normalisation guesswork below applies.
-- **`'adp'` — Fantasy Football Calculator**. Real average draft position, answering "what
-  does it cost to get him" — which is literally the keeper question, and the reason this
-  was the original source. But it is a rolling recent window and can run hard on a week of
-  news: confirmed live, Rashee Rice sat at ADP ~27 for three weeks (six consecutive
-  snapshots) then ran to 12.7 in six days, while FantasyCalc and FFC's own longer-window
-  2QB set both still had him near 40.
+- **`'adp'` — Fantasy Football Calculator**. Average draft position, answering "what does
+  it cost to get him" — which is literally the keeper question, and the reason this was the
+  original source. Drawn from **mock drafts run on FFC's own site**, so the sample is large
+  (2,158 drafts over six days, measured 2026-08-12) but nobody drafting has anything at
+  stake. It is a rolling recent window and can run hard on a week of news: confirmed live,
+  Rashee Rice sat at ADP ~27 for three weeks (six consecutive snapshots) then ran to 12.7
+  in six days, while FantasyCalc and FFC's own longer-window 2QB set both still had him
+  near 40.
+- **`'adp-real'` — MyFantasyLeague** (`scripts/fetch-mfl-adp.mjs` →
+  `public/adp-real-snapshot.json`). The same quantity over **real, non-mock redraft leagues
+  someone paid to host** — MFL hosting is $99.95–$109.95 per league in 2026, so nobody is
+  on it casually. See "The MFL real-draft source" below for its two significant caveats
+  (much smaller sample, and no quarterbacks at all).
+- **`'blend'`** — the mean of the other three, per player, over whichever of them price
+  him (`blendMarketMaps` in `src/domain/marketValue.ts`). All three are already expressed
+  as an implied pick number, so the average is meaningful, and it damps each one's
+  characteristic failure. It averages over *available* sources rather than requiring all
+  three, because coverage genuinely differs — which does mean a player priced by one source
+  is smoothed less than one priced by three. That artifact is real, small where it matters
+  (the top of the board, where coverage is total), and cheaper than the alternatives. The
+  UI reports "N of 3 sources" next to each blended pick so a thin average can't pass for a
+  consensus. Needs at least two sources; below that it falls through to the single-source
+  path rather than dressing one source up as a blend.
 
-Neither is strictly better, which is why this is a setting rather than a decision baked
+None is strictly better, which is why this is a setting rather than a decision baked
 into the code. **The UI must always say which is in use** — the header badge reads
-"Value rank · FantasyCalc" or "ADP · Fantasy Football Calculator", never labelling a value
-rank as ADP. `ensureAdpLoaded` tries the preferred source first and falls back to the
-other before resorting to Sleeper's `search_rank` proxy, so one bad snapshot degrades to
-the other real source. **`marketSource` is part of the ADP cache key** — without that, a
-map built from the other source is returned before the preference is ever consulted and
-switching appears to do nothing.
+"Value rank · FantasyCalc", "ADP · Fantasy Football Calculator", "ADP · MyFantasyLeague
+(real drafts)" or "Blend · 3 sources", never labelling a value rank as ADP, never labelling
+mock-draft ADP as real-league ADP, and never labelling a blend as any one of its inputs.
+`ensureAdpLoaded` tries the preferred source first and falls back to the others before
+resorting to Sleeper's `search_rank` proxy, so one bad snapshot degrades to another real
+source. **`marketSource` is part of the ADP cache key** — without that, a map built from
+another source is returned before the preference is ever consulted and switching appears
+to do nothing.
 
 The value snapshot is a **matrix**: team count (8/10/12/14) × scoring (0/0.5/1 PPR) ×
 QB count (1/2), 24 entries, ~117KB. `pickValueEntry` partitions **hard** on QB count and
@@ -462,16 +486,23 @@ vary, so it keeps the full matrix. Same question, opposite answer, because the d
 ## ADP data pipeline
 
 Real ADP was investigated thoroughly (see git history) — Sleeper has no official ADP
-endpoint, and every free real-ADP source we found (Fantasy Football Calculator, MyFantasy­
-League) sends no CORS headers a browser will accept from this app's origin (confirmed
-live: direct `fetch()` calls fail with `net::ERR_FAILED`). Paid sources (FantasyPros)
-were ruled out — no paid API keys in a static, no-backend app with no way to keep them
-secret. So real ADP can only be fetched **server-side, at CI/build time**, never at
-runtime:
+endpoint, and both free real-ADP sources we use (Fantasy Football Calculator,
+MyFantasyLeague) send no CORS headers a browser will accept from this app's origin
+(confirmed live: direct `fetch()` calls fail with `net::ERR_FAILED`). Paid sources
+(FantasyPros) were ruled out — no paid API keys in a static, no-backend app with no way to
+keep them secret. So real ADP can only be fetched **server-side, at CI/build time**, never
+at runtime. For MFL that isn't just a workaround but the required shape: the one access
+pattern its terms forbid is calling the API "via Javascript from web pages outside the
+myfantasyleague.com domain", which is exactly what a browser fetch would be. Otherwise
+"access to this data is provided free to anyone to use in almost any way"
+(<https://api.myfantasyleague.com/2026/api_info>); registration is optional and raises the
+rate limit ~2.5×, and registered clients are asked to send their registered User-Agent.
 
-> **Re-checked 2026-08-06, since "just pull Sleeper's own ADP" keeps coming up.** It does
+> **Re-checked 2026-08-06 and again 2026-08-12, since "just pull Sleeper's own ADP" keeps
+> coming up.** It does
 > not exist as an endpoint. Sleeper's GraphQL API (`https://sleeper.app/graphql`) exposes
-> **240 query fields and not one of them is ADP** (confirmed live by introspection;
+> **240 query fields and not one of them is ADP** (confirmed live by introspection —
+> note the schema field is `query_type`, snake_case, not `queryType`;
 > `get_adp` returns "Cannot query field"). It has plenty of _draft_ fields — individual
 > drafts, picks, queues — which is why community tools appear to have "Sleeper ADP": they
 > aggregate many mock drafts themselves. There is no ffverse/nflverse ADP CSV to read
@@ -493,6 +524,44 @@ runtime:
 > scoring-format filter) but is a paid product whose `robots.txt` disallows `/api/`. Not
 > a source we take from. If a subscription ever grants an export or key, wiring it in is
 > one more `fetchOne()` variant.
+>
+> **Every high-stakes/paid-league operator forbids redistributing their ADP** (searched
+> 2026-08-12, specifically for money-league rather than mock data). This is structural, not
+> bad luck: for these outfits ADP *is* a product, a reason to subscribe or to enter their
+> contests, and this app republishes its snapshots to a public GitHub Pages URL, which is
+> unambiguously redistribution. **Don't build on any of them.**
+>
+> - **NFFC** (`nfc.shgn.com`). Real money leagues; `robots.txt` allows everything; the
+>   table is served by `POST /adp.data.php` with `sport`/`num_teams`/`draft_type`, and
+>   `num_teams` genuinely segments (10-team = 328 players over 21 drafts, 12-team = 517
+>   over 837) — unlike FFC's no-op `teams`. `draft_type` even has a **"Keeper Leagues"**
+>   option. All of it is off-limits: the terms
+>   (<https://terms.shgn.com/terms?theme=nfc>) prohibit "using automated means (including
+>   but not limited to harvesting bots, robots, parser, spiders or screen scrapers) to
+>   obtain, collect or access any information on the Website."
+> - **RTSports** (`rtsports.com`). Publishes a clean, current, fully machine-readable ADP
+>   PDF at `/football/draft-guide-average-pdf.php`, and its `robots.txt` allows all. The
+>   terms still rule it out twice over: "All pages and data displayed on the RealTime
+>   Fantasy Sports site are copyrighted ... and may not be reproduced or reused in any form
+>   without the express written consent", plus "any re-sale or re-distribution of this
+>   service or its contents (in any form) ... is strictly prohibited". API access
+>   separately requires their advance written consent.
+> - **FFPC** (`myffpc.com`). Great filters on paper (Main Event, Big Gorilla, Best Ball,
+>   Superflex, date ranges) but login-gated with no export or API — and its TE-premium
+>   scoring distorts TE ADP for anyone else anyway.
+> - **Full Time Fantasy / FFWC** — the "high stakes ADP" page carries no ADP rows at all
+>   and its visible timestamp reads `3-9-18`.
+> - **Underdog** has no public API and no official ADP feed; everything available is
+>   third-party scrapers or paid odds aggregators. Best-ball ADP is the wrong shape for a
+>   keeper league regardless (18 rounds, no waivers).
+> - **ESPN**'s `lm-api-reads.fantasy.espn.com/.../leaguedefaults/3?view=kona_player_info`
+>   does return real `averageDraftPosition` plus `auctionValueAverage` with no auth. Not
+>   used: `leaguedefaults/1` and `/3` return **byte-identical ADP** (no scoring
+>   segmentation, FFC's `teams` bug again), the payload is ~12 MB for 400 players, and it
+>   is an undocumented internal API with no usage grant.
+>
+> **MyFantasyLeague is the exception, and that's why it's the one we took** (see below).
+> MFL sells hosting, not data, so it gives the data away.
 >
 > Also confirmed: FFC ignores `start_date`/`period`/`days` params, because it already
 > serves a **rolling recent window** on its own (the half-ppr/10-team set reported
@@ -531,6 +600,59 @@ runtime:
   Ambiguous name+position collisions are skipped, not guessed at. If fewer than 20
   players end up matched across all entries, this falls back to Sleeper's overall
   player rank as a proxy (`state.adpSource === 'rank'`), same as before.
+
+### The MFL real-draft source
+
+`scripts/fetch-mfl-adp.mjs` → `public/adp-real-snapshot.json`, refreshed by the same
+workflow (marked `continue-on-error` so an MFL hiccup can't take the other three snapshots
+down with it). Deliberately its **own file**, not extra entries in the FFC snapshot:
+`rankAdpEntries` falls a player through to the next entry when he's missing from the
+closest one, which is right *within* a source and wrong *across* two of them.
+
+Query is `TYPE=adp&IS_KEEPER=N&IS_MOCK=0&PERIOD=ALL&IS_PPR=1&CUTOFF=5`. Every filter is
+load-bearing:
+
+| Filter | Why |
+| --- | --- |
+| `IS_KEEPER=N` | Redraft only. **Keeper-league ADP is the wrong input here despite this being a keeper league** — it's a *post-keeper* board, where the best players are kept rather than drafted, so they barely appear (measured: Gibbs in 19% of keeper drafts, rookie Jeremiyah Love in 93%). That deflates exactly the players the surplus metric is deciding about. |
+| `IS_MOCK=0` | Real drafts only, which FFC cannot express at all. Mocks are only ~12% of MFL's pool anyway (264 vs 236 drafts). |
+| `PERIOD=ALL` | Season to date. `RECENT` is near-empty this early — 9 drafts vs 91 on otherwise identical filters. |
+| `IS_PPR=1` | MFL's PPR flag is binary, no half-PPR. The real-draft pool is ~98% PPR regardless (231 of 236), so asking explicitly costs ~5 drafts and makes the `ppr` format label honest. |
+| `CUTOFF=5` | MFL's own docs: below 5% "the results may be unpredicatble". |
+
+Deliberately **not** filtered by `FCOUNT`. It works (unlike FFC's `teams`), but costs far
+more than it buys at this sample size: `FCOUNT=10` drops 236 drafts to 38, and 38 is where
+noise wins — a 36-draft slice had Josh Allen first overall. Revisit if MFL's volume ever
+makes a 10-team cut clear a few hundred drafts.
+
+Three things the generator has to fix up, all verified against live data:
+
+- **QB is dropped entirely.** MFL's ADP export has no QB-count or superflex filter — its
+  parameters are `PERIOD`, `FCOUNT`, `IS_PPR`, `IS_KEEPER`, `IS_MOCK`, `CUTOFF`, `DETAILS`,
+  that's the complete list — so the pool silently blends 1QB and superflex leagues.
+  Measured against FFC the same day, QBs in the top 40 picks: **FFC half-ppr 1, MFL 8, FFC
+  2qb 17.** MFL sits between the two markets because it *is* both averaged together (Josh
+  Allen 4.02 there vs 22.8 in FFC half-ppr and 1.4 in FFC 2qb). Since the blend can't be
+  undone from outside, the QBs are dropped rather than fed in wrong — same call
+  `rankAdpEntries` makes for the superflex partition. `meta.excludedPositions` records this
+  in the file so the gap explains itself, and `AdpSnapshotEntrySchema` must keep that field
+  **declared** or zod strips it silently.
+- **Team codes are normalized to Sleeper's.** MFL spells nine differently
+  (`GBP JAC KCC LVR NEP NOS SFO TBB`, plus `FA` for unrostered). This matters most for
+  defenses, which are matched to Sleeper by abbreviation alone, so an unmapped code
+  silently drops that defense.
+- **IDP is filtered out** (275 of 704 rows were DE/LB/DT/S/CB — MFL leagues often start
+  IDP). Names are also flipped from MFL's `"Last, First"`; `"PK"` needs no handling since
+  `matchAdpToPlayers` already aliases it.
+
+> **`stats_global_id` is not a usable Sleeper crosswalk.** It looks like one — MFL supplies
+> it on every player — but Sleeper populates `stats_id` for only **2,980 of 12,218**
+> players (legacy veterans), so it matched **64 of 397**. Name matching gets **341 of 397
+> (86%)** naive, and ~95% once suffixes are stripped and defenses go by team. Don't spend
+> an afternoon on the id join.
+
+`test/mflAdp.test.ts` asserts against the **committed snapshot**, not a fixture, so drift
+between what the generator writes and what the app can read surfaces in CI.
 
 ### Superflex / 2QB
 

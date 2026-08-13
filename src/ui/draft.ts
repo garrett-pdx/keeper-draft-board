@@ -33,7 +33,13 @@ export function renderDraft(): void {
       'Ordered by FantasyCalc’s value ranking (how good a player is, used as an implied pick) — not real average draft position. Switch to ADP in Settings.';
   } else if (state.adpSource === 'adp') {
     note.textContent =
-      'Ordered by real average draft position from Fantasy Football Calculator, refreshed daily.';
+      'Ordered by average draft position from Fantasy Football Calculator’s mock drafts, refreshed daily.';
+  } else if (state.adpSource === 'blend') {
+    note.textContent =
+      'Ordered by the average of all three market sources — FantasyCalc value, Fantasy Football Calculator mock ADP, and MyFantasyLeague real-league ADP — taken per player over whichever of them price him.';
+  } else if (state.adpSource === 'adp-real') {
+    note.textContent =
+      'Ordered by average draft position in real, non-mock redraft leagues on MyFantasyLeague, refreshed daily. Quarterbacks are absent — that pool mixes 1QB and superflex leagues, so QB ADP would be wrong for this league.';
   } else if (state.adpSource === 'rank') {
     note.textContent =
       'No ADP snapshot was available for this format, so this list falls back to Sleeper’s overall player ranking as a proxy.';

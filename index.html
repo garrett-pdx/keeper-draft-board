@@ -229,7 +229,9 @@
             <label for="marketSourceInput">Market price source</label>
             <select id="marketSourceInput">
               <option value="value">FantasyCalc — value ranking</option>
-              <option value="adp">Fantasy Football Calculator — real ADP</option>
+              <option value="adp">Fantasy Football Calculator — mock-draft ADP</option>
+              <option value="adp-real">MyFantasyLeague — real-league ADP</option>
+              <option value="blend">Blend — average of all three</option>
             </select>
             <div class="setup-hint" id="marketSourceHint"></div>
           </div>
@@ -249,7 +251,13 @@
         Average draft position data is provided by
         <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noopener"
           >Fantasy Football Calculator</a
-        >, and player season outlooks by ESPN Fantasy Football, both refreshed daily. Keeper picks
+        >
+        and
+        <a href="https://www.myfantasyleague.com" target="_blank" rel="noopener"
+          >MyFantasyLeague</a
+        >, player values by
+        <a href="https://fantasycalc.com" target="_blank" rel="noopener">FantasyCalc</a>, and player
+        season outlooks by ESPN Fantasy Football, all refreshed daily. Keeper picks
         stay in this browser until you save them to the league, which publishes them to a shared
         GitHub Gist so every manager sees the same locked-in selections.
       </div>
