@@ -4,9 +4,11 @@ import {
   bestAvailablePlayer,
   positionCaps,
   filterByPositionCaps,
-  filterByStarterPriority,
   dedicatedStarterCounts,
-  backupPenaltyFor,
+  unfilledStartingSlots,
+  filterBenchQbTe,
+  filterByRemainingNeeds,
+  mockDraftCaps,
 } from '../src/domain/mockDraft';
 import type { AdpMap } from '../src/types';
 
@@ -98,18 +100,6 @@ describe('bestAvailablePlayer', () => {
     expect(bestAvailablePlayer(['p4'], adpMap)).toBe('p4');
     expect(bestAvailablePlayer(['p4', 'p1'], adpMap)).toBe('p1');
   });
-
-  it('adds penaltyFor to a player’s effective price, changing who wins', () => {
-    // p1 (4.6) beats p3 (12.3) normally; a 30-pick penalty on p1 flips it.
-    const penalty = (pid: string) => (pid === 'p1' ? 30 : 0);
-    expect(bestAvailablePlayer(['p1', 'p3'], adpMap, penalty)).toBe('p3');
-  });
-
-  it('still takes a penalized player when he is the best even after the penalty', () => {
-    // p1 (4.6 + 30 = 34.6) still beats p2 (55.2) — a nudge, not a ban.
-    const penalty = (pid: string) => (pid === 'p1' ? 30 : 0);
-    expect(bestAvailablePlayer(['p1', 'p2'], adpMap, penalty)).toBe('p1');
-  });
 });
 
 describe('dedicatedStarterCounts', () => {
@@ -138,35 +128,194 @@ describe('dedicatedStarterCounts', () => {
   });
 });
 
-describe('backupPenaltyFor', () => {
+// A Mudd-shaped lineup: 9 startable slots once DEF is set aside.
+const MUDD = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'FLEX', 'DEF', 'BN', 'BN'];
+
+describe('unfilledStartingSlots', () => {
+  it('counts every startable slot for an empty roster, DEF/K and bench excluded', () => {
+    expect(unfilledStartingSlots(MUDD, {})).toBe(9);
+  });
+
+  it('is 0 once a legal lineup can be fielded', () => {
+    // 1 QB, 2 RB, 2 WR, 1 TE + 3 more RB/WR covering the FLEX slots.
+    expect(unfilledStartingSlots(MUDD, { QB: 1, RB: 4, WR: 3, TE: 1 })).toBe(0);
+  });
+
+  it('lets RB/WR overflow consume the FLEX slots', () => {
+    // 7 RB/WR fill RB,RB,WR,WR + all 3 FLEX; only QB and TE remain.
+    expect(unfilledStartingSlots(MUDD, { RB: 4, WR: 3 })).toBe(2);
+  });
+
+  it('reports exactly the missing slot when only a QB is absent', () => {
+    expect(unfilledStartingSlots(MUDD, { RB: 4, WR: 3, TE: 1 })).toBe(1);
+  });
+
+  it('counts a TE toward a FLEX slot — a legal lineup question, not a bench one', () => {
+    // 2 TEs: one starts at TE, the other legitimately fills a FLEX.
+    expect(unfilledStartingSlots(MUDD, { QB: 1, RB: 4, WR: 2, TE: 2 })).toBe(0);
+  });
+
+  it('degrades to 0 (no restriction) when roster_positions is unknown', () => {
+    expect(unfilledStartingSlots(null, {})).toBe(0);
+    expect(unfilledStartingSlots([], { QB: 1 })).toBe(0);
+  });
+
+  it('counts the 3rd RB and 3rd WR as FLEX starters, not bench players', () => {
+    // The canonical worked example: [QB, RB, RB, WR, WR, FLEX, FLEX] with 3 RB
+    // and 3 WR drafted. The two FLEX slots absorb the third of each, so all six
+    // are starters and the only thing still missing is the quarterback.
+    const lineup = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'FLEX'];
+    expect(unfilledStartingSlots(lineup, { RB: 3, WR: 3 })).toBe(1);
+    // Add the QB and nothing at all is outstanding.
+    expect(unfilledStartingSlots(lineup, { QB: 1, RB: 3, WR: 3 })).toBe(0);
+    // A 4th RB would be the first genuine bench player.
+    expect(unfilledStartingSlots(lineup, { QB: 1, RB: 4, WR: 3 })).toBe(0);
+  });
+});
+
+describe('filterBenchQbTe', () => {
+  const positions: Record<string, string> = { qb: 'QB', te: 'TE', rb: 'RB', wr: 'WR' };
+  const positionOf = (pid: string) => positions[pid];
   const dedicated = { QB: 1, TE: 1 };
+  const all = ['qb', 'te', 'rb', 'wr'];
 
-  it('does not penalize a starter the team still needs', () => {
-    expect(backupPenaltyFor('QB', { QB: 0 }, dedicated, 30)).toBe(0);
-    expect(backupPenaltyFor('TE', { TE: 0 }, dedicated, 30)).toBe(0);
+  it('blocks a 2nd QB and 2nd TE while a starting slot is unfilled', () => {
+    const counts = { QB: 1, TE: 1, RB: 2, WR: 2 }; // FLEX slots still empty
+    expect(filterBenchQbTe(all, positionOf, counts, MUDD, dedicated)).toEqual(['rb', 'wr']);
   });
 
-  it('penalizes a backup once the starting slots are filled', () => {
-    expect(backupPenaltyFor('QB', { QB: 1 }, dedicated, 30)).toBe(30);
-    expect(backupPenaltyFor('TE', { TE: 1 }, dedicated, 30)).toBe(30);
-    expect(backupPenaltyFor('QB', { QB: 4 }, dedicated, 30)).toBe(30);
+  it('always allows the first QB and TE, however early', () => {
+    expect(filterBenchQbTe(all, positionOf, {}, MUDD, dedicated)).toEqual(all);
   });
 
-  it('treats a 2QB league’s second QB as a starter and only its third as a backup', () => {
-    const twoQb = { QB: 2, TE: 1 };
-    expect(backupPenaltyFor('QB', { QB: 1 }, twoQb, 30)).toBe(0);
-    expect(backupPenaltyFor('QB', { QB: 2 }, twoQb, 30)).toBe(30);
+  it('never gates RB/WR, however many the roster holds', () => {
+    const counts = { RB: 6, WR: 6 };
+    const result = filterBenchQbTe(['rb', 'wr'], positionOf, counts, MUDD, dedicated);
+    expect(result).toEqual(['rb', 'wr']);
   });
 
-  it('never penalizes RB/WR, an unknown position, or a missing one', () => {
-    expect(backupPenaltyFor('RB', { RB: 9 }, dedicated, 30)).toBe(0);
-    expect(backupPenaltyFor('WR', { WR: 9 }, dedicated, 30)).toBe(0);
-    expect(backupPenaltyFor('IDP', { IDP: 9 }, dedicated, 30)).toBe(0);
-    expect(backupPenaltyFor(undefined, {}, dedicated, 30)).toBe(0);
+  it('is a no-op once every starting slot is filled', () => {
+    const counts = { QB: 1, RB: 4, WR: 3, TE: 1 };
+    expect(filterBenchQbTe(all, positionOf, counts, MUDD, dedicated)).toEqual(all);
   });
 
-  it('is a no-op when roster_positions was unknown (empty dedicated starters)', () => {
-    expect(backupPenaltyFor('QB', { QB: 5 }, {}, 30)).toBe(0);
+  it('treats a 2QB league’s second QB as a starter, not a bench player', () => {
+    const twoQb = ['QB', 'QB', 'RB', 'WR', 'TE', 'FLEX'];
+    const result = filterBenchQbTe(['qb'], positionOf, { QB: 1 }, twoQb, { QB: 2, TE: 1 });
+    expect(result).toEqual(['qb']);
+  });
+
+  it('degrades to no restriction when roster_positions is unknown', () => {
+    expect(filterBenchQbTe(all, positionOf, { QB: 5, TE: 5 }, null, {})).toEqual(all);
+  });
+});
+
+describe('filterByRemainingNeeds', () => {
+  const positions: Record<string, string> = { def: 'DEF', k: 'K', rb: 'RB' };
+  const positionOf = (pid: string) => positions[pid];
+  const all = ['def', 'k', 'rb'];
+
+  it('keeps DEF/K out of the pool while other picks remain', () => {
+    expect(filterByRemainingNeeds(all, positionOf, {}, MUDD, 5)).toEqual(['rb']);
+  });
+
+  it('returns only the still-needed DEF/K on the roster’s final pick', () => {
+    expect(filterByRemainingNeeds(all, positionOf, {}, MUDD, 1)).toEqual(['def']);
+  });
+
+  it('reserves two picks in a league that starts both a DEF and a K', () => {
+    const withK = [...MUDD, 'K'];
+    expect(filterByRemainingNeeds(all, positionOf, {}, withK, 3)).toEqual(['rb']);
+    expect(filterByRemainingNeeds(all, positionOf, {}, withK, 2)).toEqual(['def', 'k']);
+  });
+
+  it('stops offering a slot the roster has already filled', () => {
+    const withK = [...MUDD, 'K'];
+    expect(filterByRemainingNeeds(all, positionOf, { DEF: 1 }, withK, 1)).toEqual(['k']);
+  });
+
+  it('excludes DEF/K entirely in a league that starts neither', () => {
+    const noDefK = ['QB', 'RB', 'WR', 'TE', 'FLEX'];
+    expect(filterByRemainingNeeds(all, positionOf, {}, noDefK, 1)).toEqual(['rb']);
+  });
+
+  it('degrades to no restriction when roster_positions is unknown', () => {
+    expect(filterByRemainingNeeds(all, positionOf, {}, null, 1)).toEqual(all);
+  });
+
+  // --- the late-round starter safety net ---
+  // Positions beyond the DEF/K set, so the middle tier has something to sort.
+  const roster: Record<string, string> = { qb: 'QB', te: 'TE', rb2: 'RB', wr: 'WR', def2: 'DEF' };
+  const rosterOf = (pid: string) => roster[pid];
+  const pool = ['qb', 'te', 'rb2', 'wr', 'def2'];
+  // A lineup one tight end short of complete: QB + 2 RB + 2 WR + 3 FLEX filled.
+  const needsTeOnly = { QB: 1, RB: 4, WR: 3 };
+
+  it('leaves the middle rounds alone while there is room to spare', () => {
+    // 9 picks left, 1 slot open — plenty of slack, so bench RB/WR stay legal.
+    expect(filterByRemainingNeeds(pool, rosterOf, needsTeOnly, MUDD, 9).sort()).toEqual(
+      ['qb', 'rb2', 'te', 'wr'].sort(),
+    );
+  });
+
+  it('restricts to slot-filling positions once picks run down to what is still needed', () => {
+    // 2 picks left: one owed to DEF, one to the missing TE. Only a TE qualifies.
+    expect(filterByRemainingNeeds(pool, rosterOf, needsTeOnly, MUDD, 2)).toEqual(['te']);
+  });
+
+  it('still takes the defense last when a team is short a starter and a DEF at once', () => {
+    // The pick after the one above: nothing left but the defense.
+    const withTe = { ...needsTeOnly, TE: 1 };
+    expect(filterByRemainingNeeds(pool, rosterOf, withTe, MUDD, 1)).toEqual(['def2']);
+  });
+
+  it('frees up bench picks again once the lineup is complete', () => {
+    // Lineup full, DEF already in hand: no reservation left to make.
+    const complete = { QB: 1, RB: 4, WR: 3, TE: 1, DEF: 1 };
+    expect(filterByRemainingNeeds(pool, rosterOf, complete, MUDD, 2).sort()).toEqual(
+      ['qb', 'rb2', 'te', 'wr'].sort(),
+    );
+  });
+
+  it('offers every open position when several slots are still unfilled', () => {
+    // No QB and no TE, 3 picks left (1 owed to DEF) — both qualify, RB/WR don't.
+    const needsQbAndTe = { RB: 4, WR: 3 };
+    expect(filterByRemainingNeeds(pool, rosterOf, needsQbAndTe, MUDD, 3).sort()).toEqual(
+      ['qb', 'te'].sort(),
+    );
+  });
+});
+
+describe('mockDraftCaps', () => {
+  it('caps QB/TE at twice what the league starts, leaving RB/WR on the base formula', () => {
+    expect(mockDraftCaps(MUDD)).toEqual({
+      QB: 2, // 2 x 1 dedicated start, not 1 + 2 buffer
+      RB: 7, // unchanged: 2 starters + 3 FLEX + 2 buffer
+      WR: 7, // unchanged
+      TE: 2, // 2 x 1 dedicated start, not 1 + 3 FLEX + 2 buffer
+      K: 2,
+      DEF: 3,
+    });
+  });
+
+  it('scales QB with a 2QB lineup', () => {
+    const twoQb = ['QB', 'QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'FLEX', 'DEF'];
+    expect(mockDraftCaps(twoQb).QB).toBe(4);
+    expect(mockDraftCaps(twoQb).TE).toBe(2);
+  });
+
+  it('counts SUPER_FLEX toward the QB cap', () => {
+    expect(mockDraftCaps(['QB', 'SUPER_FLEX', 'RB', 'WR', 'TE', 'FLEX']).QB).toBe(4);
+  });
+
+  it('leaves a position with no dedicated slot on the FLEX-credited cap, never 0', () => {
+    // No TE slot: a tight end is a pure FLEX asset, so 2 x 0 must not apply.
+    const noTe = ['QB', 'RB', 'RB', 'WR', 'WR', 'FLEX', 'FLEX', 'DEF'];
+    expect(mockDraftCaps(noTe).TE).toBe(4); // 0 starters + 2 FLEX + 2 buffer
+  });
+
+  it('returns no caps when roster_positions is unknown', () => {
+    expect(mockDraftCaps(null)).toEqual({});
   });
 });
 
@@ -275,116 +424,5 @@ describe('filterByPositionCaps', () => {
   it('passes everything through when caps is empty (unknown roster_positions)', () => {
     const result = filterByPositionCaps(['qb1', 'qb2', 'rb1'], positionOf, { QB: 5 }, {});
     expect(result).toEqual(['qb1', 'qb2', 'rb1']);
-  });
-});
-
-describe('filterByStarterPriority', () => {
-  const positions: Record<string, string> = {
-    qb1: 'QB',
-    te1: 'TE',
-    wr1: 'WR',
-    rb1: 'RB',
-    def1: 'IDP',
-  };
-  const positionOf = (pid: string) => positions[pid];
-  // A standard 1QB league's starting slots (no FLEX eligibility needed for these tests).
-  const starting1qb = { QB: 1, RB: 2, WR: 2, TE: 1 };
-
-  it('blocks the 2nd bench WR before the starting QB is filled', () => {
-    const result = filterByStarterPriority(
-      ['wr1', 'te1'],
-      positionOf,
-      { WR: 3, QB: 0 },
-      starting1qb,
-    );
-    expect(result).toEqual(['te1']);
-  });
-
-  it('allows the 1st bench WR regardless of QB — only the 2nd bench WR is gated', () => {
-    const result = filterByStarterPriority(['wr1'], positionOf, { WR: 2, QB: 0 }, starting1qb);
-    expect(result).toEqual(['wr1']);
-  });
-
-  it('blocks the 3rd bench RB before the starting TE is filled', () => {
-    const result = filterByStarterPriority(
-      ['rb1', 'qb1'],
-      positionOf,
-      { RB: 4, TE: 0 },
-      starting1qb,
-    );
-    expect(result).toEqual(['qb1']);
-  });
-
-  it('blocks the 1st bench TE before the starting QB is filled', () => {
-    const result = filterByStarterPriority(
-      ['te1', 'wr1'],
-      positionOf,
-      { TE: 1, QB: 0 },
-      starting1qb,
-    );
-    expect(result).toEqual(['wr1']);
-  });
-
-  it('blocks the 1st bench QB before the starting TE is filled', () => {
-    const result = filterByStarterPriority(
-      ['qb1', 'wr1'],
-      positionOf,
-      { QB: 1, TE: 0 },
-      starting1qb,
-    );
-    expect(result).toEqual(['wr1']);
-  });
-
-  it('allows the 2nd bench WR once the team already has its starting QB and TE', () => {
-    const result = filterByStarterPriority(
-      ['wr1'],
-      positionOf,
-      { WR: 3, QB: 1, TE: 1 },
-      starting1qb,
-    );
-    expect(result).toEqual(['wr1']);
-  });
-
-  it('allows the 1st bench QB once the team already has its starting TE', () => {
-    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 1 }, starting1qb);
-    expect(result).toEqual(['qb1']);
-  });
-
-  it('scales to a 2QB league: a 2nd QB is still a starter, not gated by TE', () => {
-    const starting2qb = { QB: 2, RB: 2, WR: 2, TE: 1 };
-    // QB count 1 -> nextCount 2, which only reaches starting(QB)=2, not a bench pick yet.
-    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 1, TE: 0 }, starting2qb);
-    expect(result).toEqual(['qb1']);
-  });
-
-  it('scales to a 2QB league: the 1st bench QB (3rd overall) is gated by TE', () => {
-    const starting2qb = { QB: 2, RB: 2, WR: 2, TE: 1 };
-    const result = filterByStarterPriority(['qb1'], positionOf, { QB: 2, TE: 0 }, starting2qb);
-    expect(result).toEqual([]);
-  });
-
-  it('never restricts a position with no prerequisite rule, or an unknown position', () => {
-    const result = filterByStarterPriority(
-      ['rb1', 'def1'],
-      positionOf,
-      { RB: 1, IDP: 99 },
-      starting1qb,
-    );
-    expect(result).toEqual(['rb1', 'def1']);
-  });
-
-  it('degrades to no restriction when startingSlots is empty (unknown roster_positions)', () => {
-    const result = filterByStarterPriority(['wr1', 'qb1'], positionOf, { WR: 10, QB: 0 }, {});
-    expect(result).toEqual(['wr1', 'qb1']);
-  });
-
-  it('is a no-op below every threshold', () => {
-    const result = filterByStarterPriority(
-      ['wr1', 'rb1', 'te1', 'qb1'],
-      positionOf,
-      { WR: 2, RB: 2, TE: 0, QB: 0 },
-      starting1qb,
-    );
-    expect(result).toEqual(['wr1', 'rb1', 'te1', 'qb1']);
   });
 });

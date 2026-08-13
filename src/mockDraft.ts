@@ -4,11 +4,11 @@
 // practice tool; never touches the shared Gist (see MockDraftState's doc
 // comment in state.ts).
 import {
-  backupPenaltyFor,
   buildMockDraftSlots,
   bestAvailablePlayer,
+  filterByRemainingNeeds,
   filterByPositionCaps,
-  filterByStarterPriority,
+  filterBenchQbTe,
   type MockDraftSlot,
 } from './domain/mockDraft';
 import { orderRosterIdsBySlot } from './domain/draftOrder';
@@ -16,10 +16,9 @@ import { pickCapacity } from './domain/tradedPicks';
 import {
   keepersInCellFor,
   mockDraftAvailablePlayerIds,
-  mockDraftBackupPenaltyPicks,
   mockDraftDedicatedStarters,
   mockDraftPositionCaps,
-  mockDraftStartingSlots,
+  mockDraftRemainingPicksFor,
   rosterPositionCountsFor,
 } from './selectors';
 import {
@@ -157,44 +156,44 @@ export function advance(openPicker = true): void {
       return;
     }
     const available = mockDraftAvailablePlayerIds();
-    // Two AI-only heuristics, layered on top of plain best-player-available,
-    // never applied to the user's own pick (the picker always shows the
-    // full, unfiltered list). Each stage falls back to the previous pool
-    // when it empties out, since a pick has to happen either way:
-    //  1. Position cap — stop drafting a position once the roster already
-    //     has enough to fill its starting slots (FLEX-eligible slots
-    //     included) plus a small bench buffer, so BPA can't spiral into a
-    //     6th QB or 3rd TE.
-    //  2. Starter priority — fill real roster gaps before backups: the
-    //     league's starting QB(s) before a 2nd bench RB/WR, its starting TE
-    //     before a 3rd bench RB/WR, and its starting QB(s) before a 1st
-    //     bench TE (and vice versa) — otherwise a team can legally stay
-    //     under its position cap while still front-loading 2-3 QBs in the
-    //     first few rounds ahead of any RB/WR.
-    //  3. Backup penalty — the soft one, applied to the ranking rather than
-    //     the pool: once a team has the QBs/TEs it actually starts, further
-    //     ones are priced three rounds worse than the board says. Neither
-    //     filter above can express "allowed, but it should cost you", which
-    //     is the real shape of the QB2/TE2 decision — both are satisfied by
-    //     a backup that happens to be the literal best player available.
+    // Three AI-only pool filters, applied in order on top of plain
+    // best-player-available and never to the manager's own pick (the picker
+    // always shows the full, unfiltered list). Each falls back to the pool it
+    // was handed when it comes back empty, since a pick has to happen either
+    // way:
+    //  1. Endgame slots — DEF/K are held out entirely until they're all this
+    //     roster has left to take, so they land on its final picks. Runs
+    //     FIRST so that once it narrows the pool to defenses/kickers, the
+    //     other two (both no-ops on those positions) can't widen it again.
+    //  2. Position cap — never more than N of a position, where QB/TE are
+    //     capped at twice what the league actually starts.
+    //  3. Bench QB/TE gate — a 2nd QB or 2nd TE waits until every starting
+    //     slot (DEF/K aside) can be filled. RB/WR are deliberately never
+    //     gated: while slots remain an extra one is filling a FLEX, and once
+    //     they're full the rule is a no-op anyway.
     const playersMap = state.playersMap || {};
     const positionOf = (pid: string) => playersMap[pid]?.pos;
     const counts = rosterPositionCountsFor(slot.rosterId);
-    const capped = filterByPositionCaps(available, positionOf, counts, mockDraftPositionCaps());
-    const cappedPool = capped.length ? capped : available;
-    const prioritized = filterByStarterPriority(
+    const rosterPositions = state.league?.roster_positions;
+
+    const endgame = filterByRemainingNeeds(
+      available,
+      positionOf,
+      counts,
+      rosterPositions,
+      mockDraftRemainingPicksFor(slot.rosterId),
+    );
+    const endgamePool = endgame.length ? endgame : available;
+    const capped = filterByPositionCaps(endgamePool, positionOf, counts, mockDraftPositionCaps());
+    const cappedPool = capped.length ? capped : endgamePool;
+    const benched = filterBenchQbTe(
       cappedPool,
       positionOf,
       counts,
-      mockDraftStartingSlots(),
+      rosterPositions,
+      mockDraftDedicatedStarters(),
     );
-    const dedicatedStarters = mockDraftDedicatedStarters();
-    const penaltyPicks = mockDraftBackupPenaltyPicks();
-    const playerId = bestAvailablePlayer(
-      prioritized.length ? prioritized : cappedPool,
-      state.adpMap || {},
-      (pid) => backupPenaltyFor(positionOf(pid), counts, dedicatedStarters, penaltyPicks),
-    );
+    const playerId = bestAvailablePlayer(benched.length ? benched : cappedPool, state.adpMap || {});
     if (playerId === null) {
       // Shouldn't happen in practice — hundreds of players vs. at most a few
       // hundred picks — but never crash on it; just stop where we are.

@@ -145,14 +145,10 @@
           </div>
           <div class="toolbar-controls">
             <input type="search" id="draftSearch" placeholder="Search players…" />
+            <!-- Options are rebuilt from the league's own roster_positions on
+                 every render — see ui/positionFilter.ts. -->
             <select id="draftPosFilter">
               <option value="">All positions</option>
-              <option value="QB">QB</option>
-              <option value="RB">RB</option>
-              <option value="WR">WR</option>
-              <option value="TE">TE</option>
-              <option value="K">K</option>
-              <option value="DEF">DEF</option>
             </select>
             <label class="toggle-check">
               <input type="checkbox" id="draftHideKept" />

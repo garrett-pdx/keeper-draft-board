@@ -9,9 +9,11 @@
 // src/mockDraft.ts directly, the same way keeperControls.ts takes an onChange
 // callback rather than importing rosters.ts back — src/mockDraft.ts is the
 // only module that needs to know about both sides.
+import { slotStartsPosition } from '../domain/leagueSettings';
 import { mockDraftAvailablePlayerIds } from '../selectors';
 import { state } from '../state';
 import { el } from './dom';
+import { syncPositionFilterOptions } from './positionFilter';
 
 let scrimEl: HTMLElement | null = null;
 let drawerEl: HTMLElement | null = null;
@@ -25,8 +27,6 @@ let dragStartY = 0;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 let lastFocused: Element | null = null;
 let onPickCallback: ((playerId: string) => void) | null = null;
-
-const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 function onKeydown(e: KeyboardEvent): void {
   if (e.key === 'Escape') closeMockDraftPicker();
@@ -82,7 +82,7 @@ function renderList(): void {
   let rows = mockDraftAvailablePlayerIds()
     .map((pid) => ({ pid, p: playersMap[pid], adp: pid in adpMap ? adpMap[pid] : 9999 }))
     .filter((r) => !!r.p);
-  if (posFilter) rows = rows.filter((r) => r.p.pos === posFilter);
+  if (posFilter) rows = rows.filter((r) => slotStartsPosition(r.p.pos, posFilter));
   if (search) {
     rows = rows.filter((r) => `${r.p.first} ${r.p.last}`.toLowerCase().includes(search));
   }
@@ -138,12 +138,13 @@ function ensureBuilt(): void {
     placeholder: 'Search players…',
     oninput: renderList,
   }) as HTMLInputElement;
-  posFilterEl = el(
-    'select',
-    { class: 'mock-picker-pos-filter', onchange: renderList },
-    el('option', { value: '' }, 'All positions'),
-    ...POSITIONS.map((pos) => el('option', { value: pos }, pos)),
-  ) as HTMLSelectElement;
+  // Options are filled in by syncPositionFilterOptions on open, so the picker
+  // offers this league's own slots (FLEX included, no kicker where there's no
+  // kicker slot) rather than a fixed list.
+  posFilterEl = el('select', {
+    class: 'mock-picker-pos-filter',
+    onchange: renderList,
+  }) as HTMLSelectElement;
   listEl = el('div', { class: 'mock-picker-list' });
 
   const handle = el('div', { class: 'outlook-drawer-handle', 'aria-hidden': 'true' });
@@ -195,6 +196,7 @@ export function openMockDraftPicker(roundLabel: string, onPick: (playerId: strin
   lastFocused = document.activeElement;
   titleEl!.textContent = roundLabel;
   searchEl!.value = '';
+  syncPositionFilterOptions(posFilterEl!);
   posFilterEl!.value = '';
   renderList();
   drawerEl!.style.transform = '';

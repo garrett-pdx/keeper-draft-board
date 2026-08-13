@@ -133,12 +133,14 @@ src/
                       #   actually holds per round, adjusted by trades
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
                       #   round×roster-cell pick sequence), bestAvailablePlayer
-                      #   (BPA-by-ADP, with an optional soft pick penalty),
-                      #   positionCaps/filterByPositionCaps (the position-cap AI
-                      #   heuristic), filterByStarterPriority (the
-                      #   starter-before-backups AI heuristic),
-                      #   dedicatedStarterCounts/backupPenaltyFor (the soft
-                      #   backup-QB/TE penalty) — see "Mock draft"
+                      #   (plain BPA-by-ADP); the three AI pool filters —
+                      #   filterByRemainingNeeds (DEF/K last + the late-round
+                      #   starter safety net),
+                      #   positionCaps/mockDraftCaps/filterByPositionCaps
+                      #   (per-position limits), filterBenchQbTe (no bench QB/TE
+                      #   until starters are fillable); plus their supporting
+                      #   unfilledStartingSlots and dedicatedStarterCounts —
+                      #   see "Mock draft"
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
                       #   matching against Sleeper's player dict, entries tried in
                       #   priority order so a player missing from one format can still
@@ -154,7 +156,11 @@ src/
                       #   backing 'blend' (see "Market value sources")
     leagueSettings.ts #   isSuperflexLeague, maxKeepersFromLeague,
                       #   suggestedRulesFromLeague, initialRulesForLeague — reading
-                      #   a Sleeper league's own config (see "League settings import")
+                      #   a Sleeper league's own config (see "League settings import");
+                      #   SLOT_ELIGIBILITY (which positions each roster_positions
+                      #   slot can start) plus startablePositions /
+                      #   positionFilterSlots / slotStartsPosition, which drive both
+                      #   the mock draft's caps and the Draft List's position filter
     keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers,
                       #   samePicks, lockedTeamsFor — pure merge logic for the
                       #   shared keeper doc (see below)
@@ -182,6 +188,10 @@ src/
                       #   drawer (built lazily, appended to document.body), dismissible by
                       #   pointer-drag swipe-down, scrim click, or Escape
     draft.ts          # loadDraft + renderDraft
+    positionFilter.ts # syncPositionFilterOptions — rebuilds a position <select>
+                      #   from the league's own roster_positions. Shared by the
+                      #   Draft List and the mock draft picker, so neither has to
+                      #   import the other.
     board.ts          # loadBoard + renderBoard (draggable grid; also renders
                       #   mock-drafted cells, the pending-turn highlight, and
                       #   the Start/Reset controls — see "Mock draft")
@@ -230,6 +240,14 @@ import no state.
   simultaneously listing him as unkeepable. Reachable with no trades at all: two keepers
   both costing round 1 is enough. Mock-draft picks deliberately do **not** count as kept
   here — this tab describes the real draft, the simulation lives on the Board.
+  **Both the list and its position filter are scoped to what this league actually starts**
+  (`startablePositions` / `positionFilterSlots` in `domain/leagueSettings.ts`): a league
+  with no `K` slot shows no kickers and offers no K filter, since those players could
+  never be started. The filter's option _values are slot names, not positions_ — which is
+  what gives it a **FLEX** entry for free, since `SLOT_ELIGIBILITY` maps `QB → ['QB']` and
+  `FLEX → ['RB','WR','TE']` alike and `slotStartsPosition` matches either with one lookup.
+  Selecting FLEX therefore shows every player eligible for that league's flex spots. An
+  unknown lineup filters nothing and falls back to the old fixed option list.
 - **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
   to reorder, persisted; headers are keyboard-focusable and refocus themselves after a
   move since re-render rebuilds the table). Only keeper picks are filled in, placed at
@@ -280,66 +298,62 @@ to keepers-only.
   `state.mockDraft.slotOrderRosterIds`. A later Refresh All, a manager reordering columns,
   or the commissioner finally setting the real draft order mid-simulation can't
   retroactively perturb picks already made.
-- **AI picks respect a per-position cap; the manager's own picks never do.** Real
-  fantasy-strategy analysis of an actual mock draft on this app (see git history) showed
-  plain best-player-available spirals AI teams into hoarding a 6th QB or 3rd TE the moment
-  those positions run hot on ADP — dead roster weight in any format where QB/TE starting
-  slots are capped and get no FLEX benefit. `positionCaps` (`domain/mockDraft.ts`) derives,
-  from the league's own Sleeper `roster_positions`, how many of each position a team should
-  ever draft: every starting slot that position is eligible for (exact slots plus whichever
-  FLEX/SUPER_FLEX/WRRB_FLEX/REC_FLEX-type slots include it) plus a small fixed bench buffer
-  (2). A position with no FLEX home in this league's lineup (QB outside superflex, TE) ends
-  up tightly capped; RB/WR pick up real headroom from FLEX eligibility, mirroring the exact
-  structural asymmetry a human drafter has to respect. `filterByPositionCaps` drops
-  capped-out players from the AI's pool before `bestAvailablePlayer` runs; if every
-  remaining player is capped out (rare, late-draft), it falls back to the unfiltered pool
-  rather than getting stuck. Unknown `roster_positions` (`positionCaps` returns `{}`)
-  degrades to the old fully-uncapped behavior rather than guessing. The manager's own turn
-  always sees the full, unfiltered player list in the picker — the cap is an AI-realism
-  heuristic, never a restriction on what the user themselves can draft.
-- **AI picks also fill real roster gaps before backups, layered on top of the position cap.**
-  Staying under the position cap alone still lets an AI team legally front-load 2-3 QBs (or
-  TEs) in the first few rounds ahead of any RB/WR — confirmed live on a real mock draft.
-  `filterByStarterPriority` (`domain/mockDraft.ts`) enforces a short, explicit set of
-  prerequisites rather than a general roster-construction model: a team's starting QB(s)
-  must come before its 2nd bench RB/WR, its starting TE before its 3rd bench RB/WR, its
-  starting QB(s) before its 1st bench TE, and its starting TE before its 1st bench QB —
-  mirroring how a real drafter seats their starters before adding depth. **Expressed
-  relative to the league's own starting-slot counts, not fixed numbers** — `requires`
-  is satisfied once that position's count reaches `startingSlots[pos]`, and
-  `startingSlots` is `positionCaps(rosterPositions, 0)` (`selectors.mockDraftStartingSlots`),
-  i.e. the exact same starting-slot-plus-FLEX-eligibility count the position cap uses, just
-  without its bench buffer. This matters for a 2-QB league: a team's 2nd QB is still one of
-  its starters (`startingSlots.QB === 2`), so it's never gated behind a TE — only a genuine
-  3rd/bench QB is. An empty `startingSlots` (unknown `roster_positions`) makes every rule's
-  `requires` trivially satisfied, degrading to no restriction, same convention as the cap.
-  Applied after `filterByPositionCaps`, with the same graceful-fallback shape: an empty
-  result (every remaining player would violate some prerequisite) falls back to the
-  position-capped pool rather than getting stuck. AI-only, same as the position cap — the
-  manager's own picker is never filtered by either heuristic.
-- **Backup QBs and TEs are penalized rather than forbidden — the one _soft_ heuristic.**
-  The two filters above are both absolute: a cap says "never more than N", a prerequisite
-  says "not before X". Neither can say _"allowed, but it should cost you"_, which is the
-  actual shape of the QB2/TE2 decision — a team that already has its starting QB can sit
-  comfortably under its cap, satisfy every prerequisite, and still have a backup QB as the
-  literal best player available. So `backupPenaltyFor` (`domain/mockDraft.ts`) instead adds
-  picks to a player's _effective_ price, via `bestAvailablePlayer`'s optional `penaltyFor`
-  argument, once the roster already holds as many of that position as the league starts.
-  `BACKUP_PENALTY_ROUNDS` (3) × the team count keeps the nudge worth the same in an 8-team
-  league as a 14-team one — the same league-relative treatment `filterByStarterPriority`
-  gets. A quarterback who slides far enough is still real value and still gets taken; he
-  just stops beating a startable RB/WR in the middle rounds.
-  **The starter/backup line here is `dedicatedStarterCounts`, NOT the FLEX-crediting
-  `startingSlots` the other two heuristics use, and the difference is the whole point.**
-  `positionCaps` counts a generic `FLEX` as TE-eligible (it is, on paper), which puts
-  `startingSlots.TE` at 4 in a 1-TE/3-FLEX league — so a 2nd TE would read as a _starter_
-  and be exempt from exactly the penalty this exists to apply. In practice a FLEX goes to
-  an RB or WR. `dedicatedStarterCounts` therefore credits only `QB`/`TE` slots, plus
-  `SUPER_FLEX` for QB (that one is a genuine QB start). Unknown `roster_positions` returns
-  `{}` and the penalty becomes a no-op, same degradation convention as the other two. A
-  league with no dedicated slot at all for a position reports 0 rather than nothing, which
-  is meaningful: if the lineup never starts a TE, every TE really is competing for a FLEX
-  spot against RB/WR. AI-only, like the rest.
+- **Three AI-only pool filters sit on top of best-player-available, applied in order.**
+  The manager's own turn always sees the full, unfiltered player list in the picker — every
+  one of these is an AI-realism heuristic, never a restriction on what the user may draft.
+  Each falls back to the pool it was handed if it comes back empty, since a pick has to
+  happen either way, and each degrades to no restriction when `roster_positions` is unknown
+  rather than guessing.
+  1. **Remaining needs (`filterByRemainingNeeds`) — reserves a roster's last picks for what
+     it still has to have**, in two tiers.
+     The outer tier is the DEF/K rule: a defense or kicker taken mid-draft is a wasted pick
+     (near-interchangeable, and the pool barely thins), so they're held out until they're all
+     a roster has left to take.
+     The inner tier is the **starter safety net**. The bench gate below holds back a team's
+     _second_ QB/TE but nothing compels the first, so a team riding best-available on RB/WR
+     could finish unable to field a lineup — measured, one team in ten ended with no tight
+     end at all. Once remaining picks are down to what's needed to complete the lineup, only
+     players who fill a still-open slot are eligible. Confirmed to fix it: after the net, zero
+     teams finish without a QB or a TE, while the first _bench_ pick still lands in rounds
+     8-10, so the middle of the draft is genuinely untouched.
+     DEF/K is checked **first**, so "defense and kicker go last" survives even when a team is
+     short a starter at the same time. The open positions come from `positionsThatFillASlot`,
+     which probes `unfilledStartingSlots` rather than reimplementing slot matching — it cannot
+     drift from it. `remainingPicks` comes from `selectors.mockDraftRemainingPicksFor`, which
+     counts that roster's own unfilled slots in the frozen slot list, so it stays right for a
+     team whose trades left it holding more or fewer picks than its neighbours. Runs **first**
+     in the pipeline: once it narrows the pool, the other two (no-ops on those positions)
+     can't widen it again.
+  2. **Position cap (`positionCaps`/`filterByPositionCaps`, via `mockDraftCaps`).** Real
+     analysis of an actual mock draft on this app (see git history) showed plain BPA spirals
+     AI teams into hoarding a 6th QB or 3rd TE the moment those positions run hot. The base
+     cap is every starting slot a position is eligible for (exact slots plus whichever
+     FLEX/SUPER_FLEX/WRRB_FLEX/REC_FLEX-type slots include it) plus a fixed bench buffer (2),
+     which gives RB/WR real headroom from FLEX eligibility. **`mockDraftCaps` then overrides
+     QB and TE to twice what the league genuinely starts there**, because the FLEX credit is
+     far too loose as a draft limit — it puts the TE cap at 6 in a 1-TE/3-FLEX league, enough
+     to finish with five backups. Twice the dedicated starts gives 2 QB / 2 TE in that
+     league and 4 QB in a 2QB one. Applied only where a dedicated slot exists: with none, a
+     TE is a pure FLEX asset like any RB/WR and keeps the base cap, since `2 x 0` would make
+     the position undraftable.
+  3. **Bench QB/TE gate (`filterBenchQbTe`) — a 2nd QB or 2nd TE waits until every starting
+     slot can be filled**, DEF/K aside. This one rule replaced _both_ a list of bench-depth
+     prerequisites and a soft price penalty, which between them were two mechanisms chasing
+     the same behavior — the double work that prompted the rework. "Bench" means beyond
+     `dedicatedStarterCounts`, so a first QB and first TE are always draftable and a 2QB
+     league's second QB still counts as a starter.
+     **RB/WR are deliberately never gated**: while starting slots remain, an extra RB/WR is
+     filling a FLEX, and once they're full the rule is a no-op anyway. Forcing a _starting_
+     QB/TE is not this filter's job — that's the safety net in (1), which is where it belongs
+     because it's a question of running out of picks, not of roster balance.
+- **`unfilledStartingSlots` and `dedicatedStarterCounts` answer deliberately different
+  questions, and must not be merged.** `unfilledStartingSlots` uses `SLOT_ELIGIBILITY`, where
+  a generic `FLEX` _is_ TE-eligible, because it asks the factual question "could this roster
+  put a legal lineup on the field" — and a TE genuinely may start at FLEX. `dedicatedStarterCounts`
+  credits only `QB`/`TE` slots plus `SUPER_FLEX` for QB, because it answers the
+  judgement-laden question "is this particular pick a backup" — where the realistic answer is
+  that a FLEX goes to an RB or WR. Collapsing them would put `startingSlots.TE` at 4 in a
+  1-TE/3-FLEX league and exempt the second tight end the gate exists to hold back.
 - **`advance()` runs synchronously to completion of the current AI streak in one JS tick**
   (at most team-count × rounds iterations — trivial). This is exactly why "no time limit"
   needed no `setTimeout`/animation machinery: a call either lands on the manager's turn or

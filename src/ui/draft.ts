@@ -1,9 +1,11 @@
 import { ensureAdpLoaded, ensurePlayersLoaded } from '../data';
+import { slotStartsPosition, startablePositions } from '../domain/leagueSettings';
 import { allKeeperIdsWithTeam } from '../selectors';
 import { state } from '../state';
 import { formatTime } from '../util';
 import { $, el } from './dom';
 import { updateAdpSourceBadge } from './header';
+import { syncPositionFilterOptions } from './positionFilter';
 
 export async function loadDraft(force?: boolean): Promise<void> {
   try {
@@ -48,11 +50,17 @@ export function renderDraft(): void {
   }
 
   const search = ($('#draftSearch') as HTMLInputElement).value.trim().toLowerCase();
-  const posFilter = ($('#draftPosFilter') as HTMLSelectElement).value;
+  const posSelect = $('#draftPosFilter') as HTMLSelectElement;
+  syncPositionFilterOptions(posSelect);
+  const posFilter = posSelect.value;
   const hideKept = ($('#draftHideKept') as HTMLInputElement).checked;
   const playersMap = state.playersMap || {};
   const adpMap = state.adpMap || {};
   const keeperMap = allKeeperIdsWithTeam();
+  // A position this league has no slot for can never be started, so it's noise
+  // on the one tab whose whole job is "who can I draft". Empty means the
+  // lineup isn't known yet — show everything rather than nothing.
+  const startable = startablePositions(state.league?.roster_positions);
 
   let rows = Object.keys(playersMap).map((pid) => {
     const p = playersMap[pid];
@@ -60,7 +68,8 @@ export function renderDraft(): void {
   });
 
   rows = rows.filter((r) => r.p.pos && r.p.pos !== '—');
-  if (posFilter) rows = rows.filter((r) => r.p.pos === posFilter);
+  if (startable.length) rows = rows.filter((r) => startable.includes(r.p.pos));
+  if (posFilter) rows = rows.filter((r) => slotStartsPosition(r.p.pos, posFilter));
   if (hideKept) rows = rows.filter((r) => !keeperMap.has(r.pid));
   if (search) {
     rows = rows.filter((r) => `${r.p.first} ${r.p.last}`.toLowerCase().includes(search));

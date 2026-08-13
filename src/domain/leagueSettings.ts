@@ -8,6 +8,83 @@
 import { DEFAULT_LEAGUE_RULES, type LeagueRules } from '../types';
 
 /**
+ * Which fantasy positions each Sleeper `roster_positions` slot can start.
+ *
+ * Lives here rather than beside its first consumer (the mock draft's position
+ * caps) because it is a fact about how a Sleeper league is configured, not
+ * about drafting — the Draft List's position filter reads it too, and having
+ * that tab import from `domain/mockDraft.ts` would misdescribe both.
+ *
+ * Note the single-position slots map to a one-entry list rather than a bare
+ * string. That's what lets a caller treat `QB` and `FLEX` identically: one
+ * lookup answers "can this slot start this position" for exact slots and flex
+ * slots alike, which is exactly what the position filters do.
+ *
+ * Slots absent from this map (`BN`, `IR`, IDP slots) start none of the
+ * positions this app models and are simply skipped by every consumer.
+ */
+export const SLOT_ELIGIBILITY: Record<string, readonly string[]> = {
+  QB: ['QB'],
+  RB: ['RB'],
+  WR: ['WR'],
+  TE: ['TE'],
+  K: ['K'],
+  DEF: ['DEF'],
+  FLEX: ['RB', 'WR', 'TE'],
+  SUPER_FLEX: ['QB', 'RB', 'WR', 'TE'],
+  WRRB_FLEX: ['RB', 'WR'],
+  REC_FLEX: ['WR', 'TE'],
+};
+
+/**
+ * Every position some slot in this lineup can actually start.
+ *
+ * Used to keep players nobody could ever start — kickers in a league with no
+ * `K` slot, most commonly — off the Draft List and out of the mock draft pool.
+ * Returns `[]` for an unknown lineup, which callers read as "filter nothing"
+ * rather than "show nothing", the same graceful degradation the rest of the
+ * domain layer uses.
+ */
+export function startablePositions(rosterPositions: string[] | null | undefined): string[] {
+  if (!rosterPositions || !rosterPositions.length) return [];
+  const out = new Set<string>();
+  for (const slot of rosterPositions) {
+    for (const pos of SLOT_ELIGIBILITY[slot] ?? []) out.add(pos);
+  }
+  return [...out];
+}
+
+/**
+ * The league's own distinct starting slots, in lineup order — the option list
+ * for a position filter.
+ *
+ * Deduping `roster_positions` rather than listing positions is what gives the
+ * filter a FLEX entry for free: the slot name *is* the filter value, and
+ * SLOT_ELIGIBILITY turns it back into the set of positions to match. A Mudd
+ * lineup yields `QB, RB, WR, TE, FLEX, DEF` — natural order, a FLEX option,
+ * and no `K`, with no special-casing anywhere.
+ *
+ * `[]` for an unknown lineup, so the UI can keep its default option list.
+ */
+export function positionFilterSlots(rosterPositions: string[] | null | undefined): string[] {
+  if (!rosterPositions || !rosterPositions.length) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const slot of rosterPositions) {
+    if (!SLOT_ELIGIBILITY[slot] || seen.has(slot)) continue;
+    seen.add(slot);
+    out.push(slot);
+  }
+  return out;
+}
+
+/** Does `slot` (a filter value) start `pos`? An empty slot means "all positions". */
+export function slotStartsPosition(pos: string, slot: string): boolean {
+  if (!slot) return true;
+  return (SLOT_ELIGIBILITY[slot] ?? []).includes(pos);
+}
+
+/**
  * Does this league start more than one quarterback?
  *
  * Two shapes mean the same thing on Sleeper and both must be handled: an

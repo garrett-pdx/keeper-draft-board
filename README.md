@@ -63,6 +63,10 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
   keeping team — only ones that actually resolved, though: a selection that ran out of
   pick capacity really will be in the draft pool, so it stays listed as available here and
   is called out as unkeepable on the Board rather than being tagged KEPT in both places.
+  The list and its filter follow **your** lineup: a league with no kicker slot shows no
+  kickers and offers no K filter, and the filter gains a **FLEX** option (plus SUPERFLEX,
+  WR/RB or REC flex where your league has them) that shows everyone eligible for those
+  spots at once.
 - **Draft Board** — a grid, one column per team (drag or arrow-key the header to reorder,
   order persisted), one row per round. Keeper picks are placed at their cost round, tagged
   with the exact overall pick number once this season's draft order is known, with value +
@@ -117,25 +121,32 @@ a filterable player picker (same search + position filter as the Draft List). Pi
 resumes auto-drafting until your next turn, repeating until the draft's done. **Reset
 Draft** clears it back to keepers-only so you can run it again.
 
-The AI isn't purely ADP-blind, though — it respects a per-position cap derived from your
-league's actual starting lineup (starting slots + FLEX/SUPER_FLEX eligibility + a small
-bench buffer), so opponents stop hoarding a 6th QB or 3rd TE just because those positions
-are running hot on ADP. A position with no FLEX home (QB outside superflex, TE) gets a
-tight cap; RB/WR get real headroom from FLEX eligibility. On top of that, it fills real
-roster gaps before backups: a team's starting QB(s) before its 2nd bench RB/WR, its
-starting TE before its 3rd bench RB/WR, and its starting QB(s) before its 1st bench TE (and
-vice versa) — expressed relative to your league's own starting-slot counts, so a 2-QB
-league's second QB is treated as a starter, not a bench player gated behind a TE.
+The AI isn't purely ADP-blind, though. Three rules narrow what an opponent will consider,
+all derived from your league's own starting lineup:
 
-Finally, once a team has the quarterbacks and tight ends it actually starts, further ones
-are **penalized rather than banned**: three rounds' worth of picks are added to their price,
-so a backup stops beating a startable RB/WR in the middle rounds but a QB who slides far
-enough is still taken. Only dedicated `QB`/`TE` starting slots count here (plus `SUPER_FLEX`
-for QB) — a generic FLEX is TE-eligible on paper but goes to an RB or WR in practice, so
-counting it would exempt the second tight end this is meant to discourage.
+- **Defenses and kickers go last, and nobody ends up short a starter.** DEF/K are kept out
+  of the pool until they're all a team has left to draft, so they land on its final picks —
+  a DEF taken in round 8 is a wasted pick, since the position is near-interchangeable and
+  its pool barely thins. The same reservation covers the rest of the lineup: once a team's
+  remaining picks are down to what it needs to finish, it may only take players who fill a
+  still-open slot, so nobody finishes without a startable QB or TE.
+- **A per-position cap**, so nobody hoards a 6th QB or 3rd TE just because the position is
+  running hot. RB/WR get real headroom from FLEX eligibility; **QB and TE are capped at
+  twice what your league actually starts** (2 and 2 in a 1-QB/1-TE league, 4 QBs in a
+  superflex one).
+- **No bench QB or TE until the starting lineup can be filled** — every slot but DEF/K. A
+  team's first QB and first TE are always fair game, and a 2-QB league's second QB counts as
+  a starter, not a backup. Bench RB/WR are never gated: while starting slots remain, an
+  extra RB/WR is filling a FLEX anyway.
 
-Your own picks are never restricted or penalized by any of these — the picker always shows
-every available player.
+The bench rule deliberately doesn't _force_ anyone to draft a starting QB or TE — it only
+holds back the second one. That's what the end-of-draft reservation is for: measured over a
+10-team simulation it takes teams finishing with no tight end from one in ten to none, while
+the first _bench_ pick still lands around rounds 8-10, so the middle of the draft plays out
+untouched.
+
+Your own picks are never restricted by any of this — the picker always shows every
+available player your league can start.
 
 ## League settings import
 

@@ -7,7 +7,8 @@ import {
   isInflatedForRoster,
   potentialKeeperCost,
 } from './domain/keeperCost';
-import { BACKUP_PENALTY_ROUNDS, dedicatedStarterCounts, positionCaps } from './domain/mockDraft';
+import { startablePositions } from './domain/leagueSettings';
+import { dedicatedStarterCounts, mockDraftCaps } from './domain/mockDraft';
 import { keeperSurplusValue } from './domain/value';
 import { keeperListFor, ownerIdOfRoster, state, teamNameForRoster } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
@@ -114,9 +115,16 @@ export function mockDraftAvailablePlayerIds(): string[] {
       if (pid) taken.add(pid);
     }
   }
+  // A position this league has no slot for can never be started, so it's out
+  // of the pool for the AI and the manager alike. That isn't a strategy
+  // heuristic (the manager's picker is never filtered by one) — it's a
+  // statement of fact about the lineup, and it keeps the picker agreeing with
+  // the Draft List. An unknown lineup filters nothing.
+  const startable = startablePositions(state.league?.roster_positions);
   return Object.keys(playersMap).filter((pid) => {
     const p = playersMap[pid];
-    return p.pos && p.pos !== '—' && !taken.has(pid);
+    if (!p.pos || p.pos === '—' || taken.has(pid)) return false;
+    return !startable.length || startable.includes(p.pos);
   });
 }
 
@@ -148,30 +156,30 @@ export function rosterPositionCountsFor(rosterId: number): Record<string, number
 
 /** This league's per-position mock-draft AI caps, derived from Sleeper's own roster_positions. */
 export function mockDraftPositionCaps(): Record<string, number> {
-  return positionCaps(state.league?.roster_positions);
+  return mockDraftCaps(state.league?.roster_positions);
 }
 
 /**
- * This league's per-position *starting*-slot counts (no bench buffer) —
- * what filterByStarterPriority treats as "starting QB"/"starting TE" for
- * its prerequisite rules, so a 2-QB league's second QB reads as a starter,
- * not a bench player.
- */
-export function mockDraftStartingSlots(): Record<string, number> {
-  return positionCaps(state.league?.roster_positions, 0);
-}
-
-/**
- * How many QBs/TEs this league genuinely starts — the starter/backup line for
- * the mock draft's backup penalty. Distinct from mockDraftStartingSlots above,
- * which credits FLEX eligibility; see dedicatedStarterCounts for why a FLEX
- * must not count here.
+ * How many QBs/TEs this league genuinely starts — the starter/bench line for
+ * the mock draft's bench gate. Credits no FLEX slot; see
+ * dedicatedStarterCounts for why.
  */
 export function mockDraftDedicatedStarters(): Record<string, number> {
   return dedicatedStarterCounts(state.league?.roster_positions);
 }
 
-/** The backup QB/TE penalty in picks, scaled to this league's team count. */
-export function mockDraftBackupPenaltyPicks(): number {
-  return BACKUP_PENALTY_ROUNDS * (state.rosters.length || 10);
+/**
+ * How many picks this roster has left in the running mock draft, counting the
+ * one about to be made. Read off the frozen slot list rather than derived from
+ * the round number, so it stays right for a team whose trades left it holding
+ * more or fewer picks than its neighbours.
+ */
+export function mockDraftRemainingPicksFor(rosterId: number): number {
+  const md = state.mockDraft;
+  if (!md) return 0;
+  let remaining = 0;
+  for (let i = 0; i < md.slots.length; i++) {
+    if (md.slots[i].rosterId === rosterId && md.picks[i] === null) remaining += 1;
+  }
+  return remaining;
 }
