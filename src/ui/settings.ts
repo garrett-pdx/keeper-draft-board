@@ -20,8 +20,54 @@ const MARKET_SOURCE_HINTS: Record<MarketSource, string> = {
   'adp-real':
     'Where players actually go in real, non-mock redraft leagues people paid to host, via MyFantasyLeague. Far fewer drafts than the mock data, and it prices no quarterbacks — that pool mixes 1QB and superflex leagues, so QB is left out rather than shown wrong.',
   blend:
-    'The average of the other three, per player, over whichever of them price him. Smooths out any single source’s bad week, at the cost of not being a measurement of anything in particular.',
+    'The average of all three sources, per player, over whichever of them price him. Smooths out any single source’s bad week, at the cost of not being a measurement of anything in particular.',
 };
+
+/** Short names, for describing a source a league is on but can no longer pick. */
+const MARKET_SOURCE_LABELS: Record<MarketSource, string> = {
+  value: 'FantasyCalc — value ranking',
+  adp: 'Fantasy Football Calculator — mock-draft ADP',
+  'adp-real': 'MyFantasyLeague — real-league ADP',
+  blend: 'Blend — average of all three sources',
+};
+
+/**
+ * The only two a user picks between: one source, or all of them averaged.
+ *
+ * The individual ADP sources are deliberately NOT offered. Nothing about them
+ * is removed — both are still fetched daily, still validated, still what the
+ * blend is built out of, and `ensureAdpLoaded` still falls back to them when a
+ * preferred snapshot fails (which is why the header badge and the roster and
+ * draft notes all still have branches naming them). Choosing between two crowd
+ * ADP feeds by hand was a decision with no good answer; the blend is the answer.
+ */
+const SELECTABLE_MARKET_SOURCES: MarketSource[] = ['value', 'blend'];
+
+const LEGACY_MARKET_OPTION = 'legacy-market-source';
+
+/**
+ * Re-add the league's own source to the dropdown when it isn't one of the two
+ * on offer.
+ *
+ * 'adp' was selectable for months, so a browser that configured this league
+ * before today can still have it stored. Rendering only the two current options
+ * would leave the select showing "FantasyCalc" while the app was in fact
+ * running on FFC's ADP — the UI lying about which source is in use, which is
+ * the one thing the market-source code is not allowed to do. So the stored
+ * source is shown, marked, and can be switched away from but never back to.
+ */
+function syncMarketSourceOptions(select: HTMLSelectElement): void {
+  select.querySelectorAll(`.${LEGACY_MARKET_OPTION}`).forEach((o) => o.remove());
+  const current = state.rules.marketSource;
+  if (SELECTABLE_MARKET_SOURCES.includes(current)) return;
+  select.appendChild(
+    el(
+      'option',
+      { value: current, class: LEGACY_MARKET_OPTION },
+      `${MARKET_SOURCE_LABELS[current]} (no longer offered)`,
+    ),
+  );
+}
 
 async function reloadMarketData(): Promise<void> {
   await ensureAdpLoaded(true);
@@ -47,7 +93,9 @@ export function renderSettings(): void {
   const noKeeperCostInput = $('#noKeeperCostInput') as HTMLInputElement;
   noKeeperCostInput.checked = state.rules.noKeeperCost;
   ($('#inflationRoundsInput') as HTMLInputElement).disabled = state.rules.noKeeperCost;
-  ($('#marketSourceInput') as HTMLSelectElement).value = state.rules.marketSource;
+  const marketSourceInput = $('#marketSourceInput') as HTMLSelectElement;
+  syncMarketSourceOptions(marketSourceInput);
+  marketSourceInput.value = state.rules.marketSource;
   $('#marketSourceHint')!.textContent = MARKET_SOURCE_HINTS[state.rules.marketSource];
   renderLeagueFacts();
   renderSleeperHint();

@@ -227,11 +227,16 @@
           </div>
           <div class="field">
             <label for="marketSourceInput">Market price source</label>
+            <!--
+              Only two choices on purpose. The individual ADP sources ('adp',
+              'adp-real') are still fetched, still supported end to end, and are
+              what the blend is built from — they're just not something to pick
+              one of by hand. See SELECTABLE_MARKET_SOURCES in src/ui/settings.ts,
+              which re-adds whichever of them a league is already configured on.
+            -->
             <select id="marketSourceInput">
               <option value="value">FantasyCalc — value ranking</option>
-              <option value="adp">Fantasy Football Calculator — mock-draft ADP</option>
-              <option value="adp-real">MyFantasyLeague — real-league ADP</option>
-              <option value="blend">Blend — average of all three</option>
+              <option value="blend">Blend — average of all three sources</option>
             </select>
             <div class="setup-hint" id="marketSourceHint"></div>
           </div>

@@ -461,6 +461,29 @@ source. **`marketSource` is part of the ADP cache key** — without that, a map 
 another source is returned before the preference is ever consulted and switching appears
 to do nothing.
 
+### Only two of the four are user-selectable
+
+The Settings dropdown offers **`'value'` and `'blend'` only** — one source, or all of them
+averaged (`SELECTABLE_MARKET_SOURCES` in `src/ui/settings.ts`). Picking between two crowd
+ADP feeds by hand was a decision with no good answer; the blend is the answer.
+
+**This is a UI restriction and nothing more.** `'adp'` and `'adp-real'` are still fetched
+daily, still schema-validated, still what the blend is built out of, and still what
+`ensureAdpLoaded` falls back to when a preferred snapshot fails — which is exactly why the
+header badge, the roster explainer and the draft note all still carry branches naming
+them. Don't "clean those up" as dead code; a fallback can put the app on either source at
+any time, and the badge saying so is the whole contract.
+
+One wrinkle that has to keep working: **`'adp'` was selectable for months**, so a browser
+that configured a league before 2026-08-13 can still have it in `localStorage` (rules are
+per-league under `kdb_rules_<leagueId>`, and are *not* shared via the Gist). Rendering only
+the two current options would leave that league's select showing "FantasyCalc" while the
+app was actually running on FFC ADP — the UI lying about the source, the one thing this
+code may not do. So `syncMarketSourceOptions` re-adds the league's own source, marked
+"(no longer offered)", selectable only in the sense that it is already selected; switching
+away removes it for good. Verified both paths in the browser (there is no jsdom in this
+repo's test setup, so this one is not unit-tested).
+
 The value snapshot is a **matrix**: team count (8/10/12/14) × scoring (0/0.5/1 PPR) ×
 QB count (1/2), 24 entries, ~117KB. `pickValueEntry` partitions **hard** on QB count and
 then matches nearest team count, then nearest scoring. Measured as mean/max shift in rank
