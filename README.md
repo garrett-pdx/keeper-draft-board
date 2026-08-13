@@ -67,8 +67,10 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
   kickers and offers no K filter, and the filter gains a **FLEX** option (plus SUPERFLEX,
   WR/RB or REC flex where your league has them) that shows everyone eligible for those
   spots at once.
-- **Draft Board** — a grid, one column per team (drag or arrow-key the header to reorder,
-  order persisted), one row per round. Keeper picks are placed at their cost round, tagged
+- **Draft Board** — a grid, one column per team, one row per round. You can drag or
+  arrow-key the headers to reorder teams **until Sleeper publishes the real draft order** —
+  after that the columns are the draft itself, left to right, so reordering is switched off
+  and any arrangement you'd dragged earlier is dropped. Keeper picks are placed at their cost round, tagged
   with the exact overall pick number once this season's draft order is known, with value +
   bumped-round warnings. Open cells flag rounds affected by a trade (`→ team` on the giving
   side, `+N incoming from team` on the receiving side). Players who can't be kept at all

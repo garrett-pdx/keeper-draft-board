@@ -17,6 +17,7 @@ import {
 import { getRosterKeeperCostsFor } from '../selectors';
 import {
   ensureBoardOrder,
+  isBoardOrderLocked,
   markBoardOrderCustomized,
   myRosterId,
   saveBoardOrder,
@@ -25,10 +26,14 @@ import {
 } from '../state';
 import type { KeeperCostItem, SleeperRoster } from '../types';
 import { formatTime } from '../util';
-import { $, el } from './dom';
+import { $, el, type ElAttrs } from './dom';
 import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
 function reorderBoardColumns(draggedId: string, targetId: string): void {
+  // Defense in depth: the handlers that reach here aren't attached at all once
+  // the order is locked, but the same rule is enforced here too — the same
+  // belt-and-braces treatment toggleKeeper gives canEditRoster.
+  if (isBoardOrderLocked()) return;
   if (draggedId === targetId) return;
   const order = (state.boardOrder || []).slice();
   const from = order.indexOf(draggedId);
@@ -134,11 +139,15 @@ export function renderBoard(): void {
     return;
   }
   const noKeeperCost = state.rules.noKeeperCost;
+  const locked = isBoardOrderLocked();
   const noteEl = $('#boardNote');
   if (noteEl) {
+    const orderNote = locked
+      ? 'Columns are in this season’s real draft order, straight from Sleeper.'
+      : 'Drag a column header to reorder teams.';
     noteEl.textContent = noKeeperCost
-      ? 'This league keeps players for free (taxi squad) — every round is open, and kept players are listed below instead.'
-      : 'Drag a column header to reorder teams. Only keeper picks are filled in — everything else opens up on draft day.';
+      ? `${orderNote} This league keeps players for free (taxi squad) — every round is open, and kept players are listed below instead.`
+      : `${orderNote} Only keeper picks are filled in — everything else opens up on draft day.`;
   }
   const playersMap = state.playersMap || {};
   const rosterById: Record<string, SleeperRoster> = {};
@@ -212,47 +221,54 @@ export function renderBoard(): void {
     const roster = rosterById[rid];
     if (!roster) continue;
     const teamName = teamNameForRoster(roster.roster_id);
+    // Once Sleeper has the real order, the columns *are* the draft order, so
+    // none of the reorder affordances are rendered at all — no drag handle, no
+    // draggable attribute, and no role/tabindex claiming an interactivity that
+    // isn't there.
+    const dragAttrs: ElAttrs = locked
+      ? {}
+      : {
+          draggable: 'true',
+          tabindex: '0',
+          role: 'button',
+          'aria-label': `${teamName} column. Press left or right arrow to reorder.`,
+          ondragstart: (e: Event) => {
+            const de = e as DragEvent;
+            de.dataTransfer!.setData('text/plain', rid);
+            (de.currentTarget as HTMLElement).classList.add('dragging');
+          },
+          ondragend: (e: Event) => (e.currentTarget as HTMLElement).classList.remove('dragging'),
+          ondragover: (e: Event) => {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).classList.add('drop-target');
+          },
+          ondragleave: (e: Event) =>
+            (e.currentTarget as HTMLElement).classList.remove('drop-target'),
+          ondrop: (e: Event) => {
+            const de = e as DragEvent;
+            de.preventDefault();
+            (de.currentTarget as HTMLElement).classList.remove('drop-target');
+            const draggedId = de.dataTransfer!.getData('text/plain');
+            reorderBoardColumns(draggedId, rid);
+          },
+          onkeydown: (e: Event) => {
+            const ke = e as KeyboardEvent;
+            if (ke.key === 'ArrowLeft') {
+              ke.preventDefault();
+              moveColumn(rid, -1);
+            } else if (ke.key === 'ArrowRight') {
+              ke.preventDefault();
+              moveColumn(rid, 1);
+            }
+          },
+        };
     const th = el(
       'th',
-      {
-        draggable: 'true',
-        'data-roster-id': rid,
-        tabindex: '0',
-        role: 'button',
-        'aria-label': `${teamName} column. Press left or right arrow to reorder.`,
-        ondragstart: (e: Event) => {
-          const de = e as DragEvent;
-          de.dataTransfer!.setData('text/plain', rid);
-          (de.currentTarget as HTMLElement).classList.add('dragging');
-        },
-        ondragend: (e: Event) => (e.currentTarget as HTMLElement).classList.remove('dragging'),
-        ondragover: (e: Event) => {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement).classList.add('drop-target');
-        },
-        ondragleave: (e: Event) => (e.currentTarget as HTMLElement).classList.remove('drop-target'),
-        ondrop: (e: Event) => {
-          const de = e as DragEvent;
-          de.preventDefault();
-          (de.currentTarget as HTMLElement).classList.remove('drop-target');
-          const draggedId = de.dataTransfer!.getData('text/plain');
-          reorderBoardColumns(draggedId, rid);
-        },
-        onkeydown: (e: Event) => {
-          const ke = e as KeyboardEvent;
-          if (ke.key === 'ArrowLeft') {
-            ke.preventDefault();
-            moveColumn(rid, -1);
-          } else if (ke.key === 'ArrowRight') {
-            ke.preventDefault();
-            moveColumn(rid, 1);
-          }
-        },
-      },
+      { 'data-roster-id': rid, ...dragAttrs },
       el(
         'div',
         { class: 'board-th-inner' },
-        el('span', { class: 'drag-handle' }, '⋮⋮'),
+        locked ? null : el('span', { class: 'drag-handle' }, '⋮⋮'),
         el('span', { class: 'th-team' }, teamName),
       ),
     );

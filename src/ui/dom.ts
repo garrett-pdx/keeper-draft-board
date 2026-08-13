@@ -10,7 +10,7 @@ export function $all(sel: string): HTMLElement[] {
 }
 
 type ElChild = Node | string | null | undefined;
-type ElAttrs = Record<string, string | ((e: Event) => void)>;
+export type ElAttrs = Record<string, string | ((e: Event) => void)>;
 
 export function el(
   tag: string,

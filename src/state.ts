@@ -13,7 +13,7 @@ import type {
   SleeperUser,
 } from './types';
 import { canReadShared } from './api/gist';
-import { orderRosterIdsBySlot } from './domain/draftOrder';
+import { hasKnownDraftOrder, orderRosterIdsBySlot } from './domain/draftOrder';
 import { lockedTeamsFor } from './domain/keeperShare';
 import { initialRulesForLeague } from './domain/leagueSettings';
 import type { MockDraftSlot } from './domain/mockDraft';
@@ -292,13 +292,24 @@ export function saveBoardOrder(): void {
   localStorage.setItem(boardOrderKey(), JSON.stringify(state.boardOrder));
 }
 // Called only from an explicit user reorder (drag or arrow-key) — see
-// board.ts's reorderBoardColumns. Once set, ensureBoardOrder never overwrites
-// the manager's own arrangement, even after the real draft order becomes known.
+// board.ts's reorderBoardColumns, which is only reachable while the order is
+// still unlocked (see isBoardOrderLocked).
 export function markBoardOrderCustomized(): void {
   localStorage.setItem(boardOrderCustomKey(), '1');
 }
 function isBoardOrderCustomized(): boolean {
   return localStorage.getItem(boardOrderCustomKey()) === '1';
+}
+
+/**
+ * Once the commissioner has set the real draft order on Sleeper, the board's
+ * column order stops being a preference and becomes a fact — the columns *are*
+ * the draft, left to right. Reordering them from there produces a board that
+ * looks authoritative and is wrong, which is worse than one that's merely
+ * inconveniently arranged, so dragging is switched off entirely.
+ */
+export function isBoardOrderLocked(): boolean {
+  return hasKnownDraftOrder(state.draft);
 }
 
 // Draft-slot order (1..N) when the commissioner has set it, else the rosters'
@@ -309,11 +320,18 @@ function naturalBoardOrder(currentIds: string[]): string[] {
 
 export function ensureBoardOrder(): void {
   const currentIds = state.rosters.map((r) => String(r.roster_id));
-  if (!isBoardOrderCustomized()) {
-    // No manual reorder yet — keep tracking the real draft order (or the
-    // roster_id fallback pre-order) so the board self-corrects the moment
-    // the commissioner sets it, instead of freezing on whatever was true the
-    // first time this league was loaded.
+  // A manual arrangement is only ever a stand-in for an order Sleeper hasn't
+  // published yet, so the moment the real one arrives it is discarded rather
+  // than merely overridden — the flag is cleared too, so nothing can resurrect
+  // it later if the commissioner un-sets the order.
+  if (isBoardOrderLocked() && isBoardOrderCustomized()) {
+    localStorage.removeItem(boardOrderCustomKey());
+  }
+  if (isBoardOrderLocked() || !isBoardOrderCustomized()) {
+    // Either the real order is known (authoritative), or nothing has been
+    // manually reordered yet — in both cases keep tracking naturalBoardOrder
+    // so the board self-corrects the moment the commissioner sets it, instead
+    // of freezing on whatever was true the first time this league was loaded.
     state.boardOrder = naturalBoardOrder(currentIds);
     saveBoardOrder();
     return;

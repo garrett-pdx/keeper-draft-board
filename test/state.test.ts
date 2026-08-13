@@ -4,6 +4,7 @@ import {
   toggleKeeper,
   keeperListFor,
   ensureBoardOrder,
+  isBoardOrderLocked,
   markBoardOrderCustomized,
   saveBoardOrder,
   saveMockDraft,
@@ -111,7 +112,19 @@ describe('ensureBoardOrder', () => {
     expect(state.boardOrder).toEqual(['1', '2', '3']);
   });
 
-  it('never overwrites a manual reorder, even after the real draft order becomes known', () => {
+  it('keeps a manual reorder while the real draft order is still unknown', () => {
+    ensureBoardOrder();
+    state.boardOrder = ['2', '1', '3'];
+    markBoardOrderCustomized();
+    saveBoardOrder();
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['2', '1', '3']);
+  });
+
+  // Issue #1: a manual arrangement is only ever a stand-in for an order Sleeper
+  // hasn't published yet. Once it has, the columns are the draft itself, and a
+  // stale hand-drag left the board looking authoritative while being wrong.
+  it('discards a manual reorder once the real draft order becomes known', () => {
     ensureBoardOrder();
     state.boardOrder = ['2', '1', '3'];
     markBoardOrderCustomized();
@@ -122,7 +135,39 @@ describe('ensureBoardOrder', () => {
       slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
     };
     ensureBoardOrder();
-    expect(state.boardOrder).toEqual(['2', '1', '3']);
+    expect(state.boardOrder).toEqual(['1', '2', '3']);
+  });
+
+  it('forgets the customized flag too, so the stale order cannot come back', () => {
+    ensureBoardOrder();
+    state.boardOrder = ['2', '1', '3'];
+    markBoardOrderCustomized();
+    saveBoardOrder();
+    state.draft = {
+      type: 'snake',
+      draft_order: { ownerA: 1 },
+      slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
+    };
+    ensureBoardOrder();
+    // The commissioner un-sets the order: we fall back to roster_id order, NOT
+    // to the arrangement that was dragged before the order was ever published.
+    state.draft = null;
+    ensureBoardOrder();
+    expect(state.boardOrder).toEqual(['3', '1', '2']);
+  });
+
+  it('reports the order as locked only once Sleeper has published it', () => {
+    expect(isBoardOrderLocked()).toBe(false);
+    state.draft = {
+      type: 'snake',
+      draft_order: { ownerA: 1 },
+      slot_to_roster_id: { '1': 1, '2': 2, '3': 3 },
+    };
+    expect(isBoardOrderLocked()).toBe(true);
+    // A default identity slot map with no draft_order is Sleeper's pre-order
+    // placeholder, not a real order — must not lock (see hasKnownDraftOrder).
+    state.draft = { type: 'snake', draft_order: null, slot_to_roster_id: { '1': 1 } };
+    expect(isBoardOrderLocked()).toBe(false);
   });
 
   it('still drops stale ids and appends new ones once customized', () => {

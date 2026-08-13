@@ -192,7 +192,9 @@ src/
                       #   from the league's own roster_positions. Shared by the
                       #   Draft List and the mock draft picker, so neither has to
                       #   import the other.
-    board.ts          # loadBoard + renderBoard (draggable grid; also renders
+    board.ts          # loadBoard + renderBoard (grid, draggable only until the
+                      #   real draft order is known — see isBoardOrderLocked;
+                      #   also renders
                       #   mock-drafted cells, the pending-turn highlight, and
                       #   the Start/Reset controls — see "Mock draft")
     mockDraftPicker.ts # openMockDraftPicker/closeMockDraftPicker — singleton
@@ -248,9 +250,18 @@ import no state.
   `FLEX → ['RB','WR','TE']` alike and `slotStartsPosition` matches either with one lookup.
   Selecting FLEX therefore shows every player eligible for that league's flex spots. An
   unknown lineup filters nothing and falls back to the old fixed option list.
-- **Draft Board** (`#panel-board`): a grid, one column per team (drag-or-arrow-key headers
-  to reorder, persisted; headers are keyboard-focusable and refocus themselves after a
-  move since re-render rebuilds the table). Only keeper picks are filled in, placed at
+- **Draft Board** (`#panel-board`): a grid, one column per team. **Column order is only
+  editable until Sleeper publishes the real one.** Before that, headers are
+  drag-or-arrow-key reorderable and the arrangement persists (headers are
+  keyboard-focusable and refocus themselves after a move, since re-render rebuilds the
+  table). Once `hasKnownDraftOrder` is true (`isBoardOrderLocked` in `state.ts`) the
+  columns _are_ the draft, left to right: every reorder affordance is dropped — no drag
+  handle, no `draggable`, no `role="button"`/`tabindex` claiming interactivity that isn't
+  there — and `ensureBoardOrder` **discards** any saved manual arrangement, clearing the
+  `kdb_board_order_custom_*` flag so it can't come back if the commissioner later un-sets
+  the order. A hand-dragged order that outlived the real one made the board look
+  authoritative while being wrong, which is worse than one merely arranged inconveniently
+  (issue #1). Only keeper picks are filled in, placed at
   their cost round, tagged with the exact overall pick number once this season's draft
   order is known. Open cells show a traded-away/incoming-pick note (`→ {team}` /
   `+N incoming from {team}`) for rounds affected by a trade. Shows value + bumped-round
