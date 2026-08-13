@@ -1,0 +1,8 @@
+# Generated data assets. These are written by scripts/fetch-*.mjs with
+# JSON.stringify(…, 2) and regenerated daily by .github/workflows/refresh-adp.yml,
+# so letting `npm run format` restyle them just starts a fight the CI job wins
+# every night — and produces thousand-line diffs that bury real changes.
+public/*-snapshot.json
+
+# Build output.
+dist/

@@ -49,19 +49,27 @@ export function buildMockDraftSlots(
 }
 
 /**
- * The "rudimentary AI" — pure best-player-available by ascending ADP/value
- * rank, nothing else. No positional need weighting, no roster construction
- * logic. Intentionally simple, per the feature's explicit scope. Missing-ADP
- * players use the same 9999 sentinel src/ui/draft.ts's own sort already
- * uses, so they're deprioritized rather than excluded.
+ * Best-player-available by ascending ADP/value rank. Missing-ADP players use
+ * the same 9999 sentinel src/ui/draft.ts's own sort already uses, so they're
+ * deprioritized rather than excluded.
+ *
+ * `penaltyFor` optionally adds picks to a player's effective price — the soft
+ * counterpart to the hard filters below, used to *deprioritize* rather than
+ * forbid (see backupPenaltyFor). Omit it for plain BPA.
  */
-export function bestAvailablePlayer(availablePlayerIds: string[], adpMap: AdpMap): string | null {
+export function bestAvailablePlayer(
+  availablePlayerIds: string[],
+  adpMap: AdpMap,
+  penaltyFor?: (playerId: string) => number,
+): string | null {
   if (!availablePlayerIds.length) return null;
+  const effectivePick = (pid: string): number =>
+    (pid in adpMap ? adpMap[pid] : 9999) + (penaltyFor ? penaltyFor(pid) : 0);
   let best = availablePlayerIds[0];
-  let bestAdp = best in adpMap ? adpMap[best] : 9999;
+  let bestAdp = effectivePick(best);
   for (let i = 1; i < availablePlayerIds.length; i++) {
     const pid = availablePlayerIds[i];
-    const adp = pid in adpMap ? adpMap[pid] : 9999;
+    const adp = effectivePick(pid);
     if (adp < bestAdp) {
       best = pid;
       bestAdp = adp;
@@ -202,4 +210,78 @@ export function filterByStarterPriority(
       return (positionCounts[rule.requires] || 0) >= (startingSlots[rule.requires] || 0);
     });
   });
+}
+
+/**
+ * How far down the board a backup QB/TE is pushed, in rounds. Multiplied by
+ * the league's team count to get a pick penalty, so it means the same thing
+ * in an 8-team league as in a 14-team one. Tune it here, in one place.
+ *
+ * Three rounds is deliberately a nudge rather than a ban: a quarterback who
+ * slides far enough is still real value and still gets taken, but the AI
+ * stops spending a mid-round pick on a QB2 or TE2 while startable RB/WR are
+ * on the board — which the hard filters can't express, since staying under a
+ * position cap and satisfying every starter prerequisite still leaves a
+ * backup as the literal best player available.
+ */
+export const BACKUP_PENALTY_ROUNDS = 3;
+
+/** The only positions a backup penalty applies to. */
+export const BACKUP_DEPRIORITIZED_POSITIONS = ['QB', 'TE'] as const;
+
+/**
+ * Which roster_positions slots count as a *dedicated* start for QB/TE.
+ *
+ * Deliberately NOT the same eligibility SLOT_ELIGIBILITY uses: a generic FLEX
+ * is a TE-eligible slot on paper, but in practice it goes to an RB or WR, so
+ * counting it would make a 2nd TE look like a starter and exempt exactly the
+ * pick this heuristic exists to discourage. SUPER_FLEX is the opposite case —
+ * it is a real QB start, so it counts.
+ */
+const DEDICATED_SLOT_ELIGIBILITY: Record<string, readonly string[]> = {
+  QB: ['QB'],
+  SUPER_FLEX: ['QB'],
+  TE: ['TE'],
+};
+
+/**
+ * How many QBs/TEs this league genuinely starts — the line between a starter
+ * and a backup for the penalty below.
+ *
+ * Unknown `roster_positions` returns `{}`, which makes backupPenaltyFor a
+ * no-op rather than a guess, the same graceful-degradation convention as
+ * positionCaps. A league with no dedicated slot for a position reports 0,
+ * which is meaningful rather than missing: if nothing starts a TE, every TE
+ * really is competing for a FLEX spot against RB/WR.
+ */
+export function dedicatedStarterCounts(
+  rosterPositions: string[] | null | undefined,
+): Record<string, number> {
+  if (!rosterPositions || !rosterPositions.length) return {};
+  const counts: Record<string, number> = {};
+  for (const pos of BACKUP_DEPRIORITIZED_POSITIONS) counts[pos] = 0;
+  for (const slot of rosterPositions) {
+    for (const pos of DEDICATED_SLOT_ELIGIBILITY[slot] ?? []) counts[pos] += 1;
+  }
+  return counts;
+}
+
+/**
+ * Extra picks to add to a player's effective price because he'd be a backup
+ * at a position this league can only start a fixed number of.
+ *
+ * Soft on purpose. The position cap says "never more than N" and starter
+ * priority says "not before X" — neither can say "you may, but it should cost
+ * you," which is the actual shape of the QB2/TE2 decision. Returns 0 for any
+ * position outside BACKUP_DEPRIORITIZED_POSITIONS, for an unknown position,
+ * and whenever `dedicatedStarters` is empty.
+ */
+export function backupPenaltyFor(
+  pos: string | undefined,
+  positionCounts: Record<string, number>,
+  dedicatedStarters: Record<string, number>,
+  penaltyPicks: number,
+): number {
+  if (!pos || !(pos in dedicatedStarters)) return 0;
+  return (positionCounts[pos] || 0) >= dedicatedStarters[pos] ? penaltyPicks : 0;
 }

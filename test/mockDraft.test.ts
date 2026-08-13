@@ -5,6 +5,8 @@ import {
   positionCaps,
   filterByPositionCaps,
   filterByStarterPriority,
+  dedicatedStarterCounts,
+  backupPenaltyFor,
 } from '../src/domain/mockDraft';
 import type { AdpMap } from '../src/types';
 
@@ -95,6 +97,76 @@ describe('bestAvailablePlayer', () => {
     // p4 has no ADP; still picked over nothing, but never over a real-ADP player.
     expect(bestAvailablePlayer(['p4'], adpMap)).toBe('p4');
     expect(bestAvailablePlayer(['p4', 'p1'], adpMap)).toBe('p1');
+  });
+
+  it('adds penaltyFor to a player’s effective price, changing who wins', () => {
+    // p1 (4.6) beats p3 (12.3) normally; a 30-pick penalty on p1 flips it.
+    const penalty = (pid: string) => (pid === 'p1' ? 30 : 0);
+    expect(bestAvailablePlayer(['p1', 'p3'], adpMap, penalty)).toBe('p3');
+  });
+
+  it('still takes a penalized player when he is the best even after the penalty', () => {
+    // p1 (4.6 + 30 = 34.6) still beats p2 (55.2) — a nudge, not a ban.
+    const penalty = (pid: string) => (pid === 'p1' ? 30 : 0);
+    expect(bestAvailablePlayer(['p1', 'p2'], adpMap, penalty)).toBe('p1');
+  });
+});
+
+describe('dedicatedStarterCounts', () => {
+  it('returns nothing when roster_positions is unknown, rather than guessing', () => {
+    expect(dedicatedStarterCounts(null)).toEqual({});
+    expect(dedicatedStarterCounts(undefined)).toEqual({});
+    expect(dedicatedStarterCounts([])).toEqual({});
+  });
+
+  it('counts only dedicated slots — a generic FLEX is not a TE start', () => {
+    const rosterPositions = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'FLEX', 'DEF'];
+    // Contrast with positionCaps, which credits TE with all three FLEX slots.
+    expect(dedicatedStarterCounts(rosterPositions)).toEqual({ QB: 1, TE: 1 });
+  });
+
+  it('counts SUPER_FLEX as a real QB start', () => {
+    expect(dedicatedStarterCounts(['QB', 'SUPER_FLEX', 'TE', 'FLEX'])).toEqual({ QB: 2, TE: 1 });
+  });
+
+  it('counts a 2QB lineup’s second QB as a starter', () => {
+    expect(dedicatedStarterCounts(['QB', 'QB', 'TE'])).toEqual({ QB: 2, TE: 1 });
+  });
+
+  it('reports 0 for a position this league never starts', () => {
+    expect(dedicatedStarterCounts(['QB', 'RB', 'WR', 'FLEX'])).toEqual({ QB: 1, TE: 0 });
+  });
+});
+
+describe('backupPenaltyFor', () => {
+  const dedicated = { QB: 1, TE: 1 };
+
+  it('does not penalize a starter the team still needs', () => {
+    expect(backupPenaltyFor('QB', { QB: 0 }, dedicated, 30)).toBe(0);
+    expect(backupPenaltyFor('TE', { TE: 0 }, dedicated, 30)).toBe(0);
+  });
+
+  it('penalizes a backup once the starting slots are filled', () => {
+    expect(backupPenaltyFor('QB', { QB: 1 }, dedicated, 30)).toBe(30);
+    expect(backupPenaltyFor('TE', { TE: 1 }, dedicated, 30)).toBe(30);
+    expect(backupPenaltyFor('QB', { QB: 4 }, dedicated, 30)).toBe(30);
+  });
+
+  it('treats a 2QB league’s second QB as a starter and only its third as a backup', () => {
+    const twoQb = { QB: 2, TE: 1 };
+    expect(backupPenaltyFor('QB', { QB: 1 }, twoQb, 30)).toBe(0);
+    expect(backupPenaltyFor('QB', { QB: 2 }, twoQb, 30)).toBe(30);
+  });
+
+  it('never penalizes RB/WR, an unknown position, or a missing one', () => {
+    expect(backupPenaltyFor('RB', { RB: 9 }, dedicated, 30)).toBe(0);
+    expect(backupPenaltyFor('WR', { WR: 9 }, dedicated, 30)).toBe(0);
+    expect(backupPenaltyFor('IDP', { IDP: 9 }, dedicated, 30)).toBe(0);
+    expect(backupPenaltyFor(undefined, {}, dedicated, 30)).toBe(0);
+  });
+
+  it('is a no-op when roster_positions was unknown (empty dedicated starters)', () => {
+    expect(backupPenaltyFor('QB', { QB: 5 }, {}, 30)).toBe(0);
   });
 });
 
@@ -219,7 +291,12 @@ describe('filterByStarterPriority', () => {
   const starting1qb = { QB: 1, RB: 2, WR: 2, TE: 1 };
 
   it('blocks the 2nd bench WR before the starting QB is filled', () => {
-    const result = filterByStarterPriority(['wr1', 'te1'], positionOf, { WR: 3, QB: 0 }, starting1qb);
+    const result = filterByStarterPriority(
+      ['wr1', 'te1'],
+      positionOf,
+      { WR: 3, QB: 0 },
+      starting1qb,
+    );
     expect(result).toEqual(['te1']);
   });
 
@@ -229,17 +306,32 @@ describe('filterByStarterPriority', () => {
   });
 
   it('blocks the 3rd bench RB before the starting TE is filled', () => {
-    const result = filterByStarterPriority(['rb1', 'qb1'], positionOf, { RB: 4, TE: 0 }, starting1qb);
+    const result = filterByStarterPriority(
+      ['rb1', 'qb1'],
+      positionOf,
+      { RB: 4, TE: 0 },
+      starting1qb,
+    );
     expect(result).toEqual(['qb1']);
   });
 
   it('blocks the 1st bench TE before the starting QB is filled', () => {
-    const result = filterByStarterPriority(['te1', 'wr1'], positionOf, { TE: 1, QB: 0 }, starting1qb);
+    const result = filterByStarterPriority(
+      ['te1', 'wr1'],
+      positionOf,
+      { TE: 1, QB: 0 },
+      starting1qb,
+    );
     expect(result).toEqual(['wr1']);
   });
 
   it('blocks the 1st bench QB before the starting TE is filled', () => {
-    const result = filterByStarterPriority(['qb1', 'wr1'], positionOf, { QB: 1, TE: 0 }, starting1qb);
+    const result = filterByStarterPriority(
+      ['qb1', 'wr1'],
+      positionOf,
+      { QB: 1, TE: 0 },
+      starting1qb,
+    );
     expect(result).toEqual(['wr1']);
   });
 
@@ -272,7 +364,12 @@ describe('filterByStarterPriority', () => {
   });
 
   it('never restricts a position with no prerequisite rule, or an unknown position', () => {
-    const result = filterByStarterPriority(['rb1', 'def1'], positionOf, { RB: 1, IDP: 99 }, starting1qb);
+    const result = filterByStarterPriority(
+      ['rb1', 'def1'],
+      positionOf,
+      { RB: 1, IDP: 99 },
+      starting1qb,
+    );
     expect(result).toEqual(['rb1', 'def1']);
   });
 

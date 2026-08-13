@@ -7,7 +7,7 @@ import {
   isInflatedForRoster,
   potentialKeeperCost,
 } from './domain/keeperCost';
-import { positionCaps } from './domain/mockDraft';
+import { BACKUP_PENALTY_ROUNDS, dedicatedStarterCounts, positionCaps } from './domain/mockDraft';
 import { keeperSurplusValue } from './domain/value';
 import { keeperListFor, ownerIdOfRoster, state, teamNameForRoster } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
@@ -159,4 +159,19 @@ export function mockDraftPositionCaps(): Record<string, number> {
  */
 export function mockDraftStartingSlots(): Record<string, number> {
   return positionCaps(state.league?.roster_positions, 0);
+}
+
+/**
+ * How many QBs/TEs this league genuinely starts — the starter/backup line for
+ * the mock draft's backup penalty. Distinct from mockDraftStartingSlots above,
+ * which credits FLEX eligibility; see dedicatedStarterCounts for why a FLEX
+ * must not count here.
+ */
+export function mockDraftDedicatedStarters(): Record<string, number> {
+  return dedicatedStarterCounts(state.league?.roster_positions);
+}
+
+/** The backup QB/TE penalty in picks, scaled to this league's team count. */
+export function mockDraftBackupPenaltyPicks(): number {
+  return BACKUP_PENALTY_ROUNDS * (state.rosters.length || 10);
 }

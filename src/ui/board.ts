@@ -363,7 +363,11 @@ export function renderBoard(): void {
         } else {
           const exactPick = exactPickForRoster(state.draft, ridNum, round, teamCount);
           cellChildren.push(
-            el('span', { class: 'board-cell-empty' }, exactPick !== null ? `Pick ${exactPick}` : '—'),
+            el(
+              'span',
+              { class: 'board-cell-empty' },
+              exactPick !== null ? `Pick ${exactPick}` : '—',
+            ),
           );
         }
       }

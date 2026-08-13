@@ -100,7 +100,10 @@ src/
   styles.css          # the dark "night game" theme (CSS custom properties in :root)
   api/
     sleeper.ts        # fetchJSON + endpoint helpers (each validates its response)
-    adpSnapshot.ts    # fetchAdpSnapshot — reads public/adp-snapshot.json (same-origin)
+    adpSnapshot.ts    # fetchAdpSnapshot / fetchRealAdpSnapshot — read
+                      #   public/adp-snapshot.json (FFC mock-draft ADP) and
+                      #   public/adp-real-snapshot.json (MFL real-draft ADP),
+                      #   both same-origin
     outlookSnapshot.ts # fetchOutlookSnapshot — reads public/outlook-snapshot.json (same-origin)
     gist.ts           # fetchSharedKeepers/writeSharedKeepers — the league's shared
                       #   keeper picks, read/written in a GitHub Gist (see below)
@@ -121,28 +124,40 @@ src/
                       #   exactPickForRoster — snake-draft exact pick number math;
                       #   orderRosterIdsBySlot — real slot order else given order,
                       #   used both to seed the board's default column order and
-                      #   (frozen once, at Start) a mock draft's pick sequence
+                      #   (frozen once, at Start) a mock draft's pick sequence;
+                      #   pickWasAcquiredViaTrade — was a pick made from a slot
+                      #   other than the roster's own, i.e. acquired by trade
+                      #   (the "was this really a keeper" signal Sleeper's own
+                      #   is_keeper flag can never carry — see ensurePrevDraftLoaded)
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
                       #   actually holds per round, adjusted by trades
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
                       #   round×roster-cell pick sequence), bestAvailablePlayer
-                      #   (BPA-by-ADP), positionCaps/filterByPositionCaps (the
-                      #   position-cap AI heuristic), filterByStarterPriority (the
-                      #   starter-before-backups AI heuristic) — see "Mock draft"
+                      #   (BPA-by-ADP, with an optional soft pick penalty),
+                      #   positionCaps/filterByPositionCaps (the position-cap AI
+                      #   heuristic), filterByStarterPriority (the
+                      #   starter-before-backups AI heuristic),
+                      #   dedicatedStarterCounts/backupPenaltyFor (the soft
+                      #   backup-QB/TE penalty) — see "Mock draft"
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
                       #   matching against Sleeper's player dict, entries tried in
                       #   priority order so a player missing from one format can still
                       #   match from another), rankAdpEntries (snapshot entries ranked
                       #   by closest team-count + scoring-format for this league)
-    outlook.ts        #   outlookFor — direct espn_id lookup (no fuzzy matching needed)
-    marketValue.ts    #   pickValueEntry, matchValueToPlayers — FantasyCalc value ranks
-                      #   as implied market picks (see "Market value sources")
+    outlook.ts        #   outlookFor — id lookup, Sleeper id first then ESPN id
+                      #   (no fuzzy matching); sleeperKey/espnKey namespace the
+                      #   two so a Sleeper id can't collide with an equal ESPN
+                      #   one — see "Player outlook pipeline"
+    marketValue.ts    #   pickValueEntry, describeValueEntry, matchValueToPlayers —
+                      #   FantasyCalc value ranks as implied market picks;
+                      #   blendMarketMaps — the per-player mean across sources
+                      #   backing 'blend' (see "Market value sources")
     leagueSettings.ts #   isSuperflexLeague, maxKeepersFromLeague,
                       #   suggestedRulesFromLeague, initialRulesForLeague — reading
                       #   a Sleeper league's own config (see "League settings import")
     keeperShare.ts    #   mergeSharedKeepers, withTeamKeepers, withoutTeamKeepers,
-                      #   samePicks — pure merge logic for the shared keeper doc
-                      #   (see below)
+                      #   samePicks, lockedTeamsFor — pure merge logic for the
+                      #   shared keeper doc (see below)
   ui/
     dom.ts            # $, $all, el, setSpin
     tabs.ts           # switchTab + the per-tab lazy/stale load routing (uses
@@ -207,7 +222,7 @@ import no state.
 - **Draft List** (`#panel-draft`): every draftable player, sorted by ADP, with search +
   position filter + a "Hide kept players" toggle. Keepers are greyed out and tagged with
   the keeping team by default; the toggle removes them from the list entirely. **"Kept"
-  here means *resolved* keepers only** — `allKeeperIdsWithTeam` (`selectors.ts`) reads
+  here means _resolved_ keepers only** — `allKeeperIdsWithTeam` (`selectors.ts`) reads
   `getRosterKeeperCostsFor` and skips `cannotBeKept` items rather than reading the raw
   `state.keepers` selection. A selection that failed capacity resolution never occupies a
   pick and really will be in the draft pool, so tagging it KEPT (and hiding it under the
@@ -257,11 +272,11 @@ to keepers-only.
   gets consecutive picks, not interleaved by natural slot position with neighbors). The
   whole sequence is built once, by `buildMockDraftSlots`, at Start.
 - **The pick order is frozen at Start, and deliberately never reads `state.boardOrder`.**
-  `boardOrder` is the board's user-draggable *display* order and can diverge from the real
+  `boardOrder` is the board's user-draggable _display_ order and can diverge from the real
   draft slot the moment a manager drags a column — reading it live would let an ordinary
   cosmetic drag reshuffle an in-progress simulation out from under the manager. Instead
   `orderRosterIdsBySlot` (`domain/draftOrder.ts` — real slot order when known, else the
-  given roster order) is called once and the *result* is snapshotted into
+  given roster order) is called once and the _result_ is snapshotted into
   `state.mockDraft.slotOrderRosterIds`. A later Refresh All, a manager reordering columns,
   or the commissioner finally setting the real draft order mid-simulation can't
   retroactively perturb picks already made.
@@ -302,6 +317,29 @@ to keepers-only.
   result (every remaining player would violate some prerequisite) falls back to the
   position-capped pool rather than getting stuck. AI-only, same as the position cap — the
   manager's own picker is never filtered by either heuristic.
+- **Backup QBs and TEs are penalized rather than forbidden — the one _soft_ heuristic.**
+  The two filters above are both absolute: a cap says "never more than N", a prerequisite
+  says "not before X". Neither can say _"allowed, but it should cost you"_, which is the
+  actual shape of the QB2/TE2 decision — a team that already has its starting QB can sit
+  comfortably under its cap, satisfy every prerequisite, and still have a backup QB as the
+  literal best player available. So `backupPenaltyFor` (`domain/mockDraft.ts`) instead adds
+  picks to a player's _effective_ price, via `bestAvailablePlayer`'s optional `penaltyFor`
+  argument, once the roster already holds as many of that position as the league starts.
+  `BACKUP_PENALTY_ROUNDS` (3) × the team count keeps the nudge worth the same in an 8-team
+  league as a 14-team one — the same league-relative treatment `filterByStarterPriority`
+  gets. A quarterback who slides far enough is still real value and still gets taken; he
+  just stops beating a startable RB/WR in the middle rounds.
+  **The starter/backup line here is `dedicatedStarterCounts`, NOT the FLEX-crediting
+  `startingSlots` the other two heuristics use, and the difference is the whole point.**
+  `positionCaps` counts a generic `FLEX` as TE-eligible (it is, on paper), which puts
+  `startingSlots.TE` at 4 in a 1-TE/3-FLEX league — so a 2nd TE would read as a _starter_
+  and be exempt from exactly the penalty this exists to apply. In practice a FLEX goes to
+  an RB or WR. `dedicatedStarterCounts` therefore credits only `QB`/`TE` slots, plus
+  `SUPER_FLEX` for QB (that one is a genuine QB start). Unknown `roster_positions` returns
+  `{}` and the penalty becomes a no-op, same degradation convention as the other two. A
+  league with no dedicated slot at all for a position reports 0 rather than nothing, which
+  is meaningful: if the lineup never starts a TE, every TE really is competing for a FLEX
+  spot against RB/WR. AI-only, like the rest.
 - **`advance()` runs synchronously to completion of the current AI streak in one JS tick**
   (at most team-count × rounds iterations — trivial). This is exactly why "no time limit"
   needed no `setTimeout`/animation machinery: a call either lands on the manager's turn or
@@ -325,7 +363,7 @@ to keepers-only.
   The second is easy to overlook because `rounds` is otherwise write-only: the board
   renders `1..state.boardRounds` (**live**, not the snapshot), so a shortened draft would
   otherwise hide tail-round mock picks from the grid while their players stayed
-  unavailable in the picker — the frozen value exists to be *compared*, not drawn from.
+  unavailable in the picker — the frozen value exists to be _compared_, not drawn from.
   An unknown `state.boardRounds` (failed load) is deliberately not a mismatch.
 - **`MockDraftState` stores nothing it doesn't read.** A team count and a start timestamp
   were both dropped after review found them write-only — a snapshot field that nothing
@@ -442,7 +480,7 @@ that averages them:
 - **`'blend'`** — the mean of the other three, per player, over whichever of them price
   him (`blendMarketMaps` in `src/domain/marketValue.ts`). All three are already expressed
   as an implied pick number, so the average is meaningful, and it damps each one's
-  characteristic failure. It averages over *available* sources rather than requiring all
+  characteristic failure. It averages over _available_ sources rather than requiring all
   three, because coverage genuinely differs — which does mean a player priced by one source
   is smoothed less than one priced by three. That artifact is real, small where it matters
   (the top of the board, where coverage is total), and cheaper than the alternatives. The
@@ -476,7 +514,7 @@ any time, and the badge saying so is the whole contract.
 
 One wrinkle that has to keep working: **`'adp'` was selectable for months**, so a browser
 that configured a league before 2026-08-13 can still have it in `localStorage` (rules are
-per-league under `kdb_rules_<leagueId>`, and are *not* shared via the Gist). Rendering only
+per-league under `kdb_rules_<leagueId>`, and are _not_ shared via the Gist). Rendering only
 the two current options would leave that league's select showing "FantasyCalc" while the
 app was actually running on FFC ADP — the UI lying about the source, the one thing this
 code may not do. So `syncMarketSourceOptions` re-adds the league's own source, marked
@@ -550,7 +588,7 @@ rate limit ~2.5×, and registered clients are asked to send their registered Use
 >
 > **Every high-stakes/paid-league operator forbids redistributing their ADP** (searched
 > 2026-08-12, specifically for money-league rather than mock data). This is structural, not
-> bad luck: for these outfits ADP *is* a product, a reason to subscribe or to enter their
+> bad luck: for these outfits ADP _is_ a product, a reason to subscribe or to enter their
 > contests, and this app republishes its snapshots to a public GitHub Pages URL, which is
 > unambiguously redistribution. **Don't build on any of them.**
 >
@@ -630,18 +668,18 @@ rate limit ~2.5×, and registered clients are asked to send their registered Use
 workflow (marked `continue-on-error` so an MFL hiccup can't take the other three snapshots
 down with it). Deliberately its **own file**, not extra entries in the FFC snapshot:
 `rankAdpEntries` falls a player through to the next entry when he's missing from the
-closest one, which is right *within* a source and wrong *across* two of them.
+closest one, which is right _within_ a source and wrong _across_ two of them.
 
 Query is `TYPE=adp&IS_KEEPER=N&IS_MOCK=0&PERIOD=ALL&IS_PPR=1&CUTOFF=5`. Every filter is
 load-bearing:
 
-| Filter | Why |
-| --- | --- |
-| `IS_KEEPER=N` | Redraft only. **Keeper-league ADP is the wrong input here despite this being a keeper league** — it's a *post-keeper* board, where the best players are kept rather than drafted, so they barely appear (measured: Gibbs in 19% of keeper drafts, rookie Jeremiyah Love in 93%). That deflates exactly the players the surplus metric is deciding about. |
-| `IS_MOCK=0` | Real drafts only, which FFC cannot express at all. Mocks are only ~12% of MFL's pool anyway (264 vs 236 drafts). |
-| `PERIOD=ALL` | Season to date. `RECENT` is near-empty this early — 9 drafts vs 91 on otherwise identical filters. |
-| `IS_PPR=1` | MFL's PPR flag is binary, no half-PPR. The real-draft pool is ~98% PPR regardless (231 of 236), so asking explicitly costs ~5 drafts and makes the `ppr` format label honest. |
-| `CUTOFF=5` | MFL's own docs: below 5% "the results may be unpredicatble". |
+| Filter        | Why                                                                                                                                                                                                                                                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IS_KEEPER=N` | Redraft only. **Keeper-league ADP is the wrong input here despite this being a keeper league** — it's a _post-keeper_ board, where the best players are kept rather than drafted, so they barely appear (measured: Gibbs in 19% of keeper drafts, rookie Jeremiyah Love in 93%). That deflates exactly the players the surplus metric is deciding about. |
+| `IS_MOCK=0`   | Real drafts only, which FFC cannot express at all. Mocks are only ~12% of MFL's pool anyway (264 vs 236 drafts).                                                                                                                                                                                                                                         |
+| `PERIOD=ALL`  | Season to date. `RECENT` is near-empty this early — 9 drafts vs 91 on otherwise identical filters.                                                                                                                                                                                                                                                       |
+| `IS_PPR=1`    | MFL's PPR flag is binary, no half-PPR. The real-draft pool is ~98% PPR regardless (231 of 236), so asking explicitly costs ~5 drafts and makes the `ppr` format label honest.                                                                                                                                                                            |
+| `CUTOFF=5`    | MFL's own docs: below 5% "the results may be unpredicatble".                                                                                                                                                                                                                                                                                             |
 
 Deliberately **not** filtered by `FCOUNT`. It works (unlike FFC's `teams`), but costs far
 more than it buys at this sample size: `FCOUNT=10` drops 236 drafts to 38, and 38 is where
@@ -654,7 +692,7 @@ Three things the generator has to fix up, all verified against live data:
   parameters are `PERIOD`, `FCOUNT`, `IS_PPR`, `IS_KEEPER`, `IS_MOCK`, `CUTOFF`, `DETAILS`,
   that's the complete list — so the pool silently blends 1QB and superflex leagues.
   Measured against FFC the same day, QBs in the top 40 picks: **FFC half-ppr 1, MFL 8, FFC
-  2qb 17.** MFL sits between the two markets because it *is* both averaged together (Josh
+  2qb 17.** MFL sits between the two markets because it _is_ both averaged together (Josh
   Allen 4.02 there vs 22.8 in FFC half-ppr and 1.4 in FFC 2qb). Since the blend can't be
   undone from outside, the QBs are dropped rather than fed in wrong — same call
   `rankAdpEntries` makes for the superflex partition. `meta.excludedPositions` records this

@@ -42,6 +42,7 @@ directly — see "Or paste a league ID directly" on the setup screen) and a seas
 | `npm run lint`           | ESLint                                                                |
 | `npm run format`         | Prettier (write)                                                      |
 | `npm run fetch-adp`      | Refresh `public/adp-snapshot.json` from Fantasy Football Calculator   |
+| `npm run fetch-mfl-adp`  | Refresh `public/adp-real-snapshot.json` from MyFantasyLeague          |
 | `npm run fetch-outlooks` | Refresh `public/outlook-snapshot.json` from ESPN's public fantasy API |
 | `npm run fetch-values`   | Refresh `public/value-snapshot.json` from FantasyCalc                 |
 
@@ -57,8 +58,11 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
   last season's finish, the defending champion gets a gold tile, and same-manager repeat
   keepers are flagged. With keeper sharing on, only **your** team's stars are interactive —
   every other team's are a read-only indicator, with a 🔒 on any team that has locked in.
-- **Draft List** — every draftable player sorted by market price, with search + position filter.
-  Keepers are greyed out and tagged with the keeping team.
+- **Draft List** — every draftable player sorted by market price, with search + position
+  filter and a "hide kept players" toggle. Keepers are greyed out and tagged with the
+  keeping team — only ones that actually resolved, though: a selection that ran out of
+  pick capacity really will be in the draft pool, so it stays listed as available here and
+  is called out as unkeepable on the Board rather than being tagged KEPT in both places.
 - **Draft Board** — a grid, one column per team (drag or arrow-key the header to reorder,
   order persisted), one row per round. Keeper picks are placed at their cost round, tagged
   with the exact overall pick number once this season's draft order is known, with value +
@@ -121,9 +125,17 @@ tight cap; RB/WR get real headroom from FLEX eligibility. On top of that, it fil
 roster gaps before backups: a team's starting QB(s) before its 2nd bench RB/WR, its
 starting TE before its 3rd bench RB/WR, and its starting QB(s) before its 1st bench TE (and
 vice versa) — expressed relative to your league's own starting-slot counts, so a 2-QB
-league's second QB is treated as a starter, not a bench player gated behind a TE. Your own
-picks are never restricted by either heuristic — the picker always shows every available
-player.
+league's second QB is treated as a starter, not a bench player gated behind a TE.
+
+Finally, once a team has the quarterbacks and tight ends it actually starts, further ones
+are **penalized rather than banned**: three rounds' worth of picks are added to their price,
+so a backup stops beating a startable RB/WR in the middle rounds but a QB who slides far
+enough is still taken. Only dedicated `QB`/`TE` starting slots count here (plus `SUPER_FLEX`
+for QB) — a generic FLEX is TE-eligible on paper but goes to an RB or WR in practice, so
+counting it would exempt the second tight end this is meant to discourage.
+
+Your own picks are never restricted or penalized by any of these — the picker always shows
+every available player.
 
 ## League settings import
 
@@ -182,7 +194,8 @@ and only saving stops, with the UI naming who to contact.
 `surplus = pickValue(marketPick) − pickValue(costPick)`, where
 `pickValue(pick) = 100 × 0.965^(pick−1)`.
 
-- `marketPick` = the player's current ADP pick number.
+- `marketPick` = where the market prices the player, from whichever source is configured —
+  see [Market price sources](#market-price-sources).
 - `costPick` = the keeper's **exact pick number**, once this season's real snake draft
   order has been set by the commissioner — otherwise the **midpoint pick** of the
   keeper's cost round, as a graceful fallback. A small badge next to the ADP source
@@ -195,43 +208,58 @@ and only saving stops, with the UI naming who to contact.
 ## Market price sources
 
 The keeper metric needs one number per player: the pick at which the market prices him.
-Two sources can supply that, and **they are not the same quantity** — pick which in
-Settings (default: FantasyCalc).
+Three sources can supply that, and **they are not the same quantity**:
 
-| Source                          | What it measures                          | Notes                                                               |
-| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| **FantasyCalc** (default)       | Trade value — _how good is this player_   | Steadier; matched by exact Sleeper id                               |
-| **Fantasy Football Calculator** | Real ADP — _what does it cost to get him_ | Literally the keeper question, but can swing hard on a week of news |
+| Source                          | What it measures                        | Notes                                                                       |
+| ------------------------------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| **FantasyCalc** (default)       | Trade value — _how good is this player_ | Steadier; matched by exact Sleeper id                                       |
+| **Fantasy Football Calculator** | ADP over **mock** drafts                | Literally the keeper question, but a big sample with nothing at stake       |
+| **MyFantasyLeague**             | ADP over **real, paid** redraft leagues | Real money on the line, but a much smaller sample — and **no quarterbacks** |
 
-FFC's ADP is the more directly relevant measure, but it's a rolling recent window and
-reacts fast. A real example: Rashee Rice sat at ADP ~27 for three weeks, then ran to 12.7
-in six days — while FantasyCalc still had him near 40. Neither source is simply right, so
-the app ships both and **always labels which is in use** ("Value rank · FantasyCalc" vs
-"ADP · Fantasy Football Calculator"); a value ranking is never presented as ADP.
+ADP is the more directly relevant measure, but FFC's is a rolling recent window that reacts
+fast: Rashee Rice sat at ADP ~27 for three weeks, then ran to 12.7 in six days — while
+FantasyCalc and FFC's own longer-window 2QB set both still had him near 40. MFL's drafts are
+real ones people paid to host, but its export has no QB-count filter, so it silently blends
+1QB and superflex leagues; quarterbacks are dropped from that snapshot rather than fed in
+mispriced.
 
-Both snapshots are matched to your league's actual shape, and the Settings tab shows what
-was detected (size, scoring, QB count, Sleeper's keeper cap) alongside **which entry it
-selected** — so a number that looks wrong can be traced rather than guessed at.
-FantasyCalc keeps a full matrix of team count × scoring × QB count; FFC's ADP varies only
-by scoring, because its league-size parameter returns byte-identical data for every size.
+None is strictly better, so a fourth option — **blend** — averages all three per player over
+whichever of them price him, damping each one's characteristic failure. The UI reports "N of
+3 sources" next to a blended pick so a thin average can't pass for a consensus.
 
-Both are fetched **server-side at CI time** — neither API sends CORS headers a browser
-will accept — by `scripts/fetch-fantasycalc.mjs` and `scripts/fetch-adp.mjs`, committed as
-static snapshots under `public/`, and served same-origin. A scheduled workflow
-(`.github/workflows/refresh-adp.yml`) refreshes them daily. Superflex leagues get their own
-partition from both sources, since starting a second QB reprices the position completely.
-If neither snapshot matches enough players, the app falls back to Sleeper's overall player
-ranking and says so.
+**Settings offers two of these: FantasyCalc and the blend.** Choosing between two crowd-ADP
+feeds by hand was a decision with no good answer; the blend is the answer. The other two are
+still fetched daily and still what the blend is built from — and still what the app falls
+back to if a preferred snapshot fails, which is why the header badge can name any of them.
+Whatever ends up in use, the app **always labels which** ("Value rank · FantasyCalc", "ADP ·
+Fantasy Football Calculator", "ADP · MyFantasyLeague (real drafts)", "Blend · 3 sources"); a
+value ranking is never presented as ADP, and a blend is never presented as one of its inputs.
+
+Every snapshot is matched to your league's actual shape, and the Settings tab shows what was
+detected (size, scoring, QB count, Sleeper's keeper cap) alongside **which entry it
+selected** — so a number that looks wrong can be traced rather than guessed at. FantasyCalc
+keeps a full matrix of team count × scoring × QB count; FFC's ADP varies only by scoring,
+because its league-size parameter returns byte-identical data for every size.
+
+All are fetched **server-side at CI time** — none of these APIs send CORS headers a browser
+will accept — by `scripts/fetch-fantasycalc.mjs`, `scripts/fetch-adp.mjs` and
+`scripts/fetch-mfl-adp.mjs`, committed as static snapshots under `public/`, and served
+same-origin. A scheduled workflow (`.github/workflows/refresh-adp.yml`) refreshes them
+daily. Superflex leagues get their own partition where a source has one, since starting a
+second QB reprices the position completely. If no snapshot matches enough players, the app
+falls back to Sleeper's overall player ranking and says so.
 
 ## Project layout
 
 See `CLAUDE.md` for the module map and contributor conventions. In short: pure,
 state-free, unit-tested logic lives in `src/domain/` (keeper cost, value, ADP matching,
-snake-draft math, shared-keeper merges, league settings); `src/ui/` renders it;
-`src/state.ts` holds the single source of truth; `src/sync.ts` is the stateful glue for
-shared keepers; and `src/api/` is the only place that talks to the network — `sleeper.ts`
-for Sleeper, `adpSnapshot.ts`/`outlookSnapshot.ts` for the same-origin static assets, and
-`gist.ts` for the shared keeper list.
+market-value blending, snake-draft math, mock-draft slots and AI heuristics,
+shared-keeper merges, league settings); `src/ui/` renders it; `src/state.ts` holds the
+single source of truth; `src/selectors.ts` bridges that state into the domain layer;
+`src/sync.ts` and `src/mockDraft.ts` are the stateful glue for shared keepers and the
+mock draft respectively; and `src/api/` is the only place that talks to the network —
+`sleeper.ts` for Sleeper, `adpSnapshot.ts`/`valueSnapshot.ts`/`outlookSnapshot.ts` for
+the same-origin static snapshots, and `gist.ts` for the shared keeper list.
 
 ## License
 

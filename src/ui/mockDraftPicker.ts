@@ -91,9 +91,7 @@ function renderList(): void {
 
   listEl.innerHTML = '';
   if (!rows.length) {
-    listEl.appendChild(
-      el('div', { class: 'mock-picker-empty' }, 'No players match your filters.'),
-    );
+    listEl.appendChild(el('div', { class: 'mock-picker-empty' }, 'No players match your filters.'));
     return;
   }
   for (const r of rows) {
@@ -114,11 +112,7 @@ function renderList(): void {
           }
         },
       },
-      el(
-        'span',
-        { class: 'mock-picker-adp mono' },
-        r.adp >= 9999 ? '—' : r.adp.toFixed(1),
-      ),
+      el('span', { class: 'mock-picker-adp mono' }, r.adp >= 9999 ? '—' : r.adp.toFixed(1)),
       el(
         'div',
         { class: 'mock-picker-info' },
@@ -191,10 +185,7 @@ function ensureBuilt(): void {
   document.body.appendChild(drawerEl);
 }
 
-export function openMockDraftPicker(
-  roundLabel: string,
-  onPick: (playerId: string) => void,
-): void {
+export function openMockDraftPicker(roundLabel: string, onPick: (playerId: string) => void): void {
   ensureBuilt();
   onPickCallback = onPick;
   if (closeTimer) {

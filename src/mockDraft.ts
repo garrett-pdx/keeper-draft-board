@@ -4,6 +4,7 @@
 // practice tool; never touches the shared Gist (see MockDraftState's doc
 // comment in state.ts).
 import {
+  backupPenaltyFor,
   buildMockDraftSlots,
   bestAvailablePlayer,
   filterByPositionCaps,
@@ -15,6 +16,8 @@ import { pickCapacity } from './domain/tradedPicks';
 import {
   keepersInCellFor,
   mockDraftAvailablePlayerIds,
+  mockDraftBackupPenaltyPicks,
+  mockDraftDedicatedStarters,
   mockDraftPositionCaps,
   mockDraftStartingSlots,
   rosterPositionCountsFor,
@@ -68,10 +71,7 @@ export function startMockDraft(): void {
   const claimedRosterId = myRosterId();
   if (claimedRosterId === null || !state.rosters.length) return; // Start button is disabled in this case
   const rosterIds = state.rosters.map((r) => r.roster_id);
-  const slotOrderRosterIds = orderRosterIdsBySlot(
-    state.draft,
-    rosterIds.map(String),
-  ).map(Number);
+  const slotOrderRosterIds = orderRosterIdsBySlot(state.draft, rosterIds.map(String)).map(Number);
   const rounds = state.boardRounds || 0;
   const trades = state.tradedPicks || [];
   const slots = buildMockDraftSlots(
@@ -171,6 +171,12 @@ export function advance(openPicker = true): void {
     //     bench TE (and vice versa) — otherwise a team can legally stay
     //     under its position cap while still front-loading 2-3 QBs in the
     //     first few rounds ahead of any RB/WR.
+    //  3. Backup penalty — the soft one, applied to the ranking rather than
+    //     the pool: once a team has the QBs/TEs it actually starts, further
+    //     ones are priced three rounds worse than the board says. Neither
+    //     filter above can express "allowed, but it should cost you", which
+    //     is the real shape of the QB2/TE2 decision — both are satisfied by
+    //     a backup that happens to be the literal best player available.
     const playersMap = state.playersMap || {};
     const positionOf = (pid: string) => playersMap[pid]?.pos;
     const counts = rosterPositionCountsFor(slot.rosterId);
@@ -182,9 +188,12 @@ export function advance(openPicker = true): void {
       counts,
       mockDraftStartingSlots(),
     );
+    const dedicatedStarters = mockDraftDedicatedStarters();
+    const penaltyPicks = mockDraftBackupPenaltyPicks();
     const playerId = bestAvailablePlayer(
       prioritized.length ? prioritized : cappedPool,
       state.adpMap || {},
+      (pid) => backupPenaltyFor(positionOf(pid), counts, dedicatedStarters, penaltyPicks),
     );
     if (playerId === null) {
       // Shouldn't happen in practice — hundreds of players vs. at most a few
