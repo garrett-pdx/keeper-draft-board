@@ -94,6 +94,13 @@ Encoded in `src/domain/` and covered by tests in `test/`:
   **N rounds** (default 1, adjustable in Settings), floored at round 1. Matched on the
   manager's stable `owner_id`, not `roster_id` (roster ids can change between seasons).
 - A player kept by a **different** team last year does **not** inflate.
+- **Whether a player "was kept last year" has to be inferred.** Sleeper doesn't flag a keeper
+  who was drafted with a **traded pick** — its keeper preassignment only binds to a team's own
+  original slot — so the app fills that gap itself: a pick made from someone else's slot counts
+  as a keeper only if that manager already had the player the season before, and only while the
+  team is under that season's keeper limit. When the app can't check (a league in its second
+  season, or missing history) it falls back to Sleeper's flag alone, which can under-count but
+  never over-charges you.
 - **Undrafted last year** → cost = the **final round** of the draft.
 - **Pick capacity, not a flat "1 slot per round."** A team's actual number of picks in a
   round defaults to 1 but is adjusted by traded picks — down for a pick traded away, up for
@@ -265,9 +272,9 @@ falls back to Sleeper's overall player ranking and says so.
 ## Project layout
 
 See `CLAUDE.md` for the module map and contributor conventions. In short: pure,
-state-free, unit-tested logic lives in `src/domain/` (keeper cost, value, ADP matching,
-market-value blending, snake-draft math, mock-draft slots and AI heuristics,
-shared-keeper merges, league settings); `src/ui/` renders it; `src/state.ts` holds the
+state-free, unit-tested logic lives in `src/domain/` (keeper cost, prior-season keeper
+detection, value, ADP matching, market-value blending, snake-draft math, mock-draft slots
+and AI heuristics, shared-keeper merges, league settings); `src/ui/` renders it; `src/state.ts` holds the
 single source of truth; `src/selectors.ts` bridges that state into the domain layer;
 `src/sync.ts` and `src/mockDraft.ts` are the stateful glue for shared keepers and the
 mock draft respectively; and `src/api/` is the only place that talks to the network —

@@ -12,7 +12,6 @@ import {
 } from './state';
 import type { SleeperDraft } from './api/schemas';
 import { matchAdpToPlayers, rankAdpEntries } from './domain/adp';
-import { pickWasAcquiredViaTrade } from './domain/draftOrder';
 import {
   blendMarketMaps,
   describeValueEntry,
@@ -20,7 +19,8 @@ import {
   pickValueEntry,
 } from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
-import { isSuperflexLeague } from './domain/leagueSettings';
+import { isSuperflexLeague, maxKeepersFromLeague } from './domain/leagueSettings';
+import { buildPrevDraftMap, rosteredOwnersFromRosters } from './domain/prevKeepers';
 import { espnKey, sleeperKey } from './domain/outlook';
 import type { TradedPicksList } from './domain/tradedPicks';
 import type { MarketSource, OutlookMap, PlayersMap, PrevDraftMap } from './types';
@@ -261,6 +261,11 @@ export async function ensureOutlookLoaded(force?: boolean): Promise<OutlookMap> 
 // stable across seasons — roster_id can change year to year. We map each
 // previous-season pick's roster_id -> previous owner user_id, storing that on
 // the pick record; callers compare against the CURRENT roster's owner_id.
+//
+// Deciding which of those picks were actually KEPT is its own problem, because
+// Sleeper's is_keeper flag misses any keeper drafted with a traded pick — see
+// domain/prevKeepers.ts, which owns that verdict. This function's job is
+// purely to gather the four inputs it needs and hand them over.
 export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftMap> {
   if (state.prevDraftLoaded && !force) return state.prevDraftMap!;
   state.prevDraftMap = {};
@@ -274,43 +279,42 @@ export async function ensurePrevDraftLoaded(force?: boolean): Promise<PrevDraftM
     const prevLeague = await sleeper.league(prevLeagueId);
     if (!prevLeague || !prevLeague.draft_id) return state.prevDraftMap;
 
-    // build prev-season roster_id -> owner user_id map (best-effort; may be empty)
+    // Everything below depends only on prevLeague, so it goes out in parallel
+    // rather than as four serial round trips — this sits on the Rosters tab's
+    // first paint (loadRosters awaits it before rendering), so the ordering is
+    // user-visible. Each hop swallows its own failure: only `picks` is
+    // essential, and the rest degrade to a narrower keeper verdict rather than
+    // taking the whole map down with them.
+    const [prevRosters, prevDraft, picks, seasonBeforeRosters] = await Promise.all([
+      sleeper.rosters(prevLeagueId).catch(() => null),
+      sleeper.draft(prevLeague.draft_id).catch(() => null),
+      sleeper.draftPicks(prevLeague.draft_id),
+      // The season BEFORE last, for the corroboration in buildPrevDraftMap. A
+      // league in its second season simply has no such league, which must read
+      // as "no inference", not as an error — hence its own catch and the
+      // deliberate null rather than an empty array.
+      prevLeague.previous_league_id
+        ? sleeper.rosters(prevLeague.previous_league_id).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+
     const prevRosterOwner: Record<string, string> = {};
-    try {
-      const prevRosters = await sleeper.rosters(prevLeagueId);
-      prevRosters.forEach((r) => {
-        if (r.owner_id) prevRosterOwner[String(r.roster_id)] = r.owner_id;
-      });
-    } catch {
-      /* fall back to raw roster_id matching */
-    }
+    (prevRosters || []).forEach((r) => {
+      if (r.owner_id) prevRosterOwner[String(r.roster_id)] = r.owner_id;
+    });
 
-    // Best-effort: lets wasKeeper below also catch a keeper picked with a
-    // traded pick, which Sleeper's own is_keeper flag can never reflect (see
-    // pickWasAcquiredViaTrade). Missing/unavailable just means that fallback
-    // stays off — is_keeper alone still works for ordinary keepers.
-    let prevDraft: SleeperDraft | null = null;
-    try {
-      prevDraft = await sleeper.draft(prevLeague.draft_id);
-    } catch {
-      /* fall through — is_keeper alone still covers ordinary keepers */
-    }
-
-    const picks = await sleeper.draftPicks(prevLeague.draft_id);
-    const map: PrevDraftMap = {};
-    for (const pick of picks) {
-      if (!pick.player_id) continue;
-      const prevRid = String(pick.roster_id);
-      map[pick.player_id] = {
-        round: pick.round,
-        rosterId: pick.roster_id, // raw prev-season roster_id (fallback only)
-        ownerId: prevRosterOwner[prevRid] || null, // stable manager id (preferred)
-        wasKeeper:
-          pick.is_keeper === true ||
-          pickWasAcquiredViaTrade(prevDraft, pick.roster_id, pick.draft_slot),
-      };
-    }
-    state.prevDraftMap = map;
+    state.prevDraftMap = buildPrevDraftMap({
+      picks,
+      prevDraft,
+      prevRosterOwner,
+      rosteredOwnersByPlayer: rosteredOwnersFromRosters(seasonBeforeRosters),
+      // The cap that governed the draft being read, which is not necessarily
+      // this season's: state.rules.maxKeepers is user-editable up to 4 (which
+      // would switch the cap off entirely) and, because this loader
+      // short-circuits on prevDraftLoaded while Settings only re-renders,
+      // reading it here would leave wasKeeper silently stale after an edit.
+      maxKeepers: maxKeepersFromLeague(prevLeague.settings?.max_keepers) ?? state.rules.maxKeepers,
+    });
   } catch {
     state.prevDraftMap = {};
   }

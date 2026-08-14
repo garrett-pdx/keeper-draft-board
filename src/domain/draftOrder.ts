@@ -86,15 +86,19 @@ export function orderRosterIdsBySlot(
  * exercised using one acquired via trade, not the roster's own original slot.
  *
  * This exists because Sleeper's own `is_keeper` flag on a draft pick is
- * confirmed to never be set for a pick made this way (verified live: every
- * real is_keeper:true pick in a real league's draft landed on the drafting
- * roster's own natural slot, none on an acquired one) — Sleeper's
- * keeper-preassignment can only bind to a team's own original slot. So a
- * manager who kept a player using a traded pick reads as a non-keeper from
- * is_keeper alone. Combined with is_keeper in ensurePrevDraftLoaded
- * (src/data.ts) so the "was this a real keeper" signal covers both cases
- * without loosening to "any repeat pick", which would also catch a manager
- * coincidentally re-drafting the same player twice with their own picks.
+ * confirmed to never be set for a pick made this way (verified live: across 13
+ * drafts / 2008 picks, not one is_keeper:true pick landed on an acquired slot)
+ * — Sleeper's keeper-preassignment can only bind to a team's own original
+ * slot. So a manager who kept a player using a traded pick reads as a
+ * non-keeper from is_keeper alone.
+ *
+ * **This is a necessary condition for that hidden case, never a sufficient
+ * one, and treating it as sufficient was a real bug** (issue #2): in one real
+ * draft it flagged 14 picks of which only 2 were kept, because a manager who
+ * trades for a pick and drafts an ordinary player with it looks identical
+ * here. domain/prevKeepers.ts owns the actual verdict and corroborates this
+ * signal against whether that manager already held the player; do not
+ * reintroduce a bare `is_keeper || pickWasAcquiredViaTrade`.
  *
  * Never guesses: returns false (not "true", not "unknown") whenever the
  * order isn't known — a missed traded-pick keeper degrades to the prior

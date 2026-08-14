@@ -116,6 +116,10 @@ src/
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
                       #   overrides the round-midpoint approximation when known)
+    prevKeepers.ts    #   buildPrevDraftMap — which of LAST season's picks were
+                      #   actually kept (is_keeper + a corroborated trade-slot
+                      #   inference, capped per roster); rosteredOwnersFromRosters
+                      #   — see "Detecting last season's keepers"
     keeperCost.ts     #   sameManagerLastYear, potentialKeeperCost, isInflatedForRoster,
                       #   getRosterKeeperCosts (capacity-aware assignment: same-round
                       #   collisions AND traded-away/acquired picks, cascading toward
@@ -126,9 +130,9 @@ src/
                       #   used both to seed the board's default column order and
                       #   (frozen once, at Start) a mock draft's pick sequence;
                       #   pickWasAcquiredViaTrade — was a pick made from a slot
-                      #   other than the roster's own, i.e. acquired by trade
-                      #   (the "was this really a keeper" signal Sleeper's own
-                      #   is_keeper flag can never carry — see ensurePrevDraftLoaded)
+                      #   other than the roster's own, i.e. acquired by trade.
+                      #   A NECESSARY, not sufficient, condition for the keepers
+                      #   Sleeper's is_keeper flag misses — see prevKeepers.ts
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
                       #   actually holds per round, adjusted by trades
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
@@ -406,6 +410,8 @@ to keepers-only.
   (user_id), NOT roster_id — roster_ids can shift between seasons. See `sameManagerLastYear`.
 - A player kept by a _different_ team last year does NOT inflate.
 - **Undrafted last year** → cost = the **final round** of the draft (`lastDraftRound()`).
+- **"Was kept last year" is inferred, not simply read** — see "Detecting last season's
+  keepers" below. Every rule above about inflation depends on that verdict.
 - **Pick capacity, not a flat "1 slot per round."** A team's actual number of picks in a
   round defaults to 1 but is adjusted by traded picks (`src/domain/tradedPicks.ts`:
   `pickCapacity`) — down for a pick traded away, up for one acquired. If more keepers want
@@ -434,6 +440,59 @@ to keepers-only.
   is this player," since there's no cost to weigh it against. The Draft Board
   (`src/ui/board.ts`) reflects this by leaving every round open (no keeper ever occupies a
   cell) and listing each team's taxi squad in a summary panel above the grid instead.
+
+## Detecting last season's keepers
+
+Inflation hinges on `PrevDraftEntry.wasKeeper`, and **Sleeper cannot tell us that reliably.**
+`is_keeper` is never set on a pick made from a **traded-in draft slot** — its keeper
+preassignment can only bind to a team's own original slot — so a manager who kept a player
+using an acquired pick reads as an ordinary drafter. Confirmed live: two of this league's 2025
+keepers (Malik Nabers, Jayden Daniels, both genuinely kept per the commissioner) carry
+`is_keeper: null` for exactly this reason. Across 13 drafts / 2008 picks reachable from this
+user's leagues there is **not one** `is_keeper: true` pick on an acquired slot.
+
+`buildPrevDraftMap` (`src/domain/prevKeepers.ts`) resolves it with three rules, per roster:
+
+1. **Every `is_keeper` pick counts.** Sleeper's own flag is never second-guessed.
+2. **An acquired-slot pick counts only if that manager already held the player at the end of
+   the season before.** Matched on stable `owner_id`, never `roster_id` — Sleeper recycles
+   roster ids, and across a two-season gap that match is noise. This is the corroboration; the
+   trade-slot signal alone is necessary but nowhere near sufficient.
+3. **Corroborated candidates fill only the slots rule 1 left free, and if there are more of
+   them than slots, none are admitted.** Refusing to guess is deliberate — the obvious
+   tie-breaks are all wrong (an early-round acquired pick is the _most_ likely ordinary
+   trade-up and the _least_ likely keeper), and it never arises in four seasons of real data.
+
+> **The cap is not decoration, and neither is the corroboration — each covers a season the
+> other gets wrong.** In the 2025 draft, corroboration alone is sufficient (2 of 14 candidates
+> survive, both on rosters with a free slot). In 2024, Jakobi Meyers _does_ corroborate but his
+> roster already held two `is_keeper` picks, so only the cap suppresses him. Drop either rule
+> and the bug returns in one season or the other.
+
+**`maxKeepers` comes from the league being read** (`prevLeague.settings.max_keepers` via
+`maxKeepersFromLeague`), not `state.rules.maxKeepers`. Three reasons, all live: it's last
+season's rule, not this one's; the Settings value is user-editable up to 4, which would switch
+the cap off; and since `ensurePrevDraftLoaded` short-circuits on `prevDraftLoaded` while
+Settings only re-renders, reading the live setting would leave `wasKeeper` silently stale after
+an edit.
+
+**Inference switches off entirely — leaving `is_keeper` alone, the behavior from before any of
+this existed — whenever its inputs are missing**: no season-before league (a league in its
+second season), a failed rosters fetch, or a roster with no `owner_id` (orphan/commissioner
+teams). `rosteredOwnersByPlayer` is `null` rather than `{}` for precisely this reason: "we
+couldn't load it" must be distinguishable from "loaded, and nobody held him."
+
+**Known blind spot, measured rather than assumed.** Corroboration recalls ~78% of genuine
+keepers — 14 of this league's 18 known 2025 keepers. The misses are players acquired in the
+offseason and kept by their _new_ manager, who by definition weren't on that manager's roster
+the season before. Such a keeper is only actually missed if he was **also** drafted on a traded
+slot, which has never happened here, and the failure undercharges — the safe direction.
+
+> **What this replaced, so it isn't reintroduced.** The previous code was
+> `is_keeper === true || pickWasAcquiredViaTrade(...)`. In the 2025 draft that flagged 14 extra
+> picks of which 12 were ordinary picks made with traded-for capital, putting **8 of 10 rosters
+> over a hard 2-keeper limit** and overcharging 8 players by a round (issue #2). A bare
+> `is_keeper || acquiredSlot` is always wrong.
 
 ## Backend (Cloudflare Worker)
 
