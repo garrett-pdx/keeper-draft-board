@@ -57,13 +57,13 @@ export function exactPickForRoster(
  * pre-order. Any id missing from `slot_to_roster_id` is appended at the end
  * in its original relative order rather than dropped.
  *
- * Used to seed both the board's default column order (state.ts's
- * naturalBoardOrder, a thin wrapper around this) and a mock draft's frozen
- * pick sequence (src/mockDraft.ts) — the latter calls this once at Start and
- * freezes the result, deliberately never reading state.boardOrder (the
- * board's user-draggable *display* order, which can diverge from real slot
- * order the moment a manager drags a column, and would otherwise let an
- * ordinary cosmetic drag reshuffle an in-progress mock draft).
+ * This is the *natural* order — what the board falls back to before anyone
+ * rearranges anything (state.ts's naturalBoardOrder is a thin wrapper) and
+ * what a mock draft falls back to if no board order has been built yet. It is
+ * NOT the last word on a mock draft's pick sequence: before Sleeper publishes
+ * a real order the manager's own column arrangement is the only order that
+ * exists, so startMockDraft (src/mockDraft.ts) prefers state.boardOrder and
+ * uses this as the fallback. See frozenSlotOrder there.
  */
 export function orderRosterIdsBySlot(
   draft: SleeperDraft | null | undefined,
@@ -78,6 +78,23 @@ export function orderRosterIdsBySlot(
   const ordered = withSlot.map((x) => x.id);
   const withoutSlot = rosterIds.filter((id) => !ordered.includes(id));
   return ordered.concat(withoutSlot);
+}
+
+/**
+ * Reconciles an order saved earlier against the ids that actually exist now:
+ * ids present in `saved` keep their saved relative order, ids missing from it
+ * are appended in `fallback` order rather than dropped, and ids no longer in
+ * `fallback` are discarded.
+ *
+ * Shared by the two places that resurrect a stored column arrangement — the
+ * board's own localStorage round-trip (state.ts's ensureBoardOrder, against
+ * the current roster ids) and a mock draft's frozen pick sequence
+ * (src/mockDraft.ts's frozenSlotOrder, against the natural slot order). The
+ * fallback differs; the reconciliation must not.
+ */
+export function reconcileOrder(saved: string[], fallback: string[]): string[] {
+  const kept = saved.filter((id) => fallback.includes(id));
+  return kept.concat(fallback.filter((id) => !kept.includes(id)));
 }
 
 /**

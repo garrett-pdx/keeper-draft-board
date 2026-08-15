@@ -13,7 +13,7 @@ import type {
   SleeperUser,
 } from './types';
 import { canReadShared } from './api/gist';
-import { hasKnownDraftOrder, orderRosterIdsBySlot } from './domain/draftOrder';
+import { hasKnownDraftOrder, orderRosterIdsBySlot, reconcileOrder } from './domain/draftOrder';
 import { lockedTeamsFor } from './domain/keeperShare';
 import { initialRulesForLeague } from './domain/leagueSettings';
 import type { MockDraftSlot } from './domain/mockDraft';
@@ -63,14 +63,22 @@ export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error';
 /**
  * A local-only practice simulation on the Draft Board — never touches the
  * shared Gist. `slots`/`slotOrderRosterIds`/`claimedRosterId` are snapshotted
- * once at Start (src/mockDraft.ts's startMockDraft) so a later Refresh All, a
- * manager dragging a board column, the real draft order finally being set by
- * the commissioner, or the signed-in manager re-claiming a *different* team
- * via the Rosters tab mid-simulation can't retroactively perturb an
- * in-progress simulation — turn matching uses `claimedRosterId`, never a live
- * `myRosterId()` read, so a re-claim can't cause the AI to silently draft what
- * should have been the manager's own pick. `picks` is parallel to `slots`;
- * `null` = not yet picked, so "find the next open pick" is a single findIndex.
+ * once at Start (src/mockDraft.ts's startMockDraft) so a later Refresh All,
+ * the real draft order finally being set by the commissioner, or the
+ * signed-in manager re-claiming a *different* team via the Rosters tab
+ * mid-simulation can't retroactively perturb an in-progress simulation — turn
+ * matching uses `claimedRosterId`, never a live `myRosterId()` read, so a
+ * re-claim can't cause the AI to silently draft what should have been the
+ * manager's own pick. `picks` is parallel to `slots`; `null` = not yet
+ * picked, so "find the next open pick" is a single findIndex.
+ *
+ * `slotOrderRosterIds` is seeded from `state.boardOrder` — before Sleeper
+ * publishes a real order the board's columns are the only draft order there
+ * is, so dragging one picks the slot you practice from (see frozenSlotOrder).
+ * Snapshotting it here is what keeps that a *choice made at Start* rather
+ * than a live read; board.ts additionally refuses to reorder columns at all
+ * while a mock draft exists, so the grid can't end up displaying an order the
+ * simulation isn't running in.
  *
  * `rounds` is the one snapshot that is *checked* rather than used: the board
  * renders `1..state.boardRounds` (live), so a commissioner shrinking the draft
@@ -343,11 +351,7 @@ export function ensureBoardOrder(): void {
     order = null;
   }
   if (!Array.isArray(order)) order = [];
-  // keep any known ids in their saved order, then append new ones, drop stale ones
-  const saved = order as string[];
-  const kept = saved.filter((id) => currentIds.includes(id));
-  const missing = currentIds.filter((id) => !kept.includes(id));
-  state.boardOrder = kept.concat(missing);
+  state.boardOrder = reconcileOrder(order as string[], currentIds);
   saveBoardOrder();
 }
 

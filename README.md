@@ -70,7 +70,10 @@ Before pushing, the full gate is what CI runs: `npm run lint`, `npm run typechec
 - **Draft Board** — a grid, one column per team, one row per round. You can drag or
   arrow-key the headers to reorder teams **until Sleeper publishes the real draft order** —
   after that the columns are the draft itself, left to right, so reordering is switched off
-  and any arrangement you'd dragged earlier is dropped. Keeper picks are placed at their cost round, tagged
+  and any arrangement you'd dragged earlier is dropped. While the order is still yours to
+  set, it's also the order a mock draft runs in, so drag yourself to whichever slot you want
+  to practice from; reordering is likewise switched off while a mock draft is in progress
+  (Reset Draft to rearrange). Keeper picks are placed at their cost round, tagged
   with the exact overall pick number once this season's draft order is known, with value +
   bumped-round warnings. Open cells flag rounds affected by a trade (`→ team` on the giving
   side, `+N incoming from team` on the receiving side). Players who can't be kept at all
@@ -129,6 +132,13 @@ snake order by a simple best-player-available AI, pausing the instant it's your 
 a filterable player picker (same search + position filter as the Draft List). Pick, and it
 resumes auto-drafting until your next turn, repeating until the draft's done. **Reset
 Draft** clears it back to keepers-only so you can run it again.
+
+**You pick your draft slot by arranging the board.** If your commissioner hasn't set the
+real order yet, the columns left-to-right are the order the mock runs in — drag your team
+to 5th and you'll pick 5th. Whatever's on the board when you hit Start is frozen for that
+simulation, and the columns lock while it runs so the grid always shows the order you're
+actually drafting in. Once Sleeper publishes the real order it takes over and the board
+stops being rearrangeable at all.
 
 The AI isn't purely ADP-blind, though. Three rules narrow what an opponent will consider,
 all derived from your league's own starting lineup:

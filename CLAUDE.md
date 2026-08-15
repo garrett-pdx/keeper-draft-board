@@ -91,7 +91,9 @@ src/
                       #   (see "Shared keeper picks")
   mockDraft.ts        # stateful glue for the Draft Board's mock draft —
                       #   startMockDraft, advance, makeUserPick, resetMockDraft,
-                      #   resumeMockDraft (see "Mock draft"). Local-only; never
+                      #   resumeMockDraft, plus frozenSlotOrder — the board
+                      #   column order, snapshotted at Start as the pick
+                      #   sequence (see "Mock draft"). Local-only; never
                       #   touches the shared Gist. The only module that imports
                       #   both domain/mockDraft.ts and ui/board.ts/
                       #   ui/mockDraftPicker.ts.
@@ -127,8 +129,10 @@ src/
     draftOrder.ts     #   hasKnownDraftOrder, slotForRoster, exactPickNumber,
                       #   exactPickForRoster — snake-draft exact pick number math;
                       #   orderRosterIdsBySlot — real slot order else given order,
-                      #   used both to seed the board's default column order and
-                      #   (frozen once, at Start) a mock draft's pick sequence;
+                      #   the board's default column arrangement and a mock
+                      #   draft's fallback pick sequence; reconcileOrder — merge
+                      #   a saved arrangement with the ids that exist now (shared
+                      #   by ensureBoardOrder and frozenSlotOrder);
                       #   pickWasAcquiredViaTrade — was a pick made from a slot
                       #   other than the roster's own, i.e. acquired by trade.
                       #   A NECESSARY, not sufficient, condition for the keepers
@@ -255,17 +259,24 @@ import no state.
   Selecting FLEX therefore shows every player eligible for that league's flex spots. An
   unknown lineup filters nothing and falls back to the old fixed option list.
 - **Draft Board** (`#panel-board`): a grid, one column per team. **Column order is only
-  editable until Sleeper publishes the real one.** Before that, headers are
+  editable until Sleeper publishes the real one, and only while no mock draft is running.**
+  Before that, headers are
   drag-or-arrow-key reorderable and the arrangement persists (headers are
   keyboard-focusable and refocus themselves after a move, since re-render rebuilds the
-  table). Once `hasKnownDraftOrder` is true (`isBoardOrderLocked` in `state.ts`) the
+  table) — and that arrangement is not cosmetic: it is the order a mock draft will run in
+  (see below). Once `hasKnownDraftOrder` is true (`isBoardOrderLocked` in `state.ts`) the
   columns _are_ the draft, left to right: every reorder affordance is dropped — no drag
   handle, no `draggable`, no `role="button"`/`tabindex` claiming interactivity that isn't
   there — and `ensureBoardOrder` **discards** any saved manual arrangement, clearing the
   `kdb_board_order_custom_*` flag so it can't come back if the commissioner later un-sets
   the order. A hand-dragged order that outlived the real one made the board look
   authoritative while being wrong, which is worse than one merely arranged inconveniently
-  (issue #1). Only keeper picks are filled in, placed at
+  (issue #1). **The same affordances are dropped, by the same `reorderable` branch, while
+  `state.mockDraft` exists** — that simulation froze this arrangement as its pick sequence,
+  so rearranging now would leave the grid showing an order the simulation isn't running in.
+  Reset Draft to rearrange. Deliberately not handled by extending `mockDraftMismatch()`:
+  with the drag blocked there is nothing left to detect, and forcing a reset over an
+  accidental drag would discard 100+ picks. Only keeper picks are filled in, placed at
   their cost round, tagged with the exact overall pick number once this season's draft
   order is known. Open cells show a traded-away/incoming-pick note (`→ {team}` /
   `+N incoming from {team}`) for rounds affected by a trade. Shows value + bumped-round
@@ -304,15 +315,23 @@ to keepers-only.
   picks — 0 (skip), 1 (normal), or 2+ (a roster holding an extra pick that round via trade
   gets consecutive picks, not interleaved by natural slot position with neighbors). The
   whole sequence is built once, by `buildMockDraftSlots`, at Start.
-- **The pick order is frozen at Start, and deliberately never reads `state.boardOrder`.**
-  `boardOrder` is the board's user-draggable _display_ order and can diverge from the real
-  draft slot the moment a manager drags a column — reading it live would let an ordinary
-  cosmetic drag reshuffle an in-progress simulation out from under the manager. Instead
-  `orderRosterIdsBySlot` (`domain/draftOrder.ts` — real slot order when known, else the
-  given roster order) is called once and the _result_ is snapshotted into
-  `state.mockDraft.slotOrderRosterIds`. A later Refresh All, a manager reordering columns,
-  or the commissioner finally setting the real draft order mid-simulation can't
-  retroactively perturb picks already made.
+- **The pick order comes from `state.boardOrder`, resolved once at Start and frozen.**
+  Before Sleeper publishes a real draft order, the board's columns _are_ the only order
+  that exists, so a manager dragging themselves from 3rd to 5th is choosing the slot they
+  want to practice from. Deriving the sequence from `state.draft` alone ignored that
+  entirely — `orderRosterIdsBySlot` returns its input unchanged pre-order, so every mock
+  draft ran in flat roster_id order no matter what the board showed (issue #3).
+  `frozenSlotOrder` (`src/mockDraft.ts`) now prefers `state.boardOrder`, reconciled via
+  `reconcileOrder` against `orderRosterIdsBySlot` as the fallback, and snapshots the
+  _result_ into `state.mockDraft.slotOrderRosterIds`.
+  **Two things keep that safe, and neither is "ignore boardOrder".** First, it is resolved
+  exactly once and never read live, so a later Refresh All or the commissioner finally
+  setting the real order mid-simulation can't perturb picks already made. Second, the
+  board refuses to reorder columns at all while `state.mockDraft` exists (see the Draft
+  Board tab above), so the grid can never display an order the simulation isn't running
+  in. Note there is no conflict once the real order _is_ known: the board is un-draggable
+  then and `ensureBoardOrder` pins `boardOrder` to `orderRosterIdsBySlot`, so both sources
+  already agree.
 - **Three AI-only pool filters sit on top of best-player-available, applied in order.**
   The manager's own turn always sees the full, unfiltered player list in the picker — every
   one of these is an AI-realism heuristic, never a restriction on what the user may draft.

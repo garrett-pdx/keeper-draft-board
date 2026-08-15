@@ -31,9 +31,11 @@ import { updateAdpSourceBadge, updatePickSourceBadge } from './header';
 
 function reorderBoardColumns(draggedId: string, targetId: string): void {
   // Defense in depth: the handlers that reach here aren't attached at all once
-  // the order is locked, but the same rule is enforced here too — the same
-  // belt-and-braces treatment toggleKeeper gives canEditRoster.
-  if (isBoardOrderLocked()) return;
+  // the order is locked — by Sleeper publishing the real one, or by a mock
+  // draft freezing this one as its pick sequence — but the same rules are
+  // enforced here too, the belt-and-braces treatment toggleKeeper gives
+  // canEditRoster.
+  if (isBoardOrderLocked() || state.mockDraft) return;
   if (draggedId === targetId) return;
   const order = (state.boardOrder || []).slice();
   const from = order.indexOf(draggedId);
@@ -140,11 +142,22 @@ export function renderBoard(): void {
   }
   const noKeeperCost = state.rules.noKeeperCost;
   const locked = isBoardOrderLocked();
+  // A running mock draft froze this arrangement as its pick sequence, so
+  // rearranging now would leave the grid showing an order the simulation
+  // isn't running in — the exact display/sim disagreement issue #3 was about.
+  const frozenByMock = !!state.mockDraft;
+  const reorderable = !locked && !frozenByMock;
   const noteEl = $('#boardNote');
   if (noteEl) {
-    const orderNote = locked
-      ? 'Columns are in this season’s real draft order, straight from Sleeper.'
-      : 'Drag a column header to reorder teams.';
+    let orderNote: string;
+    if (locked) {
+      orderNote = 'Columns are in this season’s real draft order, straight from Sleeper.';
+    } else if (frozenByMock) {
+      orderNote = 'Columns are the order this mock draft is running in — reset it to rearrange.';
+    } else {
+      orderNote =
+        'Drag a column header to reorder teams — this also sets the order your mock draft runs in.';
+    }
     noteEl.textContent = noKeeperCost
       ? `${orderNote} This league keeps players for free (taxi squad) — every round is open, and kept players are listed below instead.`
       : `${orderNote} Only keeper picks are filled in — everything else opens up on draft day.`;
@@ -221,11 +234,12 @@ export function renderBoard(): void {
     const roster = rosterById[rid];
     if (!roster) continue;
     const teamName = teamNameForRoster(roster.roster_id);
-    // Once Sleeper has the real order, the columns *are* the draft order, so
-    // none of the reorder affordances are rendered at all — no drag handle, no
-    // draggable attribute, and no role/tabindex claiming an interactivity that
-    // isn't there.
-    const dragAttrs: ElAttrs = locked
+    // Once Sleeper has the real order — or a mock draft has frozen this one as
+    // its pick sequence — the columns *are* a draft order, so none of the
+    // reorder affordances are rendered at all: no drag handle, no draggable
+    // attribute, and no role/tabindex claiming an interactivity that isn't
+    // there.
+    const dragAttrs: ElAttrs = !reorderable
       ? {}
       : {
           draggable: 'true',
@@ -268,7 +282,7 @@ export function renderBoard(): void {
       el(
         'div',
         { class: 'board-th-inner' },
-        locked ? null : el('span', { class: 'drag-handle' }, '⋮⋮'),
+        reorderable ? el('span', { class: 'drag-handle' }, '⋮⋮') : null,
         el('span', { class: 'th-team' }, teamName),
       ),
     );

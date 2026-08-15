@@ -6,6 +6,7 @@ import {
   exactPickForRoster,
   pickWasAcquiredViaTrade,
   orderRosterIdsBySlot,
+  reconcileOrder,
 } from '../src/domain/draftOrder';
 import type { SleeperDraft } from '../src/api/schemas';
 
@@ -211,5 +212,37 @@ describe('orderRosterIdsBySlot', () => {
 
   it('returns an empty array for an empty input', () => {
     expect(orderRosterIdsBySlot(COMPLETE_DRAFT, [])).toEqual([]);
+  });
+});
+
+describe('reconcileOrder', () => {
+  it('keeps the saved arrangement when it covers everything', () => {
+    expect(reconcileOrder(['3', '1', '2'], ['1', '2', '3'])).toEqual(['3', '1', '2']);
+  });
+
+  it('appends ids missing from the saved order, in fallback order', () => {
+    // A team added since the arrangement was saved slots in at the end rather
+    // than vanishing off the board.
+    expect(reconcileOrder(['3', '1'], ['1', '2', '3', '4'])).toEqual(['3', '1', '2', '4']);
+  });
+
+  it('drops saved ids that no longer exist', () => {
+    expect(reconcileOrder(['9', '2', '1'], ['1', '2'])).toEqual(['2', '1']);
+  });
+
+  it('falls back entirely for an empty saved order', () => {
+    expect(reconcileOrder([], ['2', '1', '3'])).toEqual(['2', '1', '3']);
+  });
+
+  it('returns an empty array when nothing exists to order', () => {
+    expect(reconcileOrder(['1', '2'], [])).toEqual([]);
+  });
+
+  it('does not mutate either argument', () => {
+    const saved = ['2', '1'];
+    const fallback = ['1', '2', '3'];
+    reconcileOrder(saved, fallback);
+    expect(saved).toEqual(['2', '1']);
+    expect(fallback).toEqual(['1', '2', '3']);
   });
 });

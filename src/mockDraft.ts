@@ -11,7 +11,7 @@ import {
   filterBenchQbTe,
   type MockDraftSlot,
 } from './domain/mockDraft';
-import { orderRosterIdsBySlot } from './domain/draftOrder';
+import { orderRosterIdsBySlot, reconcileOrder } from './domain/draftOrder';
 import { pickCapacity } from './domain/tradedPicks';
 import {
   keepersInCellFor,
@@ -66,11 +66,38 @@ export function mockDraftMismatch(): boolean {
   return !!state.boardRounds && state.boardRounds !== state.mockDraft.rounds;
 }
 
+/**
+ * The order this mock draft's picks run in, resolved once at Start.
+ *
+ * Reads the board's own column order, because until Sleeper publishes a real
+ * draft order those columns *are* the only order there is — a manager who
+ * drags themselves from 3rd to 5th is saying which slot they want to practice
+ * from, and deriving the order from `state.draft` alone ignored that entirely
+ * (issue #3: the mock kept running in roster_id order).
+ *
+ * There is no divergence to fear once the real order IS known: the board is
+ * un-draggable then (isBoardOrderLocked) and ensureBoardOrder pins
+ * state.boardOrder to orderRosterIdsBySlot, so both sources agree. What
+ * protects an in-progress simulation isn't ignoring boardOrder, it's that this
+ * runs exactly once and the result is snapshotted into slotOrderRosterIds,
+ * never read live — plus board.ts refusing to reorder columns at all while a
+ * mock draft exists.
+ */
+function frozenSlotOrder(rosterIds: number[]): number[] {
+  const natural = orderRosterIdsBySlot(state.draft, rosterIds.map(String));
+  const board = (state.boardOrder || []).filter((id) => natural.includes(id));
+  // Unreachable from the board tab (loadBoard calls ensureBoardOrder before
+  // rendering the Start button), but a mock draft must never run on an empty
+  // pick order.
+  if (!board.length) return natural.map(Number);
+  return reconcileOrder(board, natural).map(Number);
+}
+
 export function startMockDraft(): void {
   const claimedRosterId = myRosterId();
   if (claimedRosterId === null || !state.rosters.length) return; // Start button is disabled in this case
   const rosterIds = state.rosters.map((r) => r.roster_id);
-  const slotOrderRosterIds = orderRosterIdsBySlot(state.draft, rosterIds.map(String)).map(Number);
+  const slotOrderRosterIds = frozenSlotOrder(rosterIds);
   const rounds = state.boardRounds || 0;
   const trades = state.tradedPicks || [];
   const slots = buildMockDraftSlots(
