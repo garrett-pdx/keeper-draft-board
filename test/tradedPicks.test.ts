@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   pickCapacity,
   heldPickOriginalOwners,
+  pickHolder,
   type TradedPicksList,
 } from '../src/domain/tradedPicks';
 
@@ -56,5 +57,37 @@ describe('heldPickOriginalOwners', () => {
 
   it('returns both original owners when a roster holds an acquired pick alongside its own', () => {
     expect(heldPickOriginalOwners(REAL_TRADED_PICKS, 7, 1)).toEqual([1, 8]);
+  });
+});
+
+describe('pickHolder', () => {
+  it('returns the seat’s own roster when that pick was never traded', () => {
+    expect(pickHolder(REAL_TRADED_PICKS, 4, 5)).toBe(5);
+    expect(pickHolder([], 4, 1)).toBe(1);
+  });
+
+  it('returns the buyer for a seat whose pick was sold', () => {
+    // Roster 1 sent its round 4 pick to roster 8, so roster 8 drafts at
+    // roster 1's seat in that round — the separation the mock draft relies on.
+    expect(pickHolder(REAL_TRADED_PICKS, 4, 1)).toBe(8);
+    expect(pickHolder(REAL_TRADED_PICKS, 7, 8)).toBe(1);
+  });
+
+  it('is scoped to the round asked about', () => {
+    expect(pickHolder(REAL_TRADED_PICKS, 5, 1)).toBe(1);
+  });
+
+  it('agrees with pickCapacity: a roster holds exactly the seats it is returned for', () => {
+    // The two must never drift — capacity is what keeperCost.ts assigns
+    // against, seat holders are what the mock draft drafts against.
+    const seats = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    for (const round of [4, 5, 7]) {
+      for (const rosterId of seats) {
+        const held = seats.filter(
+          (seat) => pickHolder(REAL_TRADED_PICKS, round, seat) === rosterId,
+        );
+        expect(held.length).toBe(pickCapacity(REAL_TRADED_PICKS, round, rosterId));
+      }
+    }
   });
 });

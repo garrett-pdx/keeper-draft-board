@@ -138,9 +138,12 @@ src/
                       #   A NECESSARY, not sufficient, condition for the keepers
                       #   Sleeper's is_keeper flag misses — see prevKeepers.ts
     tradedPicks.ts    #   pickCapacity, heldPickOriginalOwners — how many picks a team
-                      #   actually holds per round, adjusted by trades
+                      #   actually holds per round, adjusted by trades; pickHolder —
+                      #   who drafts at a given seat's pick, the inverse view that
+                      #   lets the mock draft run a bought pick at the seller's
+                      #   position (see "Mock draft")
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
-                      #   round×roster-cell pick sequence), bestAvailablePlayer
+                      #   seat-ordered pick sequence), bestAvailablePlayer
                       #   (plain BPA-by-ADP); the three AI pool filters —
                       #   filterByRemainingNeeds (DEF/K last + the late-round
                       #   starter safety net),
@@ -306,15 +309,26 @@ resumes auto-play through the next AI streak, repeating until the draft complete
 normal no-confirm convention, since it can discard 100+ picks with no undo) clears it back
 to keepers-only.
 
-- **Simulates at round×roster CELL granularity, not a literal 1..N pick list.** Resolving
-  exactly which of a roster's multiple traded-in picks in one round interleaves at which
-  overall pick number is a problem this codebase has never needed to solve — the board
-  only ever renders round×roster cells, never a flat pick list (see `consumedPick` in
-  `domain/keeperCost.ts`, which only disambiguates one keeper's pick, not a full ordering).
-  So a cell needs `pickCapacity(round, rosterId) - keepersInCell(round, rosterId)` new
-  picks — 0 (skip), 1 (normal), or 2+ (a roster holding an extra pick that round via trade
-  gets consecutive picks, not interleaved by natural slot position with neighbors). The
-  whole sequence is built once, by `buildMockDraftSlots`, at Start.
+- **Simulates at SEAT granularity — one entry per literal pick, ordered by the seat that
+  pick belongs to rather than by the roster holding it.** Each roster id in the frozen
+  order is a seat, meaning "this roster's own pick in this round"; `pickHolder`
+  (`domain/tradedPicks.ts`) says who actually drafts it. So a team that bought a pick
+  drafts it **where the seller would have picked**, with everyone in between picking
+  first — matching what the board has always drawn, since the `+N incoming from {team}`
+  note sits in the _seller's_ round cell. The whole sequence is built once, by
+  `buildMockDraftSlots`, at Start.
+  **This replaced a round×roster CELL granularity that gave such a roster consecutive
+  picks** (`pickCapacity - keepersInCell` slots emitted back-to-back), documented at the
+  time as an acceptable simplification because the board renders cells rather than a flat
+  pick list. It wasn't: a manager holding two picks four seats apart got them back-to-back,
+  which contradicts the grid on screen and teaches the wrong thing about who survives the
+  gap. Don't reintroduce it.
+  Keepers spend a holder's **latest** seats in the round, leaving its earlier picks live —
+  deliberately the same rule `attachConsumedPicks` (`domain/keeperCost.ts`) uses to decide
+  which literal pick a keeper consumed, so the board and the simulation can't disagree
+  about which of two held picks is still open. `pickHolder` and `pickCapacity` are
+  consistent by construction (a roster's capacity is exactly the number of seats
+  `pickHolder` names it for), and a test pins that.
 - **The pick order comes from `state.boardOrder`, resolved once at Start and frozen.**
   Before Sleeper publishes a real draft order, the board's columns _are_ the only order
   that exists, so a manager dragging themselves from 3rd to 5th is choosing the slot they

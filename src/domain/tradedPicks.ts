@@ -42,3 +42,26 @@ export function heldPickOriginalOwners(
   }
   return [...owners];
 }
+
+/**
+ * Which roster actually drafts at a given seat's pick in a round — the
+ * original owner unless that pick was traded, in which case its current
+ * holder. The inverse view of heldPickOriginalOwners, and consistent with
+ * pickCapacity by construction: a roster's capacity in a round is exactly the
+ * number of seats this returns it for.
+ *
+ * This is what puts an acquired pick at the *seller's* position in the draft
+ * order rather than next to the buyer's own pick — the board has always drawn
+ * it that way ("+N incoming from {team}" against the seller's round cell), and
+ * the mock draft now runs it that way too.
+ */
+export function pickHolder(
+  tradedPicks: TradedPicksList,
+  round: number,
+  originalOwnerRosterId: number,
+): number {
+  for (const row of tradedPicks) {
+    if (row.round === round && row.rosterId === originalOwnerRosterId) return row.ownerId;
+  }
+  return originalOwnerRosterId;
+}

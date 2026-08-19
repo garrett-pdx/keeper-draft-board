@@ -12,7 +12,7 @@ import {
   type MockDraftSlot,
 } from './domain/mockDraft';
 import { orderRosterIdsBySlot, reconcileOrder } from './domain/draftOrder';
-import { pickCapacity } from './domain/tradedPicks';
+import { pickHolder } from './domain/tradedPicks';
 import {
   keepersInCellFor,
   mockDraftAvailablePlayerIds,
@@ -103,7 +103,7 @@ export function startMockDraft(): void {
   const slots = buildMockDraftSlots(
     rounds,
     slotOrderRosterIds,
-    (round, rosterId) => pickCapacity(trades, round, rosterId),
+    (round, seatRosterId) => pickHolder(trades, round, seatRosterId),
     keepersInCellFor,
   );
   state.mockDraft = {
@@ -127,9 +127,12 @@ export function resetMockDraft(): void {
 
 function roundLabelFor(slot: MockDraftSlot): string {
   // Counts this pick plus any immediately-following open slots for the same
-  // roster/round (a roster holding an extra pick that round via trade) — a
-  // heads-up shown on the FIRST of the run; by the second, `remaining` is
-  // back to 1 and the label reads like any other ordinary turn.
+  // roster/round — a heads-up shown on the FIRST of the run; by the second,
+  // `remaining` is back to 1 and the label reads like any other ordinary turn.
+  // Now that picks are sequenced by seat, this only fires when a roster holds
+  // two ADJACENT seats in a round (it bought its neighbour's pick); a pick
+  // bought from further down the order is separated by the teams in between,
+  // so the label correctly stays at "Your Pick".
   const remaining = remainingSlotStreakForRoster(slot.rosterId);
   return remaining > 1
     ? `Round ${slot.round} — Your Pick (${remaining} in a row)`

@@ -48,7 +48,12 @@ export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 // Versioned like the other caches above — bump this if MockDraftState's shape
 // ever changes, so a stale cached shape doesn't parse "successfully" and then
 // break at first use (state.mockDraft.picks etc. would just be undefined).
-export const LS_MOCK_DRAFT_PREFIX = 'kdb_mock_draft_v1_';
+// Bumped to v2 when the pick sequence moved from round×roster cells to seats:
+// the shape is unchanged, so a v1 draft would have parsed fine and quietly
+// kept running the old order, handing a roster its two traded picks
+// back-to-back for the rest of the simulation. A local practice sim is cheap
+// to restart; running one on a sequence the board contradicts is not.
+export const LS_MOCK_DRAFT_PREFIX = 'kdb_mock_draft_v2_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 // ADP moves daily and is the number people second-guess the app over ("he is
 // not the 4th pick"), so it gets a much shorter leash than the player

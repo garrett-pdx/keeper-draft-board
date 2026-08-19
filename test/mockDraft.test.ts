@@ -13,74 +13,95 @@ import {
 import type { AdpMap } from '../src/types';
 
 describe('buildMockDraftSlots', () => {
-  const alwaysOne = () => 1;
+  // Identity holder: nobody traded anything, so every seat drafts for itself.
+  const noTrades = (_round: number, seat: number) => seat;
   const noKeepers = () => 0;
 
-  it('snake-reverses the roster order on even rounds', () => {
-    const slots = buildMockDraftSlots(2, [1, 2, 3], alwaysOne, noKeepers);
+  it('snake-reverses the seat order on even rounds', () => {
+    const slots = buildMockDraftSlots(2, [1, 2, 3], noTrades, noKeepers);
     expect(slots.slice(0, 3).map((s) => s.rosterId)).toEqual([1, 2, 3]); // round 1
     expect(slots.slice(3, 6).map((s) => s.rosterId)).toEqual([3, 2, 1]); // round 2
   });
 
   it('continues correctly into round 3 (odd again)', () => {
-    const slots = buildMockDraftSlots(3, [1, 2, 3], alwaysOne, noKeepers);
+    const slots = buildMockDraftSlots(3, [1, 2, 3], noTrades, noKeepers);
     expect(slots.slice(6, 9).map((s) => s.rosterId)).toEqual([1, 2, 3]);
   });
 
-  it('produces zero slots for a round/roster with zero capacity (pick traded away)', () => {
-    const capacityFor = (round: number, rosterId: number) =>
-      round === 1 && rosterId === 2 ? 0 : 1;
-    const slots = buildMockDraftSlots(1, [1, 2, 3], capacityFor, noKeepers);
+  it('drafts an acquired pick at the SELLER’s seat, not back-to-back with the buyer’s own', () => {
+    // The reported bug: roster 2 bought roster 6's round-1 pick, so it picks
+    // 2nd and 6th — with four teams in between — exactly as the board draws it.
+    const holderOfPick = (round: number, seat: number) => (round === 1 && seat === 6 ? 2 : seat);
+    const slots = buildMockDraftSlots(1, [1, 2, 3, 4, 5, 6], holderOfPick, noKeepers);
+    expect(slots.map((s) => s.rosterId)).toEqual([1, 2, 3, 4, 5, 2]);
+  });
+
+  it('keeps a bought pick at the seller’s seat through an even round’s reversal', () => {
+    const holderOfPick = (round: number, seat: number) => (round === 2 && seat === 6 ? 2 : seat);
+    const slots = buildMockDraftSlots(2, [1, 2, 3, 4, 5, 6], holderOfPick, noKeepers);
+    // Round 2 walks 6,5,4,3,2,1 — the bought seat now comes FIRST.
+    expect(slots.slice(6).map((s) => s.rosterId)).toEqual([2, 5, 4, 3, 2, 1]);
+  });
+
+  it('gives a sold pick to its buyer at the seller’s own seat', () => {
+    const holderOfPick = (round: number, seat: number) => (round === 1 && seat === 2 ? 5 : seat);
+    const slots = buildMockDraftSlots(1, [1, 2, 3, 4, 5], holderOfPick, noKeepers);
+    expect(slots.map((s) => s.rosterId)).toEqual([1, 5, 3, 4, 5]);
+  });
+
+  it('spends a keeper on the holder’s LATEST seat, leaving the earlier pick live', () => {
+    // Mirrors attachConsumedPicks: keepers consume the worst held pick, so
+    // roster 2 still drafts at its own 2nd seat and loses the bought 6th.
+    const holderOfPick = (round: number, seat: number) => (round === 1 && seat === 6 ? 2 : seat);
+    const keepersInCellFor = (round: number, rosterId: number) =>
+      round === 1 && rosterId === 2 ? 1 : 0;
+    const slots = buildMockDraftSlots(1, [1, 2, 3, 4, 5, 6], holderOfPick, keepersInCellFor);
+    expect(slots.map((s) => s.rosterId)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('produces zero slots for a seat whose holder spent it on a keeper', () => {
+    const keepersInCellFor = (round: number, rosterId: number) =>
+      round === 1 && rosterId === 2 ? 1 : 0;
+    const slots = buildMockDraftSlots(1, [1, 2, 3], noTrades, keepersInCellFor);
     expect(slots.map((s) => s.rosterId)).toEqual([1, 3]);
   });
 
-  it('produces one consecutive slot when capacity is 2 and one keeper already fills the cell', () => {
-    const capacityFor = (round: number, rosterId: number) =>
-      round === 1 && rosterId === 2 ? 2 : 1;
+  it('drops both of a holder’s seats when keepers consume them all', () => {
+    const holderOfPick = (round: number, seat: number) => (round === 1 && seat === 3 ? 2 : seat);
     const keepersInCellFor = (round: number, rosterId: number) =>
-      round === 1 && rosterId === 2 ? 1 : 0;
-    const slots = buildMockDraftSlots(1, [1, 2, 3], capacityFor, keepersInCellFor);
+      round === 1 && rosterId === 2 ? 2 : 0;
+    const slots = buildMockDraftSlots(1, [1, 2, 3], holderOfPick, keepersInCellFor);
+    expect(slots.map((s) => s.rosterId)).toEqual([1]);
+  });
+
+  it('falls back to the seat’s own roster when the holder no longer exists', () => {
+    // A trade pointing at a removed roster must not inject an un-draftable seat.
+    const holderOfPick = (_round: number, seat: number) => (seat === 2 ? 99 : seat);
+    const slots = buildMockDraftSlots(1, [1, 2, 3], holderOfPick, noKeepers);
     expect(slots.map((s) => s.rosterId)).toEqual([1, 2, 3]);
   });
 
-  it('produces two consecutive slots when capacity is 2 and no keeper occupies the cell', () => {
-    const capacityFor = (round: number, rosterId: number) =>
-      round === 1 && rosterId === 2 ? 2 : 1;
-    const slots = buildMockDraftSlots(1, [1, 2, 3], capacityFor, noKeepers);
-    expect(slots.map((s) => s.rosterId)).toEqual([1, 2, 2, 3]);
-  });
-
-  it('produces zero slots for a cell fully pre-filled by keepers (capacity === keepersInCell)', () => {
-    const keepersInCellFor = (round: number, rosterId: number) =>
-      round === 1 && rosterId === 2 ? 1 : 0;
-    const slots = buildMockDraftSlots(1, [1, 2, 3], alwaysOne, keepersInCellFor);
-    expect(slots.map((s) => s.rosterId)).toEqual([1, 3]);
-  });
-
-  it('total slot count matches sum(capacityFor - keepersInCellFor) across all round×roster pairs', () => {
-    const rosterIds = [1, 2, 3, 4];
+  it('emits one slot per seat per round, less the keepers spent', () => {
+    const seats = [1, 2, 3, 4];
     const rounds = 4;
-    const capacityFor = (round: number, rosterId: number) =>
-      round === 2 && rosterId === 3 ? 2 : round === 3 && rosterId === 1 ? 0 : 1;
+    const holderOfPick = (round: number, seat: number) => (round === 2 && seat === 3 ? 1 : seat);
     const keepersInCellFor = (round: number, rosterId: number) =>
       round === 1 && rosterId === 2 ? 1 : 0;
-    const slots = buildMockDraftSlots(rounds, rosterIds, capacityFor, keepersInCellFor);
-    let expected = 0;
+    const slots = buildMockDraftSlots(rounds, seats, holderOfPick, keepersInCellFor);
+    let keepers = 0;
     for (let round = 1; round <= rounds; round++) {
-      for (const rosterId of rosterIds) {
-        expected += capacityFor(round, rosterId) - keepersInCellFor(round, rosterId);
-      }
+      for (const rosterId of seats) keepers += keepersInCellFor(round, rosterId);
     }
-    expect(slots.length).toBe(expected);
+    expect(slots.length).toBe(rounds * seats.length - keepers);
   });
 
   it('returns an empty array for zero/negative rounds', () => {
-    expect(buildMockDraftSlots(0, [1, 2], alwaysOne, noKeepers)).toEqual([]);
-    expect(buildMockDraftSlots(-1, [1, 2], alwaysOne, noKeepers)).toEqual([]);
+    expect(buildMockDraftSlots(0, [1, 2], noTrades, noKeepers)).toEqual([]);
+    expect(buildMockDraftSlots(-1, [1, 2], noTrades, noKeepers)).toEqual([]);
   });
 
-  it('returns an empty array for an empty roster order', () => {
-    expect(buildMockDraftSlots(3, [], alwaysOne, noKeepers)).toEqual([]);
+  it('returns an empty array for an empty seat order', () => {
+    expect(buildMockDraftSlots(3, [], noTrades, noKeepers)).toEqual([]);
   });
 });
 

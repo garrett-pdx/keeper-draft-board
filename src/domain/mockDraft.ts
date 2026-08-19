@@ -1,50 +1,81 @@
 import type { AdpMap } from '../types';
 import { SLOT_ELIGIBILITY, startablePositions } from './leagueSettings';
 
-// A mock draft simulates at the same round×roster CELL granularity the Draft
-// Board already renders — never a flat 1..N pick list. Resolving exactly
-// which of a roster's multiple held picks in one round (via trade) interleaves
-// at which literal overall pick number is a problem this codebase has never
-// needed to solve (the board only ever shows stacked cards in one cell, not
-// separately-numbered picks — see KeeperCostItem.consumedPick's narrower
-// "which pick did THIS keeper consume" scope). So each cell simply gets
-// `capacityFor - keepersInCellFor` slots, simulated back-to-back for that
-// roster when it's more than one — an explicit, documented simplification.
+// A mock draft runs at SEAT granularity: one entry per literal pick in the
+// draft, ordered by the seat that pick belongs to, not by the roster holding
+// it. That distinction only shows up around trades, and it is the whole point
+// — a roster holding two picks in a round holds them at two different seats
+// (its own and the one it bought), so they are separated by everyone drafting
+// in between, exactly as the board already draws it ("+N incoming from
+// {team}" sits in the *seller's* round cell).
+//
+// An earlier revision simulated at round×roster CELL granularity instead,
+// giving such a roster its picks back-to-back as an explicit simplification.
+// It was wrong in a way managers notice immediately: in a real draft you pick,
+// four other teams pick, then you pick again, and practising against
+// consecutive picks teaches the wrong thing about who will still be on the
+// board. Don't reintroduce it.
 export interface MockDraftSlot {
   round: number;
   rosterId: number;
 }
 
 /**
- * Flattens the whole draft into one ordered slot list, built once (at Start,
+ * Flattens the whole draft into one ordered pick list, built once (at Start,
  * never recomputed per turn) so an in-progress simulation is immune to the
  * league's live data changing underneath it. `slotOrderRosterIds` is the
- * frozen snake seed order (real draft slot order when known, else roster_id
- * order — see domain/draftOrder.ts's orderRosterIdsBySlot), snake-reversed on
- * even rounds using the same odd/even convention as exactPickNumber.
+ * frozen seed order (the board's own column order — see src/mockDraft.ts's
+ * frozenSlotOrder), snake-reversed on even rounds using the same odd/even
+ * convention as exactPickNumber.
  *
- * `capacityFor`/`keepersInCellFor` are injected closures rather than raw
+ * Each roster id in that seed order is a SEAT, and a seat is really "this
+ * roster's original pick in this round". `holderOfPick` says who actually
+ * drafts it — the seat's own roster, or whoever bought that pick. So a
+ * traded pick is simulated where the seller would have picked.
+ *
+ * `holderOfPick`/`keepersInCellFor` are injected closures rather than raw
  * TradedPicksList/KeeperCostItem[] — matching keeperCost.ts's
  * assignKeeperCosts, which takes a capacityFor callback rather than reaching
  * into tradedPicks.ts itself — so this stays a pure function of primitives.
- * The difference is provably always >= 0 (assignKeeperCosts guarantees a
- * resolved cell never holds more keepers than its capacity); a negative
- * value would mean a real upstream bug, so it's never clamped here.
+ *
+ * Keepers consume a holder's LATEST seats in the round, leaving its earlier
+ * (more valuable) picks open — the same rule attachConsumedPicks applies when
+ * it decides which literal pick a keeper spent, so the board and the
+ * simulation can't disagree about which of two held picks is still live.
+ * A holder is never assigned more keepers than it has seats (assignKeeperCosts
+ * guarantees it), so no clamping is needed; a shortfall would be a real
+ * upstream bug.
  */
 export function buildMockDraftSlots(
   rounds: number,
   slotOrderRosterIds: number[],
-  capacityFor: (round: number, rosterId: number) => number,
+  holderOfPick: (round: number, seatRosterId: number) => number,
   keepersInCellFor: (round: number, rosterId: number) => number,
 ): MockDraftSlot[] {
   const slots: MockDraftSlot[] = [];
   if (rounds <= 0 || !slotOrderRosterIds.length) return slots;
+  const seatExists = new Set(slotOrderRosterIds);
   for (let round = 1; round <= rounds; round++) {
-    const order = round % 2 === 1 ? slotOrderRosterIds : slotOrderRosterIds.slice().reverse();
-    for (const rosterId of order) {
-      const needed = capacityFor(round, rosterId) - keepersInCellFor(round, rosterId);
-      for (let i = 0; i < needed; i++) slots.push({ round, rosterId });
+    const seats = round % 2 === 1 ? slotOrderRosterIds : slotOrderRosterIds.slice().reverse();
+    // Resolve every seat's holder first, so "which of this holder's seats do
+    // its keepers consume" can be answered against the whole round.
+    const holders = seats.map((seat) => {
+      const holder = holderOfPick(round, seat);
+      // A trade pointing at a roster that no longer exists would otherwise
+      // inject an un-draftable seat; fall back to the seat's own roster.
+      return seatExists.has(holder) ? holder : seat;
+    });
+    const seenByHolder = new Map<number, number>();
+    const totalByHolder = new Map<number, number>();
+    for (const holder of holders) {
+      totalByHolder.set(holder, (totalByHolder.get(holder) || 0) + 1);
     }
+    holders.forEach((holder) => {
+      const index = seenByHolder.get(holder) || 0;
+      seenByHolder.set(holder, index + 1);
+      const open = (totalByHolder.get(holder) as number) - keepersInCellFor(round, holder);
+      if (index < open) slots.push({ round, rosterId: holder });
+    });
   }
   return slots;
 }
