@@ -228,8 +228,9 @@ and only saving stops, with the UI naming who to contact.
   see [Market price sources](#market-price-sources).
 - `costPick` = the keeper's **exact pick number**, once this season's real snake draft
   order has been set by the commissioner — otherwise the **midpoint pick** of the
-  keeper's cost round, as a graceful fallback. A small badge next to the ADP source
-  ("Exact pick #s") appears once the exact order is in use.
+  keeper's cost round, as a graceful fallback. A small badge next to the market source says
+  which you're on — "Draft order set" once the commissioner has published one, "Draft order
+  unset" while values are still on the midpoint approximation.
 - Exponential decay weights early-round surplus more heavily. Tune `VALUE_DECAY` in
   `src/domain/value.ts`.
 - Players with no current ADP get a sentinel value so they're never recommended, and

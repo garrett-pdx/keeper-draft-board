@@ -169,9 +169,21 @@ a {
 .setup-hint {
   font-size: 12.5px;
   color: var(--slate-dim);
+  /* Calibrated against .field's own 16px bottom margin: on the setup screen a
+     hint is a SIBLING that follows the field, so pulling up 8px nets the 8px
+     gap we want. */
   margin-top: -8px;
   margin-bottom: 16px;
   line-height: 1.5;
+}
+/* ...but a hint NESTED in a field sits directly under its control with no
+   margin between them to cancel, so the same -8px dragged the text up into the
+   input — the Settings market-source hint was rendering behind its <select>.
+   Nested hints get real spacing instead, and drop the bottom margin since the
+   field already supplies one. */
+.field > .setup-hint {
+  margin-top: 6px;
+  margin-bottom: 0;
 }
 .setup-advanced-toggle {
   text-align: center;
@@ -255,17 +267,22 @@ a {
   gap: 10px;
 }
 
-/* The market-source badge is a real control (see ui/marketSourceMenu.ts), so it
-   has to look like one rather than like the read-only status chips beside it. */
+/* The two badges you can act on — which team you're acting as, and which market
+   prices the board (ui/marketSourceMenu.ts). They sit together at the head of
+   the row and share one affordance, so a chip that opens something is visibly
+   different from the read-only status chips that follow it. */
+#identityBadge,
 #adpSourceBadge {
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
 }
+#identityBadge::after,
 #adpSourceBadge::after {
   content: '▾';
   font-size: 9px;
   opacity: 0.75;
 }
+#identityBadge:hover,
 #adpSourceBadge:hover,
 #adpSourceBadge[aria-expanded='true'] {
   border-color: currentColor;
@@ -365,10 +382,6 @@ a {
   color: var(--flag);
   border-color: rgba(245, 165, 36, 0.4);
   background: rgba(245, 165, 36, 0.08);
-}
-#identityBadge {
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
 }
 .adp-badge.adp-badge-error {
   color: var(--danger);

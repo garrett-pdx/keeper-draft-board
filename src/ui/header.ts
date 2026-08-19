@@ -56,21 +56,35 @@ export function updateAdpSourceBadge(): void {
   }
 }
 
-// Hidden until this season's real draft order is actually known (most of the
-// season, it isn't — see hasKnownDraftOrder). Only then do keeper values use
-// exact pick numbers instead of the round-midpoint approximation.
+// Whether the commissioner has set this season's draft order yet, which decides
+// whether keeper values use exact pick numbers or the round-midpoint
+// approximation. Both states are worth showing: "unset" is the normal condition
+// for most of the offseason, and saying so beats a missing badge that looks
+// like a failed load.
+//
+// Still hidden when state.draft is null, though — that covers "not fetched
+// yet", "this league has no draft" and "the fetch failed" alike, and in none of
+// those can we honestly say the order is unset. The commissioner may well have
+// set it; we just don't know. Only a draft we actually hold can be reported on.
 export function updatePickSourceBadge(): void {
   const badge = $('#pickSourceBadge');
   if (!badge) return;
-  if (!hasKnownDraftOrder(state.draft)) {
+  if (!state.draft) {
     badge.setAttribute('hidden', '');
     return;
   }
   badge.removeAttribute('hidden');
-  badge.className = 'adp-badge adp-badge-live';
-  badge.textContent = 'Exact pick #s';
-  badge.title =
-    'Keeper values use this team’s actual pick number in each round, from the set draft order.';
+  if (hasKnownDraftOrder(state.draft)) {
+    badge.className = 'adp-badge adp-badge-live';
+    badge.textContent = 'Draft order set';
+    badge.title =
+      'Your commissioner has set this season’s draft order, so keeper values use this team’s actual pick number in each round.';
+  } else {
+    badge.className = 'adp-badge adp-badge-proxy';
+    badge.textContent = 'Draft order unset';
+    badge.title =
+      'Your commissioner hasn’t set this season’s draft order yet, so keeper values use the middle of each round as an approximation. The board’s columns are yours to arrange until then.';
+  }
 }
 
 // Who this browser is acting as, and therefore whose keepers it can edit.
@@ -98,13 +112,25 @@ export function updateIdentityBadge(): void {
   badge.title = 'You can select and lock keepers for this team only. Click to switch teams.';
 }
 
-// Whether the league's shared picks are reachable, and whether this browser can
-// write to them. A read-only deploy (gist configured, no token) is a normal,
-// supported state — say so rather than looking broken.
+// Shown ONLY when something about the league's shared picks needs the
+// manager's attention. Sync working is the expected case and says nothing —
+// a permanent green "on" chip is noise that also costs a header slot, and it
+// trains people to stop reading the badge at exactly the moment it turns into
+// a warning.
+//
+// So 'off' (no gist configured at all) and the two healthy states — idle and
+// mid-poll — render nothing. What remains is genuinely actionable: the list is
+// unreachable, the write token has expired, or this build can read but never
+// save. That last one is a supported deployment rather than a fault, but it
+// still means your keepers cannot be locked in, which you have to be told.
 export function updateSyncBadge(): void {
   const badge = $('#syncBadge');
   if (!badge) return;
-  if (state.syncStatus === 'off') {
+  const healthy =
+    state.syncStatus === 'off' ||
+    state.syncStatus === 'syncing' ||
+    (state.syncStatus === 'idle' && !isTokenRejected() && canWriteShared());
+  if (healthy) {
     badge.setAttribute('hidden', '');
     return;
   }
@@ -114,10 +140,6 @@ export function updateSyncBadge(): void {
     badge.textContent = 'Sync · offline';
     badge.title =
       'Could not reach the league’s shared keeper list. Your picks are still saved in this browser — hit Refresh to retry.';
-  } else if (state.syncStatus === 'syncing') {
-    badge.className = 'adp-badge adp-badge-proxy';
-    badge.textContent = 'Sync · syncing…';
-    badge.title = 'Fetching the league’s shared keeper picks.';
   } else if (isTokenRejected()) {
     // Reads still work (they fall back to unauthenticated), so this isn't
     // "offline" — it's specifically saving that's broken, and it needs a person
@@ -125,14 +147,11 @@ export function updateSyncBadge(): void {
     badge.className = 'adp-badge adp-badge-error';
     badge.textContent = 'Sync · token expired';
     badge.title = `Everyone’s locked keepers still load, but saving is turned off until the shared list’s access token is renewed. Reach out to ${LEAGUE_ADMIN}.`;
-  } else if (!canWriteShared()) {
+  } else {
+    // The only remaining case: readable but not writable.
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'Sync · read-only';
     badge.title =
       'You can see everyone’s locked keepers, but this build has no write access to save your own.';
-  } else {
-    badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'Sync · on';
-    badge.title = 'Keeper picks are shared with the whole league.';
   }
 }

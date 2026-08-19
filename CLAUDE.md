@@ -181,8 +181,10 @@ src/
                       #   refresh.ts's isTabStale)
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge, updateIdentityBadge,
                       #   updateSyncBadge (visible data-source/identity/sync-status
-                      #   indicators; each hidden until relevant). Labels are kept
-                      #   short on purpose — see "Market value sources"
+                      #   indicators; each hidden until relevant — updateSyncBadge
+                      #   shows NOTHING while sync is healthy, only when it needs
+                      #   attention). Labels are kept short on purpose — see
+                      #   "Market value sources"
     marketSourceMenu.ts # wire/open/closeMarketSourceMenu — the anchored popover
                       #   the market-source badge opens, letting the source be
                       #   switched from any tab; applies via settings.ts's
@@ -1070,6 +1072,14 @@ step — there's no separate unlocked-and-shared state. "Edit keepers" sets
 `editingRosterId` (session-only, not persisted) so the team's stars become interactive
 again locally without touching the shared doc; "Cancel" reverts to the last-saved picks;
 "Withdraw" removes the team's entry from the shared doc entirely via `clearMyKeepers()`.
+
+**The sync badge is silent when sync is fine.** 'off', 'syncing' and a healthy 'idle'
+render no badge at all; only "Sync · offline", "Sync · token expired" and "Sync ·
+read-only" appear. A permanent green "on" chip is noise, costs one of the few header
+slots a phone has, and — worse — trains people to stop reading the badge at exactly the
+moment it becomes a warning. Read-only stays visible despite being a supported
+deployment rather than a fault, because it still means this browser cannot lock keepers
+in.
 
 **Offline/error handling degrades to last-known state, not "no lock info."** A failed
 fetch (`state.syncStatus = 'error'`, "Sync · offline" badge) must not make a

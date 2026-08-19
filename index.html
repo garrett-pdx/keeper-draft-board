@@ -94,10 +94,14 @@
           </div>
         </div>
         <div class="scoreboard-right">
+          <!-- The two badges you can act on come first and sit together: the
+               team you're acting as, and which market prices the board. The
+               read-only status chips follow, so the row reads controls-then-
+               status rather than interleaving the two. -->
           <button class="adp-badge" id="identityBadge" type="button" hidden></button>
-          <span class="adp-badge" id="syncBadge" hidden></span>
-          <span class="adp-badge" id="pickSourceBadge" hidden></span>
           <button class="adp-badge" id="adpSourceBadge" type="button" hidden></button>
+          <span class="adp-badge" id="pickSourceBadge" hidden></span>
+          <span class="adp-badge" id="syncBadge" hidden></span>
           <div class="scoreboard-actions">
             <button class="btn btn-ghost btn-icon" id="refreshAllBtn" type="button">
               <span class="spin-icon" id="refreshAllSpin">⟳</span> <span>Refresh all</span>
