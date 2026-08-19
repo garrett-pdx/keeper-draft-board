@@ -5,6 +5,7 @@ import { state, updateRules } from '../state';
 import { ensureAdpLoaded } from '../data';
 import { updateAdpSourceBadge } from './header';
 import { $, el } from './dom';
+import { showBusy, hideBusy } from './overlay';
 import { renderBoard } from './board';
 import { renderDraft } from './draft';
 import { renderRosters, renderRostersNote } from './rosters';
@@ -13,7 +14,7 @@ import { renderRosters, renderRostersNote } from './rosters';
 // between them is the whole reason this setting exists. The MFL hint names its
 // two caveats up front — a much smaller sample, and no quarterbacks at all
 // (see scripts/fetch-mfl-adp.mjs for why the QBs are dropped).
-const MARKET_SOURCE_HINTS: Record<MarketSource, string> = {
+export const MARKET_SOURCE_HINTS: Record<MarketSource, string> = {
   value:
     'How good each player is, from FantasyCalc’s trade values. Steadier than draft data, and matched by exact Sleeper id.',
   adp: 'Where players actually go, averaged over recent mock drafts on Fantasy Football Calculator. Large sample, but nobody drafting has anything at stake.',
@@ -24,7 +25,7 @@ const MARKET_SOURCE_HINTS: Record<MarketSource, string> = {
 };
 
 /** Short names, for describing a source a league is on but can no longer pick. */
-const MARKET_SOURCE_LABELS: Record<MarketSource, string> = {
+export const MARKET_SOURCE_LABELS: Record<MarketSource, string> = {
   value: 'FantasyCalc — value ranking',
   adp: 'Fantasy Football Calculator — mock-draft ADP',
   'adp-real': 'MyFantasyLeague — real-league ADP',
@@ -41,7 +42,7 @@ const MARKET_SOURCE_LABELS: Record<MarketSource, string> = {
  * draft notes all still have branches naming them). Choosing between two crowd
  * ADP feeds by hand was a decision with no good answer; the blend is the answer.
  */
-const SELECTABLE_MARKET_SOURCES: MarketSource[] = ['value', 'blend'];
+export const SELECTABLE_MARKET_SOURCES: MarketSource[] = ['value', 'blend'];
 
 const LEGACY_MARKET_OPTION = 'legacy-market-source';
 
@@ -222,6 +223,33 @@ function handleInflationRoundsChange(): void {
   rerenderLoadedTabs();
 }
 
+/**
+ * Switch the league to a market source and rebuild everything priced off it.
+ *
+ * Exported because this is reachable from two places that must not diverge:
+ * the Settings dropdown and the header badge's own menu (ui/marketSourceMenu.ts).
+ * A second copy of this would be a second chance to forget that `state.adpMap`
+ * has to be cleared — the map is built from a different snapshot per source, so
+ * re-rendering without dropping it would leave every number unchanged while the
+ * badge claimed a new source, which is precisely the lie this code may not tell.
+ *
+ * The overlay is deliberate: this is a user-initiated action that refetches over
+ * the network, which is the same class as save/withdraw/tapped-Refresh.
+ */
+export async function applyMarketSource(chosen: MarketSource): Promise<void> {
+  if (chosen === state.rules.marketSource) return;
+  updateRules({ marketSource: chosen });
+  // The market map itself has to be rebuilt from the other snapshot, so this
+  // reloads rather than just re-rendering what's already in memory.
+  state.adpMap = null;
+  showBusy('Switching market source…');
+  try {
+    await reloadMarketData();
+  } finally {
+    hideBusy();
+  }
+}
+
 function handleMarketSourceChange(): void {
   const input = $('#marketSourceInput') as HTMLSelectElement;
   const chosen: MarketSource = (['value', 'adp', 'adp-real', 'blend'] as const).includes(
@@ -229,11 +257,7 @@ function handleMarketSourceChange(): void {
   )
     ? (input.value as MarketSource)
     : 'value';
-  updateRules({ marketSource: chosen });
-  // The market map itself has to be rebuilt from the other snapshot, so this
-  // reloads rather than just re-rendering what's already in memory.
-  state.adpMap = null;
-  void reloadMarketData();
+  void applyMarketSource(chosen);
 }
 
 function handleNoKeeperCostChange(): void {

@@ -229,7 +229,7 @@ and only saving stops, with the UI naming who to contact.
 - `costPick` = the keeper's **exact pick number**, once this season's real snake draft
   order has been set by the commissioner — otherwise the **midpoint pick** of the
   keeper's cost round, as a graceful fallback. A small badge next to the ADP source
-  ("Pick #s · exact draft order") appears once the exact order is in use.
+  ("Exact pick #s") appears once the exact order is in use.
 - Exponential decay weights early-round surplus more heavily. Tune `VALUE_DECAY` in
   `src/domain/value.ts`.
 - Players with no current ADP get a sentinel value so they're never recommended, and
@@ -257,13 +257,19 @@ None is strictly better, so a fourth option — **blend** — averages all three
 whichever of them price him, damping each one's characteristic failure. The UI reports "N of
 3 sources" next to a blended pick so a thin average can't pass for a consensus.
 
-**Settings offers two of these: FantasyCalc and the blend.** Choosing between two crowd-ADP
-feeds by hand was a decision with no good answer; the blend is the answer. The other two are
-still fetched daily and still what the blend is built from — and still what the app falls
-back to if a preferred snapshot fails, which is why the header badge can name any of them.
-Whatever ends up in use, the app **always labels which** ("Value rank · FantasyCalc", "ADP ·
-Fantasy Football Calculator", "ADP · MyFantasyLeague (real drafts)", "Blend · 3 sources"); a
-value ranking is never presented as ADP, and a blend is never presented as one of its inputs.
+**Two of these are yours to choose: FantasyCalc and the blend.** Choosing between two
+crowd-ADP feeds by hand was a decision with no good answer; the blend is the answer. The
+other two are still fetched daily and still what the blend is built from — and still what
+the app falls back to if a preferred snapshot fails, which is why the header badge can name
+any of them.
+
+**Tap the source badge in the header to switch**, from any tab — it opens a short menu
+explaining what each source measures, and picking one re-fetches and re-prices everything on
+the spot. The same setting also lives in Settings; the two stay in step.
+
+Whatever ends up in use, the app **always labels which** ("Value · FantasyCalc", "ADP · FF
+Calculator", "ADP · MFL real drafts", "Blend · 3 sources"); a value ranking is never
+presented as ADP, and a blend is never presented as one of its inputs.
 
 Every snapshot is matched to your league's actual shape, and the Settings tab shows what was
 detected (size, scoring, QB count, Sleeper's keeper cap) alongside **which entry it

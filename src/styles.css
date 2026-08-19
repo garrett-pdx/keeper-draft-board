@@ -255,6 +255,84 @@ a {
   gap: 10px;
 }
 
+/* The market-source badge is a real control (see ui/marketSourceMenu.ts), so it
+   has to look like one rather than like the read-only status chips beside it. */
+#adpSourceBadge {
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+}
+#adpSourceBadge::after {
+  content: '▾';
+  font-size: 9px;
+  opacity: 0.75;
+}
+#adpSourceBadge:hover,
+#adpSourceBadge[aria-expanded='true'] {
+  border-color: currentColor;
+}
+
+/* Anchored in viewport coordinates so it stays put under the sticky header
+   without a scroll listener — marketSourceMenu.ts sets top/left from the
+   badge's bounding rect. */
+.badge-menu {
+  position: fixed;
+  z-index: 60;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  padding: 6px;
+  width: min(320px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.badge-menu-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate-dim);
+  padding: 6px 8px 4px;
+}
+.badge-menu-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--chalk);
+  font-family: 'Inter', sans-serif;
+}
+.badge-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.badge-menu-item.is-current {
+  background: rgba(60, 203, 127, 0.1);
+}
+.badge-menu-check {
+  width: 12px;
+  flex-shrink: 0;
+  color: var(--turf-bright);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.badge-menu-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.badge-menu-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
 /* ADP data-source indicator (always visible once ADP is loaded) */
 .adp-badge {
   font-family: 'IBM Plex Mono', monospace;

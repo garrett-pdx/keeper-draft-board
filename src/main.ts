@@ -9,6 +9,7 @@ import { loadRosters, rerenderAfterKeeperChange } from './ui/rosters';
 import { openClaimPicker } from './ui/keeperControls';
 import { wireMockDraftEvents } from './mockDraft';
 import { wireSettingsEvents } from './ui/settings';
+import { wireMarketSourceMenu } from './ui/marketSourceMenu';
 import { switchTab, type TabName } from './ui/tabs';
 import {
   enterApp,
@@ -101,6 +102,7 @@ function init(): void {
   });
 
   wireSettingsEvents();
+  wireMarketSourceMenu();
   wireMockDraftEvents();
 
   const savedId = localStorage.getItem(LS_LEAGUE_ID);

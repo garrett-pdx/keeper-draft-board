@@ -5,6 +5,13 @@ import { $ } from './dom';
 
 // Keep the always-visible ADP data-source badge in sync with state.adpSource, so
 // the (undocumented) ADP source vs. rank-proxy fallback is never silent.
+//
+// Labels are deliberately terse — four of these chips share one header row and
+// the full source names ran a phone's header to four rows. What may NOT be
+// traded away for brevity is which source is in use: a value ranking is never
+// called ADP, and mock-draft ADP is never called real-league ADP. Each badge's
+// `title` still carries the full name and provenance, and the menu it opens
+// spells both out.
 export function updateAdpSourceBadge(): void {
   const badge = $('#adpSourceBadge');
   if (!badge) return;
@@ -17,14 +24,14 @@ export function updateAdpSourceBadge(): void {
     // Deliberately NOT labelled "ADP": this is a trade-value ranking used as an
     // implied pick, and calling it average draft position would misdescribe it.
     badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'Value rank · FantasyCalc';
+    badge.textContent = 'Value · FantasyCalc';
     badge.title =
-      'Player value ranking from FantasyCalc (fantasycalc.com), refreshed daily and matched by Sleeper id. This is “how good is this player”, used as an implied draft pick — not real average draft position. Switch to ADP in Settings.';
+      'Player value ranking from FantasyCalc (fantasycalc.com), refreshed daily and matched by Sleeper id. This is “how good is this player”, used as an implied draft pick — not real average draft position. Tap to switch sources.';
   } else if (state.adpSource === 'adp') {
     badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'ADP · Fantasy Football Calculator';
+    badge.textContent = 'ADP · FF Calculator';
     badge.title =
-      'Average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed daily. Drawn from mock drafts run on their site.';
+      'Average draft position from Fantasy Football Calculator (fantasyfootballcalculator.com), refreshed daily. Drawn from mock drafts run on their site. Tap to switch sources.';
   } else if (state.adpSource === 'blend') {
     // Not labelled "ADP" for the same reason the value rank isn't: two of its
     // three inputs are average draft position and one is a value ranking, so
@@ -32,20 +39,20 @@ export function updateAdpSourceBadge(): void {
     badge.className = 'adp-badge adp-badge-live';
     badge.textContent = 'Blend · 3 sources';
     badge.title =
-      'The average of FantasyCalc’s value rank, Fantasy Football Calculator’s mock-draft ADP and MyFantasyLeague’s real-league ADP, taken per player over whichever of them price him. Smooths any one source’s bad week; not a measurement of any single market.';
+      'The average of FantasyCalc’s value rank, Fantasy Football Calculator’s mock-draft ADP and MyFantasyLeague’s real-league ADP, taken per player over whichever of them price him. Smooths any one source’s bad week; not a measurement of any single market. Tap to switch sources.';
   } else if (state.adpSource === 'adp-real') {
     // Named separately from 'adp' on purpose: both are average draft position,
     // but one is mock drafts and the other is leagues people paid to host, and
     // which one you're looking at changes how much to trust it.
     badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'ADP · MyFantasyLeague (real drafts)';
+    badge.textContent = 'ADP · MFL real drafts';
     badge.title =
-      'Average draft position from real, non-mock redraft leagues hosted on MyFantasyLeague (myfantasyleague.com), refreshed daily. Smaller sample than the mock-draft data, and quarterbacks are not priced — that pool blends 1QB and superflex leagues.';
+      'Average draft position from real, non-mock redraft leagues hosted on MyFantasyLeague (myfantasyleague.com), refreshed daily. Smaller sample than the mock-draft data, and quarterbacks are not priced — that pool blends 1QB and superflex leagues. Tap to switch sources.';
   } else {
     badge.className = 'adp-badge adp-badge-proxy';
     badge.textContent = 'ADP · rank proxy';
     badge.title =
-      'No ADP snapshot was available for this format, so value uses Sleeper’s overall player ranking as a proxy.';
+      'No ADP snapshot was available for this format, so value uses Sleeper’s overall player ranking as a proxy. Tap to switch sources.';
   }
 }
 
@@ -61,7 +68,7 @@ export function updatePickSourceBadge(): void {
   }
   badge.removeAttribute('hidden');
   badge.className = 'adp-badge adp-badge-live';
-  badge.textContent = 'Pick #s · exact draft order';
+  badge.textContent = 'Exact pick #s';
   badge.title =
     'Keeper values use this team’s actual pick number in each round, from the set draft order.';
 }
@@ -104,28 +111,28 @@ export function updateSyncBadge(): void {
   badge.removeAttribute('hidden');
   if (state.syncStatus === 'error') {
     badge.className = 'adp-badge adp-badge-error';
-    badge.textContent = 'League sync · offline';
+    badge.textContent = 'Sync · offline';
     badge.title =
       'Could not reach the league’s shared keeper list. Your picks are still saved in this browser — hit Refresh to retry.';
   } else if (state.syncStatus === 'syncing') {
     badge.className = 'adp-badge adp-badge-proxy';
-    badge.textContent = 'League sync · syncing…';
+    badge.textContent = 'Sync · syncing…';
     badge.title = 'Fetching the league’s shared keeper picks.';
   } else if (isTokenRejected()) {
     // Reads still work (they fall back to unauthenticated), so this isn't
     // "offline" — it's specifically saving that's broken, and it needs a person
     // rather than a retry.
     badge.className = 'adp-badge adp-badge-error';
-    badge.textContent = 'League sync · token expired';
+    badge.textContent = 'Sync · token expired';
     badge.title = `Everyone’s locked keepers still load, but saving is turned off until the shared list’s access token is renewed. Reach out to ${LEAGUE_ADMIN}.`;
   } else if (!canWriteShared()) {
     badge.className = 'adp-badge adp-badge-proxy';
-    badge.textContent = 'League sync · read-only';
+    badge.textContent = 'Sync · read-only';
     badge.title =
       'You can see everyone’s locked keepers, but this build has no write access to save your own.';
   } else {
     badge.className = 'adp-badge adp-badge-live';
-    badge.textContent = 'League sync · on';
+    badge.textContent = 'Sync · on';
     badge.title = 'Keeper picks are shared with the whole league.';
   }
 }

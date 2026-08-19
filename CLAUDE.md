@@ -181,7 +181,12 @@ src/
                       #   refresh.ts's isTabStale)
     header.ts         # updateAdpSourceBadge, updatePickSourceBadge, updateIdentityBadge,
                       #   updateSyncBadge (visible data-source/identity/sync-status
-                      #   indicators; each hidden until relevant)
+                      #   indicators; each hidden until relevant). Labels are kept
+                      #   short on purpose — see "Market value sources"
+    marketSourceMenu.ts # wire/open/closeMarketSourceMenu — the anchored popover
+                      #   the market-source badge opens, letting the source be
+                      #   switched from any tab; applies via settings.ts's
+                      #   applyMarketSource
     setup.ts          # setup screen: username→league picker (handleFindLeagues,
                       #   handleConfirmLeague, toggleManualEntry) + manual league-ID
                       #   fallback (handleLoadLeague), both routed through the shared
@@ -607,9 +612,19 @@ that averages them:
 
 None is strictly better, which is why this is a setting rather than a decision baked
 into the code. **The UI must always say which is in use** — the header badge reads
-"Value rank · FantasyCalc", "ADP · Fantasy Football Calculator", "ADP · MyFantasyLeague
-(real drafts)" or "Blend · 3 sources", never labelling a value rank as ADP, never labelling
-mock-draft ADP as real-league ADP, and never labelling a blend as any one of its inputs.
+"Value · FantasyCalc", "ADP · FF Calculator", "ADP · MFL real drafts" or "Blend · 3
+sources", never labelling a value rank as ADP, never labelling mock-draft ADP as
+real-league ADP, and never labelling a blend as any one of its inputs.
+**The labels are terse because four chips share one header row** — spelled out in full they
+pushed a phone's header to four rows. Brevity may cost the vendor's full name (it survives
+in the badge's `title` and in the menu it opens); it may never cost the distinction between
+the sources, which is the whole contract.
+**The badge is also the control**: tapping it opens a menu of the selectable sources
+(`ui/marketSourceMenu.ts`) and switching re-fetches and re-renders, so the source can be
+changed from any tab without visiting Settings. Both that menu and the Settings dropdown
+route through the single exported `applyMarketSource` (`ui/settings.ts`) — a second copy
+would be a second chance to forget clearing `state.adpMap`, which is what makes the numbers
+actually change rather than the badge merely claiming they did.
 `ensureAdpLoaded` tries the preferred source first and falls back to the others before
 resorting to Sleeper's `search_rank` proxy, so one bad snapshot degrades to another real
 source. **`marketSource` is part of the ADP cache key** — without that, a map built from
@@ -618,7 +633,7 @@ to do nothing.
 
 ### Only two of the four are user-selectable
 
-The Settings dropdown offers **`'value'` and `'blend'` only** — one source, or all of them
+The Settings dropdown and the header badge's menu both offer **`'value'` and `'blend'` only** — one source, or all of them
 averaged (`SELECTABLE_MARKET_SOURCES` in `src/ui/settings.ts`). Picking between two crowd
 ADP feeds by hand was a decision with no good answer; the blend is the answer.
 
@@ -967,7 +982,7 @@ put them in a gitignored `.env.local`. With no Gist ID configured, `canReadShare
 (`src/api/gist.ts`) is false and the app behaves exactly as it did when keepers were
 localStorage-only — every team's stars stay interactive, there's no lock concept, nothing
 changes. A build with an ID but no token is a supported **read-only** mode
-(`canWriteShared()` false, "League sync · read-only" badge).
+(`canWriteShared()` false, "Sync · read-only" badge).
 
 **An expired token degrades to read-only, it doesn't take the league down.**
 Fine-grained gist PATs have a maximum lifetime, so this is a _when_, not an _if_. When
@@ -976,7 +991,7 @@ GitHub turns the credential down (401/403), `fetchSharedKeepers` drops it and re
 seeing the locked-in picks and only _saving_ is lost. `isTokenRejected()` latches so the
 app stops offering save controls that cannot work, `commitSharedChange` throws
 `GistAuthError` immediately instead of burning three retries on a "no" that won't change,
-and both the header badge ("League sync · token expired") and the manager's own roster
+and both the header badge ("Sync · token expired") and the manager's own roster
 card say plainly that the token needs renewing and to contact `LEAGUE_ADMIN`
 (`src/api/gist.ts`) — a broken credential needs a person, not a retry. Renewing it means
 updating the `KEEPER_GIST_TOKEN` secret and redeploying.
@@ -1057,7 +1072,7 @@ again locally without touching the shared doc; "Cancel" reverts to the last-save
 "Withdraw" removes the team's entry from the shared doc entirely via `clearMyKeepers()`.
 
 **Offline/error handling degrades to last-known state, not "no lock info."** A failed
-fetch (`state.syncStatus = 'error'`, "League sync · offline" badge) must not make a
+fetch (`state.syncStatus = 'error'`, "Sync · offline" badge) must not make a
 locked team look editable again just because the network call failed — that would be
 worse than doing nothing. `cacheSharedKeepersLocally`/`loadSharedKeepersCacheFromStorage`
 (`src/state.ts`) mirror the last-fetched shared doc into `localStorage`
