@@ -237,6 +237,22 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  /* Badges are added at runtime and each one sizes to its own text (a market
+     source can read "ADP · MyFantasyLeague (real drafts)"), so this row's
+     width is not knowable from the markup. Without wrapping it simply ran off
+     a phone screen, taking Refresh all and Change league with it — both were
+     rendered past x=450 on a 375px viewport, i.e. unreachable. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* The two header actions are one unit: grouping them means that when the row
+   above wraps on a narrow screen they move together, instead of a lone
+   "Change league" being orphaned onto a third line under a half-full one. */
+.scoreboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ADP data-source indicator (always visible once ADP is loaded) */
@@ -1519,9 +1535,32 @@ table.board-table {
 @media (max-width: 640px) {
   .scoreboard {
     padding: 14px 16px;
+    /* The tabs below are sticky at a FIXED offset matching this bar's desktop
+       height (81px). On a phone it wraps to two or three rows and runs past
+       150px, so a sticky header would sit under a mis-offset tab strip. Rather
+       than chase the height with JS, the header scrolls away here and the tabs
+       take over the top — which is the better use of a 375px screen anyway. */
+    position: static;
+  }
+  .scoreboard-left {
+    /* Claim the full row so the badges below start at the left margin instead
+       of being pushed flush-right under the title. */
+    width: 100%;
+  }
+  .scoreboard-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .scoreboard-title h1 {
+    font-size: 26px;
+  }
+  .adp-badge {
+    font-size: 10px;
+    padding: 4px 8px;
   }
   .tabs {
     padding: 0 16px;
+    top: 0;
   }
   .panel {
     padding: 18px 16px 48px;
