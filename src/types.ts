@@ -65,6 +65,14 @@ export interface KeeperCostItem {
   hasAdp: boolean;
   consumedPick: number | null; // exact pick number spent, when disambiguating multiple held picks
   taxiSquad: boolean; // true when rules.noKeeperCost is on — kept for free, no round/pick spent
+  // True when this keeper came from Sleeper's own locked draft-room keepers
+  // rather than an in-app selection — see domain/lockedKeepers.ts. Then `cost`
+  // is Sleeper's stated round, not something this app resolved.
+  fromSleeper: boolean;
+  // What this app's rules WOULD have charged, set only when that disagrees with
+  // the locked round. Sleeper wins either way; this exists so the disagreement
+  // is surfaced instead of silently discarded.
+  expectedCost: number | null;
 }
 
 /** Per-league configurable rules. Persisted per-league; see state.ts LS_RULES_PREFIX. */

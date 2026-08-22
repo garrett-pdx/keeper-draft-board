@@ -16,6 +16,7 @@ import { canReadShared } from './api/gist';
 import { hasKnownDraftOrder, orderRosterIdsBySlot, reconcileOrder } from './domain/draftOrder';
 import { lockedTeamsFor } from './domain/keeperShare';
 import { initialRulesForLeague } from './domain/leagueSettings';
+import { keepersAreLocked, type LockedKeeperMap } from './domain/lockedKeepers';
 import type { MockDraftSlot } from './domain/mockDraft';
 import { DEFAULT_LEAGUE_RULES } from './types';
 import { displayNameFor } from './util';
@@ -137,6 +138,14 @@ interface AppState {
   syncedAt: Date | null;
   prevDraftMap: PrevDraftMap | null;
   prevDraftLoaded: boolean;
+  /**
+   * This season's keepers as entered in Sleeper's draft room. Once non-empty
+   * they replace every in-app selection as the source of truth — see
+   * domain/lockedKeepers.ts. Null means "not loaded / none entered", which is
+   * the ordinary pre-deadline state, not an error.
+   */
+  lockedKeepers: LockedKeeperMap | null;
+  lockedKeepersLoaded: boolean;
   boardRounds: number | null;
   boardOrder: string[] | null;
   rules: LeagueRules;
@@ -171,6 +180,8 @@ export const state: AppState = {
   syncedAt: null,
   prevDraftMap: null,
   prevDraftLoaded: false,
+  lockedKeepers: null,
+  lockedKeepersLoaded: false,
   boardRounds: null,
   boardOrder: null,
   rules: { ...DEFAULT_LEAGUE_RULES },
@@ -213,6 +224,8 @@ export function resetLeagueScopedState(): void {
   state.syncedAt = null;
   state.prevDraftMap = null;
   state.prevDraftLoaded = false;
+  state.lockedKeepers = null;
+  state.lockedKeepersLoaded = false;
   state.boardRounds = null;
   state.boardOrder = null;
   state.draft = null;
@@ -238,7 +251,19 @@ export function loadKeepersFromStorage(): void {
 export function saveKeepers(): void {
   localStorage.setItem(keepersKey(), JSON.stringify(state.keepers));
 }
+/**
+ * A team's keepers as the UI should show them.
+ *
+ * Once the deadline has passed this reports Sleeper's locked draft-room keepers
+ * rather than whatever was selected in the app, so the stars, the "Keepers N/M"
+ * counts and every downstream read agree with the board. `state.keepers` is
+ * left untouched — it's still the manager's own pre-deadline planning, and the
+ * shared gist is still its home — it simply stops being what anyone is shown.
+ */
 export function keeperListFor(rosterId: number): string[] {
+  if (keepersLockedInSleeper()) {
+    return (state.lockedKeepers?.[String(rosterId)] || []).map((k) => k.playerId);
+  }
   return state.keepers[rosterId] || [];
 }
 export function isKeeper(rosterId: number, playerId: string): boolean {
@@ -448,7 +473,16 @@ export function isLockedRoster(rosterId: number): boolean {
  * touch your own team, and only while it isn't locked — locked teams are
  * reopened deliberately via the Edit action, which sets editingRosterId.
  */
+/** True once Sleeper's draft room holds this season's keepers. */
+export function keepersLockedInSleeper(): boolean {
+  return keepersAreLocked(state.lockedKeepers);
+}
+
 export function canEditRoster(rosterId: number): boolean {
+  // Past the league's keeper deadline the picks are settled in Sleeper and
+  // this app only reports them, so nobody edits anything — including your own
+  // team, and including a league running with no shared gist at all.
+  if (keepersLockedInSleeper()) return false;
   if (!canReadShared()) return true;
   const mine = myRosterId();
   if (mine === null || rosterId !== mine) return false;

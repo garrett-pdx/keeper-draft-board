@@ -2,6 +2,7 @@ import {
   ensureAdpLoaded,
   ensureBoardRoundsLoaded,
   ensurePlayersLoaded,
+  ensureLockedKeepersLoaded,
   ensurePrevDraftLoaded,
   ensureTradedPicksLoaded,
 } from '../data';
@@ -67,6 +68,7 @@ export async function loadBoard(force?: boolean): Promise<void> {
   try {
     await ensurePlayersLoaded(force);
     await ensurePrevDraftLoaded(force);
+    await ensureLockedKeepersLoaded(force);
     await ensureBoardRoundsLoaded(force); // also loads state.draft
     try {
       await ensureTradedPicksLoaded(force);
@@ -345,6 +347,20 @@ export function renderBoard(): void {
               pickNum !== null ? el('span', { class: 'pick-tag' }, `Pick ${pickNum}`) : null,
               valEl,
               c.bumped ? el('span', { class: 'board-warn bumped-tag' }, 'bumped') : null,
+              // Sleeper's round is what the league will actually charge, so it
+              // is already in `cost` above. This flags that our own rules would
+              // have priced it differently — a commissioner's typo, or a house
+              // rule this app doesn't model. Visible beats silently discarded.
+              c.expectedCost !== null
+                ? el(
+                    'span',
+                    {
+                      class: 'board-warn bumped-tag',
+                      title: `Sleeper has this keeper in round ${c.cost}. This app's rules would charge round ${c.expectedCost}. Sleeper's round is the one being used.`,
+                    },
+                    `rules say R${c.expectedCost}`,
+                  )
+                : null,
             ),
           );
         });

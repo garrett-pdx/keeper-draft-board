@@ -20,6 +20,7 @@ import {
 } from './domain/marketValue';
 import { fetchValueSnapshot } from './api/valueSnapshot';
 import { isSuperflexLeague, maxKeepersFromLeague } from './domain/leagueSettings';
+import { buildLockedKeepers } from './domain/lockedKeepers';
 import { buildPrevDraftMap, rosteredOwnersFromRosters } from './domain/prevKeepers';
 import { espnKey, sleeperKey } from './domain/outlook';
 import type { TradedPicksList } from './domain/tradedPicks';
@@ -336,6 +337,31 @@ export async function ensureDraftOrderLoaded(force?: boolean): Promise<SleeperDr
     /* exact pick numbers unavailable; round-midpoint approximation used instead */
   }
   return state.draft;
+}
+
+// ---------- this season's locked keepers (Sleeper draft room) ----------
+// Once the league's keeper deadline passes, the commissioner enters everyone's
+// keepers into the draft room and they come back from the picks endpoint as
+// is_keeper preassignments, while the draft is still 'pre_draft'. From that
+// moment they outrank every in-app selection — see domain/lockedKeepers.ts for
+// why their mere presence is the only available "deadline has passed" signal.
+//
+// A failure leaves the map null, which reads as "not locked yet" and falls back
+// to in-app selections. That's the right way to fail: showing the picks people
+// chose in the app is a far smaller wrong than showing a league with no keepers
+// at all.
+export async function ensureLockedKeepersLoaded(force?: boolean): Promise<void> {
+  if (state.lockedKeepersLoaded && !force) return;
+  state.lockedKeepersLoaded = true;
+  state.lockedKeepers = null;
+  try {
+    if (state.league && state.league.draft_id) {
+      const picks = await sleeper.draftPicks(state.league.draft_id);
+      state.lockedKeepers = buildLockedKeepers(picks);
+    }
+  } catch {
+    /* not locked as far as we can tell; in-app selections still drive the UI */
+  }
 }
 
 // ---------- traded draft picks (this draft's season only) ----------

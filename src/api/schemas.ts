@@ -81,6 +81,11 @@ export const PickSchema = z.object({
   // nothing (most acquired-slot picks are ordinary); domain/prevKeepers.ts
   // corroborates it before calling anything a keeper.
   draft_slot: z.number().nullish(),
+  // Overall pick number (1..teams*rounds). Present on real picks and on the
+  // keeper preassignments a commissioner enters in the draft room before the
+  // draft opens — see domain/lockedKeepers.ts, which uses it as the exact pick
+  // a locked keeper spends instead of inferring one.
+  pick_no: z.number().nullish(),
 });
 export const PicksSchema = z.array(PickSchema);
 

@@ -181,6 +181,29 @@ the taxi-squad toggle is **never** inferred from Sleeper's `taxi_slots`, which i
 rookie-stash concept unrelated to this app's "keepers cost no pick" rule despite the shared
 nickname. Inflation rounds have no Sleeper equivalent at all. Both stay manual.
 
+## Locked keepers
+
+Picking keepers in this app is for **planning before your league's keeper deadline**. Once
+your commissioner enters everyone's keepers into the Sleeper draft room, the app switches
+over automatically and shows those instead — who's kept, and the round each one costs,
+straight from Sleeper.
+
+When that happens:
+
+- Every team's stars become read-only. There's nothing left to choose.
+- The Draft Board fills each keeper in at Sleeper's round, with its exact pick number.
+- Save / Edit / Withdraw disappear, and the Rosters tab says why.
+- Your own earlier picks aren't deleted — they're just no longer what anyone is shown.
+
+There's no "keepers are locked" flag in Sleeper's API and no keeper-deadline field, so the
+app treats _keepers existing in the draft room_ as the signal. One consequence worth
+knowing: if your commissioner enters teams one at a time, the teams not yet entered will
+briefly show no keepers.
+
+If the app's own keeper rules disagree with the round Sleeper has a player at, **Sleeper
+wins** and that player gets a small tag on the board showing what the app expected — so a
+mis-entered round is visible rather than silently accepted.
+
 ## Shared keeper picks
 
 Keeper picks are shared league-wide so one manager's saved picks show up, locked, on every

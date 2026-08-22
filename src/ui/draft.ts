@@ -1,4 +1,4 @@
-import { ensureAdpLoaded, ensurePlayersLoaded } from '../data';
+import { ensureAdpLoaded, ensureLockedKeepersLoaded, ensurePlayersLoaded } from '../data';
 import { slotStartsPosition, startablePositions } from '../domain/leagueSettings';
 import { allKeeperIdsWithTeam } from '../selectors';
 import { state } from '../state';
@@ -10,6 +10,8 @@ import { syncPositionFilterOptions } from './positionFilter';
 export async function loadDraft(force?: boolean): Promise<void> {
   try {
     await ensurePlayersLoaded(force);
+    // KEPT tags come from the same source of truth as the board.
+    await ensureLockedKeepersLoaded(force);
     await ensureAdpLoaded(force);
     updateAdpSourceBadge();
     renderDraft();

@@ -8,9 +8,16 @@ import {
   potentialKeeperCost,
 } from './domain/keeperCost';
 import { startablePositions } from './domain/leagueSettings';
+import { lockedKeeperCosts } from './domain/lockedKeepers';
 import { dedicatedStarterCounts, mockDraftCaps } from './domain/mockDraft';
 import { keeperSurplusValue } from './domain/value';
-import { keeperListFor, ownerIdOfRoster, state, teamNameForRoster } from './state';
+import {
+  keeperListFor,
+  keepersLockedInSleeper,
+  ownerIdOfRoster,
+  state,
+  teamNameForRoster,
+} from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
 
 export function potentialKeeperCostFor(playerId: string, rosterId: number): number {
@@ -65,6 +72,25 @@ export function allKeeperIdsWithTeam(): Map<string, string> {
 }
 
 export function getRosterKeeperCostsFor(rosterId: number): KeeperCostItem[] {
+  // Past the keeper deadline Sleeper's draft room is authoritative, and it
+  // states each keeper's round outright — so there is nothing to resolve and
+  // the whole collision/capacity path below is skipped. This is the single
+  // chokepoint every tab reads keepers through, which is why switching it here
+  // is enough to switch the board, the draft list and the mock draft together.
+  if (keepersLockedInSleeper()) {
+    return lockedKeeperCosts({
+      locked: state.lockedKeepers?.[String(rosterId)] || [],
+      prevDraftMap: state.prevDraftMap || {},
+      playersMap: state.playersMap || {},
+      adpMap: state.adpMap || {},
+      ownerId: ownerIdOfRoster(rosterId),
+      rosterId,
+      lastRound: lastDraftRound(),
+      teamCount: state.rosters.length || 10,
+      inflationRounds: state.rules.inflationRounds,
+      noKeeperCost: state.rules.noKeeperCost,
+    });
+  }
   return getRosterKeeperCosts({
     keeperIds: keeperListFor(rosterId),
     prevDraftMap: state.prevDraftMap || {},

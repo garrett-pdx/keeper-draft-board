@@ -6,7 +6,14 @@
 // callback rather than importing rosters.ts back, to keep the dependency
 // one-way.
 import { canReadShared, canWriteShared, isTokenRejected, LEAGUE_ADMIN } from '../api/gist';
-import { isLockedRoster, myRosterId, setCurrentUserId, state, teamNameForRoster } from '../state';
+import {
+  isLockedRoster,
+  keepersLockedInSleeper,
+  myRosterId,
+  setCurrentUserId,
+  state,
+  teamNameForRoster,
+} from '../state';
 import {
   cancelEditingMyKeepers,
   clearMyKeepers,
@@ -119,6 +126,10 @@ export function renderClaimTeamPrompt(onChange: () => void): HTMLElement | null 
  * purely local then), or this isn't your team.
  */
 export function renderKeeperActions(rosterId: number, onChange: () => void): HTMLElement | null {
+  // Past the deadline the keepers live in Sleeper's draft room and this app
+  // only reports them, so there is nothing here left to save, edit or
+  // withdraw — offering the controls would imply a change that goes nowhere.
+  if (keepersLockedInSleeper()) return null;
   if (!canReadShared() || myRosterId() !== rosterId) return null;
 
   const locked = isLockedRoster(rosterId);

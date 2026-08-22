@@ -213,6 +213,8 @@ export function getRosterKeeperCosts(ctx: RosterKeeperContext): KeeperCostItem[]
       hasAdp: false,
       consumedPick: null,
       taxiSquad: !!noKeeperCost,
+      fromSleeper: false,
+      expectedCost: null,
     };
   });
 

@@ -118,6 +118,10 @@ src/
     value.ts          #   pickValue, marketPickFor, keeperSurplusValue, VALUE_DECAY
                       #   (keeperSurplusValue takes an optional exact pick number that
                       #   overrides the round-midpoint approximation when known)
+    lockedKeepers.ts  #   buildLockedKeepers, keepersAreLocked, lockedKeeperCosts —
+                      #   THIS season's keepers as entered in Sleeper's draft
+                      #   room, which outrank every in-app selection once they
+                      #   exist (see "Locked keepers")
     prevKeepers.ts    #   buildPrevDraftMap — which of LAST season's picks were
                       #   actually kept (is_keeper + a corroborated trade-slot
                       #   inference, capped per roster); rosteredOwnersFromRosters
@@ -955,6 +959,60 @@ change doesn't assume the same constraints:
 - Being undocumented, `scripts/fetch-outlooks.mjs` deliberately keeps request volume low
   (one request per position slot, once daily, ~300ms apart) rather than polling
   per-player — the same "good citizen" posture as the ADP fetcher.
+
+## Locked keepers (Sleeper's draft room wins)
+
+Selecting keepers in this app is a **pre-deadline planning tool**. Once a league's keeper
+deadline passes, the commissioner enters everyone's keepers into Sleeper's draft room, and
+from that moment **Sleeper is the source of truth** — for who is kept _and_ for what round
+each one costs. Confirmed live on the 2026 Mudd draft: 20 `is_keeper` preassignments, 2 per
+team, sitting in a draft still reading `status: 'pre_draft'`.
+
+**The presence of those picks is the only available "deadline has passed" signal.** Sleeper
+publishes no keeper-deadline field and no locked flag — checked live across every key on
+both the league and draft objects — and `status` stays `pre_draft` before and after keepers
+are entered. So `keepersAreLocked` is simply "does the current draft return any `is_keeper`
+pick".
+
+> The accepted cost: a commissioner entering teams one at a time leaves the rest briefly
+> showing no keepers. **Waiting for every roster to appear cannot fix this**, because a team
+> that legitimately keeps nobody is indistinguishable from one not yet entered — that rule
+> would never fire in a season where someone keeps zero.
+
+**Sleeper's round is used verbatim, and none of `keeperCost.ts` runs.** A locked keeper
+already has a stated round and exact pick number, so there is nothing to resolve: no
+inflation math, no same-round collision, no capacity cascade, no `cannotBeKept`. What the
+app's own rules _would_ have charged is still computed and kept in `KeeperCostItem.
+expectedCost`, but **only when it disagrees** — Sleeper wins either way, and the board tags
+the player ("rules say R4") so a commissioner's typo or an unmodelled house rule is visible
+rather than silently absorbed. Measured against the real 2026 data, all 20 agreed, which is
+a genuine independent check on the keeper-cost math.
+
+**One chokepoint switches the whole app.** `getRosterKeeperCostsFor` (`src/selectors.ts`)
+branches to `lockedKeeperCosts`, and every tab reads keepers through it — so the board, the
+Draft List's KEPT tags and the mock draft's occupied cells all follow with no special-casing.
+`keeperListFor` (`src/state.ts`) reports the locked list too, which is what makes the roster
+stars and the "Keepers N/M" counts agree. `state.keepers` is deliberately left alone: it's
+still the manager's own planning and still what the gist holds, it just stops being what
+anyone is shown.
+
+**Everything that writes keepers switches off.** `canEditRoster` returns false for every
+roster — including your own, and including a league with no gist configured at all — and
+`renderKeeperActions` renders nothing, since there is no longer a change that could go
+anywhere. The Rosters tab explains why rather than just going inert.
+
+**Failure means "not locked".** `ensureLockedKeepersLoaded` (`src/data.ts`) leaves the map
+null on any error, so the app falls back to in-app selections. That is the right direction
+to fail: showing the picks people chose is a far smaller wrong than showing a league with no
+keepers at all.
+
+> **Known blind spot, same root cause as `prevKeepers.ts`.** Sleeper cannot set `is_keeper`
+> on a pick made from a traded-in slot, so a keeper assigned against an acquired pick may
+> not carry the flag and would be missed here. Unlike last season's draft there is nothing
+> to corroborate against, and this code deliberately does **not** guess: missing one shows a
+> team a keeper short, which is visible and fixable, while inventing one silently removes a
+> real player from the draft pool. None of the 2026 keepers were on acquired slots, so this
+> is untested against live data.
 
 ## Shared keeper picks
 

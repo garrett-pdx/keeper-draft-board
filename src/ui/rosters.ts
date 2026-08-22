@@ -4,6 +4,7 @@ import {
   ensureBoardRoundsLoaded,
   ensureOutlookLoaded,
   ensurePlayersLoaded,
+  ensureLockedKeepersLoaded,
   ensurePrevDraftLoaded,
   ensureTradedPicksLoaded,
   hasPrevDraft,
@@ -20,6 +21,7 @@ import {
   ensureBoardOrder,
   isKeeper,
   keeperListFor,
+  keepersLockedInSleeper,
   myRosterId,
   POSITION_ORDER,
   seedRulesFromLeague,
@@ -60,6 +62,9 @@ export async function loadRosters(force?: boolean): Promise<void> {
     seedRulesFromLeague(league);
 
     await ensurePrevDraftLoaded(force);
+    // Sleeper's own locked keepers, if the deadline has passed — they outrank
+    // every in-app selection from here on (see domain/lockedKeepers.ts).
+    await ensureLockedKeepersLoaded(force);
     await ensureBoardRoundsLoaded(force); // needed for last-round keeper cost; also loads state.draft
     try {
       await ensureTradedPicksLoaded(force);
@@ -117,6 +122,22 @@ export async function loadRosters(force?: boolean): Promise<void> {
 export function renderRostersNote(): void {
   const note = $('#rostersNote')!;
   note.innerHTML = '';
+  if (keepersLockedInSleeper()) {
+    const teams = Object.keys(state.lockedKeepers || {}).length;
+    const count = Object.values(state.lockedKeepers || {}).reduce((n, list) => n + list.length, 0);
+    note.appendChild(
+      el(
+        'div',
+        { class: 'info-note' },
+        el('strong', null, 'Keepers are locked in on Sleeper. '),
+        document.createTextNode(
+          `${count} keeper${count === 1 ? '' : 's'} across ${teams} team${teams === 1 ? '' : 's'}, ` +
+            'taken straight from your draft room — including the round each one costs. ' +
+            'Selecting keepers in this app is switched off now that the deadline has passed.',
+        ),
+      ),
+    );
+  }
   if (state.prevDraftLoaded && Object.keys(state.prevDraftMap || {}).length === 0) {
     note.appendChild(
       el(
