@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { allKeeperIdsWithTeam, getRosterKeeperCostsFor } from '../src/selectors';
+import {
+  allKeeperIdsWithTeam,
+  getRosterKeeperCostsFor,
+  mockDraftDoubleUpAllowedFor,
+  mockDraftRoundWeights,
+} from '../src/selectors';
+import { MUDD_MANAGERS } from '../src/domain/draftTendencies';
 import { state } from '../src/state';
+import type { MockDraftState } from '../src/state';
 import { DEFAULT_LEAGUE_RULES } from '../src/types';
 import type { PlayersMap, PrevDraftMap } from '../src/types';
 
@@ -97,5 +104,103 @@ describe('allKeeperIdsWithTeam', () => {
 
     // No round is contested in taxi-squad mode, so neither is cannotBeKept.
     expect([...allKeeperIdsWithTeam().keys()].sort()).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('mockDraftRoundWeights / mockDraftDoubleUpAllowedFor — tendency quorum', () => {
+  function rostersFor(displayNames: string[]) {
+    return displayNames.map((_name, i) => ({
+      roster_id: i + 1,
+      owner_id: `owner${i + 1}`,
+      players: [],
+    }));
+  }
+  function usersFor(displayNames: string[]) {
+    return displayNames.map((name, i) => ({ user_id: `owner${i + 1}`, display_name: name }));
+  }
+
+  beforeEach(() => {
+    state.leagueId = 'tendency-league';
+    state.rules = { ...DEFAULT_LEAGUE_RULES };
+    state.mockDraft = null;
+  });
+
+  it('without quorum, round weights are flat (no positional lean leaks in)', () => {
+    const strangers = Array.from({ length: 10 }, (_, i) => `Stranger${i}`);
+    state.rosters = rostersFor(strangers);
+    state.users = usersFor(strangers);
+
+    const weights = mockDraftRoundWeights(1);
+    expect(weights).toEqual({ RB: 1, WR: 1, QB: 1, TE: 1 });
+  });
+
+  it('with quorum met (5+ known Mudd managers), round 1 leans RB over WR', () => {
+    const names = [...MUDD_MANAGERS.slice(0, 5), 'Stranger1', 'Stranger2'];
+    state.rosters = rostersFor(names);
+    state.users = usersFor(names);
+
+    const weights = mockDraftRoundWeights(1);
+    expect(weights.RB).toBeGreaterThan(weights.WR);
+    expect(weights.RB).toBeGreaterThan(weights.QB);
+  });
+
+  it('without quorum, mockDraftDoubleUpAllowedFor always returns false', () => {
+    const strangers = Array.from({ length: 10 }, (_, i) => `Stranger${i}`);
+    state.rosters = rostersFor(strangers);
+    state.users = usersFor(strangers);
+    state.mockDraft = {
+      active: true,
+      rounds: 1,
+      slotOrderRosterIds: [1],
+      claimedRosterId: 1,
+      seed: 999,
+      slots: [],
+      picks: [],
+    };
+
+    const allowed = mockDraftDoubleUpAllowedFor(1);
+    expect(allowed('QB')).toBe(false);
+    expect(allowed('TE')).toBe(false);
+  });
+
+  it('with quorum, a same-seed-and-roster verdict is stable across calls (reload-safety)', () => {
+    const names = [...MUDD_MANAGERS.slice(0, 5), 'Stranger1', 'Stranger2'];
+    state.rosters = rostersFor(names);
+    state.users = usersFor(names);
+    const mockDraft: MockDraftState = {
+      active: true,
+      rounds: 1,
+      slotOrderRosterIds: [1],
+      claimedRosterId: 1,
+      seed: 424242,
+      slots: [],
+      picks: [],
+    };
+    state.mockDraft = mockDraft;
+
+    const first = mockDraftDoubleUpAllowedFor(1);
+    const second = mockDraftDoubleUpAllowedFor(1);
+    expect(first('QB')).toBe(second('QB'));
+    expect(first('TE')).toBe(second('TE'));
+  });
+
+  it('a manager not in the profile table (a Stranger holding a Mudd-quorum seat) never doubles up', () => {
+    const names = [...MUDD_MANAGERS.slice(0, 5), 'Stranger1', 'Stranger2'];
+    state.rosters = rostersFor(names);
+    state.users = usersFor(names);
+    state.mockDraft = {
+      active: true,
+      rounds: 1,
+      slotOrderRosterIds: [1],
+      claimedRosterId: 1,
+      seed: 1,
+      slots: [],
+      picks: [],
+    };
+
+    // Stranger1 is roster_id 6 (index 5) in `names`.
+    const allowed = mockDraftDoubleUpAllowedFor(6);
+    expect(allowed('QB')).toBe(false);
+    expect(allowed('TE')).toBe(false);
   });
 });

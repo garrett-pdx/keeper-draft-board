@@ -54,7 +54,13 @@ export const LS_SHARED_KEEPERS_PREFIX = 'kdb_shared_keepers_';
 // kept running the old order, handing a roster its two traded picks
 // back-to-back for the rest of the simulation. A local practice sim is cheap
 // to restart; running one on a sequence the board contradicts is not.
-export const LS_MOCK_DRAFT_PREFIX = 'kdb_mock_draft_v2_';
+// Bumped to v3 when `seed` was added for the probabilistic AI sampler: a v2
+// blob still parses "successfully" but yields `seed === undefined`, which
+// propagates through the RNG's Math.imul mixing into NaN rolls — a silently
+// broken AI rather than a loud failure. Defaulting a missing seed to some
+// fixed number instead of bumping would have been the same class of bug this
+// comment is about: every resumed pre-v3 draft would quietly share one seed.
+export const LS_MOCK_DRAFT_PREFIX = 'kdb_mock_draft_v3_';
 export const PLAYERS_MAX_AGE_MS = 20 * 60 * 60 * 1000; // ~20h, Sleeper says at most once/day
 // ADP moves daily and is the number people second-guess the app over ("he is
 // not the 4th pick"), so it gets a much shorter leash than the player
@@ -95,12 +101,24 @@ export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error';
  * Deliberately NOT stored: a team count (the frozen `slots` list already
  * encodes it) and a start timestamp — both were write-only fields whose
  * presence implied a protection they didn't provide.
+ *
+ * `seed` IS read: advance() (src/mockDraft.ts) passes it to every AI pick's
+ * seededRoll(seed, ROLL_PICK, idx) draw, and selectors.ts's
+ * mockDraftDoubleUpAllowedFor passes it to each roster's ROLL_DOUBLE_UP draw.
+ * It's drawn once with Math.random() at Start and stored rather than derived
+ * from the league id, so a Reset produces a genuinely different draft rather
+ * than replaying the same one. It can't be reconstructed after a reload —
+ * that's the whole reason it has to be persisted rather than kept in memory;
+ * see seededRoll's doc comment in src/domain/draftAi.ts for why the RNG
+ * itself must be a pure function of this value rather than a stateful
+ * generator.
  */
 export interface MockDraftState {
   active: boolean;
   rounds: number;
   slotOrderRosterIds: number[];
   claimedRosterId: number;
+  seed: number;
   slots: MockDraftSlot[];
   picks: (string | null)[];
 }

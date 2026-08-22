@@ -128,10 +128,10 @@ Encoded in `src/domain/` and covered by tests in `test/`:
 
 A local-only practice tool on the Draft Board — never expires, no time limit, never
 touches the shared Gist. Hit **Start Mock Draft** and every non-keeper cell fills in real
-snake order by a simple best-player-available AI, pausing the instant it's your turn with
-a filterable player picker (same search + position filter as the Draft List). Pick, and it
-resumes auto-drafting until your next turn, repeating until the draft's done. **Reset
-Draft** clears it back to keepers-only so you can run it again.
+snake order by an AI, pausing the instant it's your turn with a filterable player picker
+(same search + position filter as the Draft List). Pick, and it resumes auto-drafting until
+your next turn, repeating until the draft's done. **Reset Draft** clears it back to
+keepers-only so you can run it again.
 
 **You pick your draft slot by arranging the board.** If your commissioner hasn't set the
 real order yet, the columns left-to-right are the order the mock runs in — drag your team
@@ -140,8 +140,9 @@ simulation, and the columns lock while it runs so the grid always shows the orde
 actually drafting in. Once Sleeper publishes the real order it takes over and the board
 stops being rearrangeable at all.
 
-The AI isn't purely ADP-blind, though. Three rules narrow what an opponent will consider,
-all derived from your league's own starting lineup:
+The AI isn't purely ADP-blind, and it isn't purely predictable either. Four rules narrow and
+shape what an opponent will do, derived from your league's own starting lineup — and, for the
+Mudd league specifically, from real history:
 
 - **Defenses and kickers go last, and nobody ends up short a starter.** DEF/K are kept out
   of the pool until they're all a team has left to draft, so they land on its final picks —
@@ -152,11 +153,21 @@ all derived from your league's own starting lineup:
 - **A per-position cap**, so nobody hoards a 6th QB or 3rd TE just because the position is
   running hot. RB/WR get real headroom from FLEX eligibility; **QB and TE are capped at
   twice what your league actually starts** (2 and 2 in a 1-QB/1-TE league, 4 QBs in a
-  superflex one).
+  superflex one) — for Mudd, that's not just a plausible limit, it's the actual ceiling
+  observed across every real draft the league has run.
 - **No bench QB or TE until the starting lineup can be filled** — every slot but DEF/K. A
   team's first QB and first TE are always fair game, and a 2-QB league's second QB counts as
   a starter, not a backup. Bench RB/WR are never gated: while starting slots remain, an
-  extra RB/WR is filling a FLEX anyway.
+  extra RB/WR is filling a FLEX anyway. In the Mudd league, this becomes a per-manager
+  tendency rather than one rule for everyone — some managers really do double up at QB or
+  TE far more (or less) than the league as a whole.
+- **The AI doesn't always take the consensus best player.** It picks from the top handful of
+  players by market rank, leaning toward whichever positions are typically drafted around
+  that point of the draft — so two mock drafts from the same board won't play out the same
+  way, the way two real drafts never do. For the Mudd league, that lean is drawn from the
+  league's own 2023–2025 draft history (a sharp early lean toward running backs, a shift
+  toward receivers from the middle rounds on); any other league gets the same variety with
+  no positional lean baked in, since that history is specific to Mudd's managers.
 
 The bench rule deliberately doesn't _force_ anyone to draft a starting QB or TE — it only
 holds back the second one. That's what the end-of-draft reservation is for: measured over a

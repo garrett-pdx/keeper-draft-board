@@ -92,12 +92,15 @@ describe('initialRulesForLeague', () => {
   });
 });
 
-// A Mudd-shaped lineup: no kicker slot, three generic FLEX spots.
-const MUDD = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'FLEX', 'DEF', 'BN', 'BN'];
+// A conventional lineup: no kicker slot, three generic FLEX spots, one DEF.
+// Despite the name this app used to give it, this is NOT Mudd's actual lineup
+// — Mudd has no DEF slot either (see draftTendencies.ts) — so it's named for
+// what it structurally is instead.
+const STANDARD = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'FLEX', 'DEF', 'BN', 'BN'];
 
 describe('startablePositions', () => {
   it('omits a position the league has no slot for', () => {
-    const startable = startablePositions(MUDD);
+    const startable = startablePositions(STANDARD);
     expect(startable.sort()).toEqual(['DEF', 'QB', 'RB', 'TE', 'WR']);
     expect(startable).not.toContain('K');
   });
@@ -124,7 +127,7 @@ describe('startablePositions', () => {
 
 describe('positionFilterSlots', () => {
   it('dedupes the lineup in order, keeping a FLEX entry and dropping bench slots', () => {
-    expect(positionFilterSlots(MUDD)).toEqual(['QB', 'RB', 'WR', 'TE', 'FLEX', 'DEF']);
+    expect(positionFilterSlots(STANDARD)).toEqual(['QB', 'RB', 'WR', 'TE', 'FLEX', 'DEF']);
   });
 
   it('surfaces a superflex slot as its own filter option', () => {

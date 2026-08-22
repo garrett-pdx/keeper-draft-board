@@ -1,6 +1,15 @@
 // State-aware wrappers around the pure domain functions. These read the global
 // `state` and hand explicit arguments to the (testable, state-free) domain layer.
 import { lastDraftRound } from './data';
+import { ROLL_DOUBLE_UP, seededRoll } from './domain/draftAi';
+import {
+  MUDD_MANAGERS,
+  MUDD_QBTE_PROFILES,
+  MUDD_ROUND_BANDS,
+  hasTendencyQuorum,
+  positionWeightsForRound,
+  qbTeDoubleUpOdds,
+} from './domain/draftTendencies';
 import { exactPickForRoster } from './domain/draftOrder';
 import {
   getRosterKeeperCosts,
@@ -17,6 +26,7 @@ import {
   ownerIdOfRoster,
   state,
   teamNameForRoster,
+  userForRoster,
 } from './state';
 import type { KeeperCostItem, SurplusValue } from './types';
 
@@ -208,4 +218,69 @@ export function mockDraftRemainingPicksFor(rosterId: number): number {
     if (md.slots[i].rosterId === rosterId && md.picks[i] === null) remaining += 1;
   }
   return remaining;
+}
+
+/**
+ * Whether enough of the CURRENTLY loaded league's managers are known Mudd
+ * league managers for its draft-tendency tables to plausibly be about THIS
+ * league — the only thing standing between Mudd's hardcoded tendencies and
+ * leaking into an unrelated league. There is no league-id check anywhere in
+ * this codebase; see draftTendencies.ts's hasTendencyQuorum doc comment for
+ * why keying on manager handles instead is the right call.
+ *
+ * Evaluated live rather than frozen at Start: a commissioner replacing a
+ * manager mid-simulation (same roster_id, new owner_id) could in principle
+ * flip this, but state.adpMap already changes future picks mid-simulation the
+ * same way on its own refresh cycle, and this has never come up in practice.
+ */
+function tendencyQuorumMet(): boolean {
+  return hasTendencyQuorum(
+    state.rosters.map((r) => userForRoster(r.roster_id)?.display_name),
+    MUDD_MANAGERS,
+  );
+}
+
+/**
+ * This round's positional lean for the mock draft's AI sampler: Mudd's
+ * observed round-band weights under quorum, or flat (equal) weights for any
+ * other league. Never null and never zero-weighted either way, so
+ * samplePlayer always has something to work with — sampling itself (the fix
+ * for every mock draft being byte-identical) applies to every league; only
+ * the Mudd-specific DATA is gated.
+ */
+export function mockDraftRoundWeights(round: number): Record<string, number> {
+  if (tendencyQuorumMet()) return positionWeightsForRound(MUDD_ROUND_BANDS, round);
+  return { RB: 1, WR: 1, QB: 1, TE: 1 };
+}
+
+/**
+ * A per-roster, per-position predicate for filterBenchQbTe's doubleUpAllowed
+ * parameter: does THIS manager draft a second QB/TE more (or less) readily
+ * than the league norm.
+ *
+ * Without quorum, always returns false — filterBenchQbTe's hard league-wide
+ * gate, unchanged from before this existed. The per-manager profiles are
+ * gated behind the SAME tendencyQuorumMet() as the round weights, not
+ * evaluated independently — easy to miss because they feel individually
+ * keyed on a display_name, but without the same gate a same-named manager in
+ * an unrelated league would inherit a Mudd manager's tendency.
+ *
+ * One coin flip per (roster, position) per simulation, not per pick: "does
+ * this manager double up" is a season-level trait, not a per-pick one — a
+ * per-pick flip at the observed p=.6 would double up almost certainly across
+ * a whole draft. Keying the roll on rosterId (never on the pick index) is
+ * what keeps the realized frequency close to the modeled one, and keeps it
+ * reload-safe the same way the pick sampler's per-pick roll is.
+ */
+export function mockDraftDoubleUpAllowedFor(rosterId: number): (position: string) => boolean {
+  if (!tendencyQuorumMet() || !state.mockDraft) return () => false;
+  const displayName = userForRoster(rosterId)?.display_name;
+  const odds = qbTeDoubleUpOdds(MUDD_QBTE_PROFILES, displayName);
+  if (!odds) return () => false;
+  const seed = state.mockDraft.seed;
+  return (position: string) => {
+    if (!(position in odds)) return false;
+    const key = position === 'QB' ? 0 : 1;
+    return seededRoll(seed, ROLL_DOUBLE_UP, rosterId, key) < odds[position as 'QB' | 'TE'];
+  };
 }

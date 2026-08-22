@@ -1,11 +1,12 @@
 # Mudd League draft-tendency analysis (2023-2025)
 
-Source: `scripts/analyze-draft-positions.py`, reading `static/data/league-history.json`
-and `static/data/players.json`. Covers the three most recent completed drafts (2023,
-2024, 2025), each a single 14-round `primary` draft. Keeper picks are excluded from
+This is the provenance record for the constants in `src/domain/draftTendencies.ts`
+(`MUDD_ROUND_BANDS`, `MUDD_QBTE_PROFILES`) — those numbers were hand-transcribed from the
+findings below. The analysis itself was run outside this repository, against the same
+Sleeper league history this app already reads (rosters, prior drafts); the script and raw
+data it used are not part of this codebase. Covers the three most recent completed drafts
+(2023, 2024, 2025), each a single 14-round `primary` draft. Keeper picks are excluded from
 every count below (a kept player was never a live draft-day decision that year).
-Full per-round, per-season, per-manager counts are in the companion
-`draft-position-analysis.json` in this same directory.
 
 Post-keeper-filter pick totals: 2023 = 121, 2024 = 120, 2025 = 122 (each comfortably
 under the 140-pick ceiling, consistent with ~19-20 keepers removed per season across

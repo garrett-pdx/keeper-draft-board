@@ -77,7 +77,10 @@ src/
   selectors.ts        # state-aware wrappers that feed the pure domain layer —
                       #   including allKeeperIdsWithTeam, which lives here rather
                       #   than in state.ts because "is this player really kept"
-                      #   needs the domain layer's cannotBeKept verdict
+                      #   needs the domain layer's cannotBeKept verdict; also
+                      #   mockDraftRoundWeights/mockDraftDoubleUpAllowedFor,
+                      #   which gate Mudd's draft-tendency tables behind a
+                      #   manager-handle quorum (see "Mock draft")
   data.ts             # cache-aware "ensure*" loaders (honor a `force` flag)
   refresh.ts          # cross-tab refresh coordination — isTabStale/TAB_STALE_MS
                       #   and refreshAll (rosters first and force-loaded, the
@@ -148,14 +151,29 @@ src/
                       #   position (see "Mock draft")
     mockDraft.ts      #   buildMockDraftSlots (flattens the whole draft into one
                       #   seat-ordered pick sequence), bestAvailablePlayer
-                      #   (plain BPA-by-ADP); the three AI pool filters —
-                      #   filterByRemainingNeeds (DEF/K last + the late-round
-                      #   starter safety net),
+                      #   (plain BPA-by-ADP; now only the sampler's zero-weight
+                      #   fallback — see draftAi.ts for the AI's actual pick);
+                      #   the three AI pool filters — filterByRemainingNeeds
+                      #   (DEF/K last + the late-round starter safety net),
                       #   positionCaps/mockDraftCaps/filterByPositionCaps
                       #   (per-position limits), filterBenchQbTe (no bench QB/TE
-                      #   until starters are fillable); plus their supporting
-                      #   unfilledStartingSlots and dedicatedStarterCounts —
-                      #   see "Mock draft"
+                      #   until starters are fillable, with an optional
+                      #   per-manager doubleUpAllowed exemption); plus their
+                      #   supporting unfilledStartingSlots and
+                      #   dedicatedStarterCounts — see "Mock draft"
+    draftAi.ts        #   seededRoll (stateless, reload-safe pseudo-random
+                      #   [0,1) draw keyed on (seed, ...key) — see "Mock
+                      #   draft" for why it must never become a stateful
+                      #   generator), samplePlayer (weighted sampling over the
+                      #   top few available players by market rank — the AI's
+                      #   actual pick, replacing plain best-player-available)
+    draftTendencies.ts #   real Mudd league draft-history data, hand-transcribed
+                      #   from docs/draft-tendencies-2023-2025.md —
+                      #   MUDD_ROUND_BANDS/positionWeightsForRound (round-by-round
+                      #   positional lean), MUDD_QBTE_PROFILES/qbTeDoubleUpOdds
+                      #   (per-manager 2nd-QB/2nd-TE tendency), hasTendencyQuorum
+                      #   (manager-handle match, no league-id anywhere) — see
+                      #   "Mock draft"
     adp.ts            #   normalizePlayerName, matchAdpToPlayers (name/position/team
                       #   matching against Sleeper's player dict, entries tried in
                       #   priority order so a player missing from one format can still
@@ -309,13 +327,15 @@ import no state.
 ## Mock draft
 
 A local-only practice simulation layered onto the Draft Board (`src/mockDraft.ts`,
-`src/domain/mockDraft.ts`, `src/ui/mockDraftPicker.ts`) — never touches the shared Gist,
-never expires, no countdown timer anywhere. Click **Start Mock Draft**: every non-keeper
-cell gets auto-filled in real snake order by a rudimentary "best player available" AI
-(ascending ADP/market rank, respecting a per-position cap — see below) until it reaches the
-signed-in manager's own next pick, where it pauses and opens a filterable player-picker
-drawer (search + position filter, identical semantics to the Draft List tab). Picking
-resumes auto-play through the next AI streak, repeating until the draft completes.
+`src/domain/mockDraft.ts`, `src/domain/draftAi.ts`, `src/domain/draftTendencies.ts`,
+`src/ui/mockDraftPicker.ts`) — never touches the shared Gist, never expires, no countdown
+timer anywhere. Click **Start Mock Draft**: every non-keeper cell gets auto-filled in real
+snake order by an AI that weighted-samples from the top few available players by market rank
+(respecting a per-position cap and, for the Mudd league specifically, this league's own
+observed positional tendencies — see below) until it reaches the signed-in manager's own next
+pick, where it pauses and opens a filterable player-picker drawer (search + position filter,
+identical semantics to the Draft List tab). Picking resumes auto-play through the next AI
+streak, repeating until the draft completes.
 **Reset Draft** (behind a `window.confirm`, the one deliberate exception to this app's
 normal no-confirm convention, since it can discard 100+ picks with no undo) clears it back
 to keepers-only.
@@ -357,12 +377,11 @@ to keepers-only.
   in. Note there is no conflict once the real order _is_ known: the board is un-draggable
   then and `ensureBoardOrder` pins `boardOrder` to `orderRosterIdsBySlot`, so both sources
   already agree.
-- **Three AI-only pool filters sit on top of best-player-available, applied in order.**
-  The manager's own turn always sees the full, unfiltered player list in the picker — every
-  one of these is an AI-realism heuristic, never a restriction on what the user may draft.
-  Each falls back to the pool it was handed if it comes back empty, since a pick has to
-  happen either way, and each degrades to no restriction when `roster_positions` is unknown
-  rather than guessing.
+- **Three AI-only pool filters, plus a weighted sample, applied in order.** The manager's own
+  turn always sees the full, unfiltered player list in the picker — every one of these is an
+  AI-realism heuristic, never a restriction on what the user may draft. Each filter falls back
+  to the pool it was handed if it comes back empty, since a pick has to happen either way, and
+  each degrades to no restriction when `roster_positions` is unknown rather than guessing.
   1. **Remaining needs (`filterByRemainingNeeds`) — reserves a roster's last picks for what
      it still has to have**, in two tiers.
      The outer tier is the DEF/K rule: a defense or kicker taken mid-draft is a wasted pick
@@ -394,7 +413,11 @@ to keepers-only.
      to finish with five backups. Twice the dedicated starts gives 2 QB / 2 TE in that
      league and 4 QB in a 2QB one. Applied only where a dedicated slot exists: with none, a
      TE is a pure FLEX asset like any RB/WR and keeps the base cap, since `2 x 0` would make
-     the position undraftable.
+     the position undraftable. **This isn't just a plausible limit — it's an observed one**:
+     across 30 real Mudd league manager-seasons (`domain/draftTendencies.ts`), no manager has
+     ever drafted a third QB or TE in one draft; every count is 0, 1, or 2. This cap now
+     matters more than it used to, since a weighted sampler (step 4) has no other mechanism
+     stopping a long streak of QB or TE rolls on its own — the cap is the tail-truncator.
   3. **Bench QB/TE gate (`filterBenchQbTe`) — a 2nd QB or 2nd TE waits until every starting
      slot can be filled**, DEF/K aside. This one rule replaced _both_ a list of bench-depth
      prerequisites and a soft price penalty, which between them were two mechanisms chasing
@@ -405,6 +428,35 @@ to keepers-only.
      filling a FLEX, and once they're full the rule is a no-op anyway. Forcing a _starting_
      QB/TE is not this filter's job — that's the safety net in (1), which is where it belongs
      because it's a question of running out of picks, not of roster balance.
+     **Under Mudd's tendency quorum this hard rule becomes a per-manager coin flip** — some
+     managers genuinely double up far more (or less) readily than the league norm this gate
+     otherwise enforces uniformly on everyone. `filterBenchQbTe` takes an optional
+     `doubleUpAllowed(position)` predicate (default: nobody, reproducing the old hard gate
+     exactly) that `selectors.mockDraftDoubleUpAllowedFor` supplies from
+     `draftTendencies.qbTeDoubleUpOdds`, gated behind the same manager-handle quorum described
+     below. It's one coin flip per (roster, position) per simulation, not per pick — "does
+     this manager double up" is a season-level trait, and a per-pick flip at the observed
+     p=.6 would double up almost every draft. Outside Mudd (or without quorum) this is exactly
+     the hard league-wide rule it has always been.
+  4. **`samplePlayer` (`domain/draftAi.ts`) — weighted-random selection among the top few
+     survivors by market rank**, replacing strict best-player-available. Chosen over the
+     seemingly simpler "roll a target position, then take the best player at it": that
+     alternative has unbounded reach — a rare position roll could take the single best player
+     at that position from anywhere in the pool, however unrealistic a reach that is. Capping
+     to the top N first (`TOP_N = 10`, `RANK_DECAY = 0.65` — tune both here, the `VALUE_DECAY`
+     convention) means the AI can only express a positional lean to the extent the market
+     genuinely offers one near the top of the board; it can never reach outside that window.
+     `RANK_DECAY` started at 0.75 and was lowered after live mock drafts felt a shade too
+     willing to reach a few slots down the board — same window, more of the probability mass
+     concentrated on the top 1-2 ranked players.
+     The weight per candidate is `positionWeight[pos] * RANK_DECAY ** indexInWindow`, so rank
+     still dominates and a positional lean only shifts which of the top few gets taken, not
+     whether a reach happens at all. `positionWeight` comes from
+     `selectors.mockDraftRoundWeights(round)` — Mudd's real observed round-by-round
+     RB/WR/QB/TE lean under quorum (see below), or flat/equal weights for every other league.
+     **The sampler itself is not a Mudd-only feature** — before this, every mock draft from the
+     same board was byte-identical; adding randomness (even flat-weighted) fixes that
+     everywhere. Only the Mudd-specific positional DATA is gated.
 - **`unfilledStartingSlots` and `dedicatedStarterCounts` answer deliberately different
   questions, and must not be merged.** `unfilledStartingSlots` uses `SLOT_ELIGIBILITY`, where
   a generic `FLEX` _is_ TE-eligible, because it asks the factual question "could this roster
@@ -442,6 +494,63 @@ to keepers-only.
   were both dropped after review found them write-only — a snapshot field that nothing
   consumes reads as a protection the code isn't actually providing (see `rounds` above for
   what a real one looks like). Team count is already implied by the frozen `slots` list.
+  `seed` **is** read — every AI pick's `samplePlayer` roll and every roster's
+  `mockDraftDoubleUpAllowedFor` coin flip are keyed on it (`seededRoll(seed, ...)`). It's
+  drawn once with `Math.random()` at Start rather than derived from the league id, so a
+  Reset produces a genuinely different draft instead of replaying the same one — and it
+  can't be reconstructed after a page reload, which is exactly why it has to be persisted
+  rather than kept only in memory (see `seededRoll`'s doc comment below for why).
+
+### Mudd tendency profiles, and why there is no league-id check
+
+Real analysis of the Mudd league's own 2023/2024/2025 drafts (14 rounds each, keeper picks
+excluded — see `docs/draft-tendencies-2023-2025.md`) showed a sharp round-1 RB lean (RB 19,
+WR 8, QB 0, TE 0 across three years) persisting through round 3 and flipping to a WR lean
+from round 4 on, plus strong per-manager QB/TE-doubling profiles (e.g. one manager drafted
+2+ QB **and** 2+ TE in all three seasons; another never doubled at QB but always did at TE).
+`src/domain/draftTendencies.ts` hand-transcribes this into `MUDD_ROUND_BANDS` and
+`MUDD_QBTE_PROFILES`, both hardcoded TS constants rather than an imported JSON file — the
+source data is ~40 numbers buried in kilobytes of exhaust the app never reads, sits outside
+`tsconfig.json`'s declared program roots, and (were it served from `public/` instead) would
+incur the runtime-fetch/cache-busting/schema-validation obligations "Snapshot freshness"
+below reserves for data that actually changes at runtime, for numbers describing three
+already-completed drafts. Same pattern as `LAST_SEASON_STANDINGS` (`src/ui/rosters.ts`): a
+hand-maintained, offseason-refreshed table, not a fetched snapshot.
+
+**There is no league-id check anywhere in this codebase, and this doesn't add one.** Whether
+these tables apply is decided by `hasTendencyQuorum` (`draftTendencies.ts`) matching the
+CURRENTLY loaded league's manager `display_name`s against `MUDD_MANAGERS` — 5 of 10 known
+handles, case-insensitive, trimmed, the identical convention `rosters.ts`'s `standingsRank`
+already uses for `LAST_SEASON_STANDINGS`. Below quorum, `selectors.mockDraftRoundWeights`
+returns flat/equal weights and `selectors.mockDraftDoubleUpAllowedFor` always returns false —
+byte-for-byte the same behavior this app had before any of this existed. A stray same-named
+manager in an unrelated league is expected to clear a 5-of-10 bar essentially never; the
+threshold also tolerates roughly half of Mudd's real managers renaming on Sleeper before the
+tables silently stop applying. **Both the round weights and the per-manager profiles are
+gated behind the same `tendencyQuorumMet()` call** — easy to get wrong, since the profiles
+feel individually keyed on a `display_name`, but without the shared gate a stranger named
+identically to a real Mudd manager in another league would inherit that manager's tendency.
+
+**Add-one smoothing is mandatory, not cosmetic.** Round 1's raw QB and TE counts are
+literally 0. A literal zero weight would be both a hard structural ban (impossible, not just
+rare) and would break a caller doing weighted sampling outright (an all-QB candidate pool
+would sum to zero weight). `positionWeightsForRound` smooths every band with
+`(count + 1) / (total + 4)`; `qbTeDoubleUpOdds` smooths every manager with
+`(seasons doubled + 1) / (seasons observed + 2)`. Unsmoothed, a manager who's never taken a
+second TE could never be modeled as doing so, and one who always has would be modeled as
+certain to — the smoothed values (.8/.6/.4/.2 for 3/2/1/0-of-3 seasons) read as a tendency,
+which is what they are at this sample size.
+
+**The RNG backing all of this must stay a pure, stateless function of `(seed, ...key)` —
+see `seededRoll`'s doc comment in `src/domain/draftAi.ts`.** `advance()` doesn't replay a
+draft each time it runs; it fills whichever entries of the persisted `picks` array are still
+null, and `resumeMockDraft()` calls it again after every cold page reload with no
+in-memory generator left to resume. A streaming PRNG whose state advances per call would be
+wrong here — its state is gone the moment the tab closes, so the same pick index would
+re-roll differently after a reload. Keying every draw on `(seed, ...key)` instead — the pick
+index for `ROLL_PICK`, the roster id and position for `ROLL_DOUBLE_UP` — makes each decision
+independently reproducible from what `localStorage` actually holds. Don't replace this with
+a stateful generator; it is the single easiest thing for a future change to quietly break.
 
 ## Domain rules (configurable per-league; defaults are the Mudd Keeper League's actual
 

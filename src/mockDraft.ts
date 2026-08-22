@@ -5,20 +5,22 @@
 // comment in state.ts).
 import {
   buildMockDraftSlots,
-  bestAvailablePlayer,
   filterByRemainingNeeds,
   filterByPositionCaps,
   filterBenchQbTe,
   type MockDraftSlot,
 } from './domain/mockDraft';
+import { samplePlayer, seededRoll, ROLL_PICK } from './domain/draftAi';
 import { orderRosterIdsBySlot, reconcileOrder } from './domain/draftOrder';
 import { pickHolder } from './domain/tradedPicks';
 import {
   keepersInCellFor,
   mockDraftAvailablePlayerIds,
   mockDraftDedicatedStarters,
+  mockDraftDoubleUpAllowedFor,
   mockDraftPositionCaps,
   mockDraftRemainingPicksFor,
+  mockDraftRoundWeights,
   rosterPositionCountsFor,
 } from './selectors';
 import {
@@ -111,6 +113,11 @@ export function startMockDraft(): void {
     rounds,
     slotOrderRosterIds,
     claimedRosterId,
+    // The one non-deterministic input, drawn here in the glue layer so the
+    // domain/selectors layers stay pure functions of it. Stored rather than
+    // derived from the league id, so a Reset produces a genuinely different
+    // draft instead of replaying the same one.
+    seed: Math.floor(Math.random() * 0x7fffffff),
     slots,
     picks: slots.map(() => null),
   };
@@ -186,21 +193,33 @@ export function advance(openPicker = true): void {
       return;
     }
     const available = mockDraftAvailablePlayerIds();
-    // Three AI-only pool filters, applied in order on top of plain
-    // best-player-available and never to the manager's own pick (the picker
-    // always shows the full, unfiltered list). Each falls back to the pool it
-    // was handed when it comes back empty, since a pick has to happen either
-    // way:
+    // Three AI-only pool filters, applied in order, followed by a weighted
+    // sample rather than plain best-player-available — never applied to the
+    // manager's own pick (the picker always shows the full, unfiltered
+    // list). Each filter falls back to the pool it was handed when it comes
+    // back empty, since a pick has to happen either way:
     //  1. Endgame slots — DEF/K are held out entirely until they're all this
     //     roster has left to take, so they land on its final picks. Runs
     //     FIRST so that once it narrows the pool to defenses/kickers, the
     //     other two (both no-ops on those positions) can't widen it again.
     //  2. Position cap — never more than N of a position, where QB/TE are
-    //     capped at twice what the league actually starts.
+    //     capped at twice what the league actually starts. This is now the
+    //     tail-truncator on the sampler below: nothing about weighted
+    //     sampling stops a long streak of QB rolls on its own.
     //  3. Bench QB/TE gate — a 2nd QB or 2nd TE waits until every starting
     //     slot (DEF/K aside) can be filled. RB/WR are deliberately never
     //     gated: while slots remain an extra one is filling a FLEX, and once
-    //     they're full the rule is a no-op anyway.
+    //     they're full the rule is a no-op anyway. Under Mudd's tendency
+    //     quorum (see selectors.ts's mockDraftDoubleUpAllowedFor) this gate
+    //     is a per-manager coin flip rather than a hard league-wide rule;
+    //     everywhere else it's exactly the rule it's always been.
+    //  4. samplePlayer — weighted-random among the top few survivors by
+    //     market rank, leaning toward this round's observed positional mix
+    //     (flat/no lean outside Mudd's tendency quorum — see
+    //     mockDraftRoundWeights). Replaces strict best-player-available so
+    //     mock drafts vary run to run instead of being byte-identical from
+    //     the same board; the top-N window keeps it from ever reaching for a
+    //     player the market itself doesn't have near the top.
     const playersMap = state.playersMap || {};
     const positionOf = (pid: string) => playersMap[pid]?.pos;
     const counts = rosterPositionCountsFor(slot.rosterId);
@@ -222,8 +241,16 @@ export function advance(openPicker = true): void {
       counts,
       rosterPositions,
       mockDraftDedicatedStarters(),
+      mockDraftDoubleUpAllowedFor(slot.rosterId),
     );
-    const playerId = bestAvailablePlayer(benched.length ? benched : cappedPool, state.adpMap || {});
+    const pool = benched.length ? benched : cappedPool;
+    const playerId = samplePlayer(
+      pool,
+      state.adpMap || {},
+      positionOf,
+      mockDraftRoundWeights(slot.round),
+      seededRoll(state.mockDraft.seed, ROLL_PICK, idx),
+    );
     if (playerId === null) {
       // Shouldn't happen in practice — hundreds of players vs. at most a few
       // hundred picks — but never crash on it; just stop where we are.

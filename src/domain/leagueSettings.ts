@@ -60,9 +60,11 @@ export function startablePositions(rosterPositions: string[] | null | undefined)
  *
  * Deduping `roster_positions` rather than listing positions is what gives the
  * filter a FLEX entry for free: the slot name *is* the filter value, and
- * SLOT_ELIGIBILITY turns it back into the set of positions to match. A Mudd
- * lineup yields `QB, RB, WR, TE, FLEX, DEF` — natural order, a FLEX option,
- * and no `K`, with no special-casing anywhere.
+ * SLOT_ELIGIBILITY turns it back into the set of positions to match. A
+ * conventional 1QB/1TE/3FLEX/DEF lineup yields `QB, RB, WR, TE, FLEX, DEF` —
+ * natural order, a FLEX option, and no `K`, with no special-casing anywhere.
+ * (Mudd itself starts neither DEF nor K, so its own filter list is even
+ * shorter — see src/domain/draftTendencies.ts.)
  *
  * `[]` for an unknown lineup, so the UI can keep its default option list.
  */

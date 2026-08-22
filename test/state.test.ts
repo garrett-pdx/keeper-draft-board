@@ -194,6 +194,7 @@ describe('mock draft persistence', () => {
       rounds: 2,
       slotOrderRosterIds: [1, 2, 3],
       claimedRosterId: 1,
+      seed: 12345,
       slots: [
         { round: 1, rosterId: 1 },
         { round: 1, rosterId: 2 },

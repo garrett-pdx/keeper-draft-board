@@ -271,6 +271,16 @@ export function unfilledStartingSlots(
  *
  * Callers must fall back to the unfiltered list when this returns empty, the
  * same never-get-stuck convention as filterByPositionCaps.
+ *
+ * `doubleUpAllowed` is a per-manager escape hatch: some managers genuinely
+ * draft a second QB or TE more (or less) readily than the league norm this
+ * gate otherwise enforces uniformly. It defaults to "nobody does", which
+ * reproduces the old hard league-wide gate exactly — a parameter rather than
+ * a second function, since a parallel filterBenchQbTeProbabilistic would be
+ * exactly the two-mechanisms-chasing-one-behavior pattern this AI has already
+ * been reworked once to remove. The exemption only lifts the gate; it never
+ * bypasses mockDraftCaps, which is what actually bounds how many a roster can
+ * draft.
  */
 export function filterBenchQbTe(
   availablePlayerIds: string[],
@@ -278,12 +288,13 @@ export function filterBenchQbTe(
   positionCounts: Record<string, number>,
   rosterPositions: string[] | null | undefined,
   dedicatedStarters: Record<string, number>,
+  doubleUpAllowed: (position: string) => boolean = () => false,
 ): string[] {
   if (unfilledStartingSlots(rosterPositions, positionCounts) === 0) return availablePlayerIds;
   return availablePlayerIds.filter((pid) => {
     const pos = positionOf(pid);
     if (!pos || !(pos in dedicatedStarters)) return true;
-    return (positionCounts[pos] || 0) < dedicatedStarters[pos];
+    return (positionCounts[pos] || 0) < dedicatedStarters[pos] || doubleUpAllowed(pos);
   });
 }
 
@@ -379,6 +390,10 @@ export function filterByRemainingNeeds(
  * a 1-TE/3-FLEX league, enough for a team to finish with five backups. Twice
  * the dedicated starts (2 in that league, 4 QBs in a 2QB league) matches how
  * deep a real roster goes at a position it can only start a fixed number of.
+ * This isn't a guess: across 30 real manager-seasons of Mudd league draft
+ * history (see draftTendencies.ts), no manager has ever drafted a THIRD QB or
+ * TE in one draft — every observed count is 0, 1, or 2. `2 x dedicated` is the
+ * empirically observed ceiling, not just a plausible one.
  *
  * Applied only where the league has a dedicated slot: with none, a TE is a
  * pure FLEX asset like any RB/WR and keeps the normal cap, since `2 × 0` would
