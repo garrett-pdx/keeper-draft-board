@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-25T13:55:19.895Z",
+  "fetchedAt": "2026-08-26T13:58:16.014Z",
   "attribution": "Player outlooks provided by ESPN Fantasy Football",
   "players": [
     {
@@ -291,15 +291,15 @@
       "sleeperId": null
     },
     {
-      "espnId": 4567747,
-      "name": "Garrett Nussmeier",
-      "outlook": "Nussmeier was selected by the Chiefs in the seventh round of April's draft. Nussmeier is an undersized, pocket quarterback and older prospect. He was extremely conservative last season, posting rookie-class-low marks in aDOT (6.4), YPA (6.7) and YPC (9.9). Aside of his ability to avoid sacks (career 3.40% sack rate), Nussmeier's efficiency isn't overly impressive and he's a nonfactor as a rusher (career 33-179-5 line and a class-low 1.4 carries per game). Nussmeier will battle for No. 3 duties behind Patrick Mahomes and Justin Fields.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4361418,
       "name": "Will Levis",
       "outlook": "Levis is entering his fourth NFL season buried behind Cam Ward (and likely Mitchell Trubisky) on the Tennessee depth chart. Levis, who missed all of 2025 with a shoulder injury, was the Titans' starter for most of his first two seasons, but simply wasn't up to the task. He totaled 21 pass TDs and 16 INTs in 21 games, while not adding much with his legs (240 yards and one TD). In 2024, he appeared in only 12 games (nine full) and still finished in the top seven in INTs and times sacked. Levis is aggressive (he ranked in the top five in average depth of throw both seasons), but the lack of efficiency and rushing contributions keeps him well off the fantasy radar. He'll barely be worth an add in superflex leagues, even if given the chance to start.",
+      "sleeperId": null
+    },
+    {
+      "espnId": 4567747,
+      "name": "Garrett Nussmeier",
+      "outlook": "Nussmeier was selected by the Chiefs in the seventh round of April's draft. Nussmeier is an undersized, pocket quarterback and older prospect. He was extremely conservative last season, posting rookie-class-low marks in aDOT (6.4), YPA (6.7) and YPC (9.9). Aside of his ability to avoid sacks (career 3.40% sack rate), Nussmeier's efficiency isn't overly impressive and he's a nonfactor as a rusher (career 33-179-5 line and a class-low 1.4 carries per game). Nussmeier will battle for No. 3 duties behind Patrick Mahomes and Justin Fields.",
       "sleeperId": null
     },
     {
@@ -687,16 +687,16 @@
       "sleeperId": null
     },
     {
-      "espnId": 4429835,
-      "name": "George Holani",
-      "outlook": "Holani is on the 2026 fantasy radar with Kenneth Walker III no longer on the Seattle roster and Zach Charbonnet (ACL) in doubt for the early portion of the season. Holani will compete with rookie Jadrian Price, Emanuel Wilson and Kenny McIntosh for touches while Charbonnet is sidelined. The 2024 UDFA has 25 carries and three targets to his name through two NFL seasons. Price figures to get the first shot at lead back duties and, even if forced into a few starts in Seattle's run-friendly offense, Holani would be working in a committee and no more than a deep league flex.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4832955,
       "name": "Emmett Johnson",
       "outlook": "Johnson was selected by the Chiefs in the fifth round of April's draft. His career 3.4 forced missed tackle rate is fourth best in this RB rookie class and his elusiveness helped him to 1,451 rushing yards (fourth in the nation and first in this class) last season. His lack of speed -- last among 10 RBs who ran the 40-yard dash (4.56) and speed score (93) at the combine -- and size limits him after initial contact (career 2.86 YAC), but he can help out in the passing game (92 collegiate receptions). Johnson will battle in what should be a wide-open competition for No. 2 duties behind Kenneth Walker III. He'll be worth rostering only if Walker misses action.",
       "sleeperId": "13337"
+    },
+    {
+      "espnId": 4429835,
+      "name": "George Holani",
+      "outlook": "Holani is on the 2026 fantasy radar with Kenneth Walker III no longer on the Seattle roster and Zach Charbonnet (ACL) in doubt for the early portion of the season. Holani will compete with rookie Jadrian Price, Emanuel Wilson and Kenny McIntosh for touches while Charbonnet is sidelined. The 2024 UDFA has 25 carries and three targets to his name through two NFL seasons. Price figures to get the first shot at lead back duties and, even if forced into a few starts in Seattle's run-friendly offense, Holani would be working in a committee and no more than a deep league flex.",
+      "sleeperId": null
     },
     {
       "espnId": 4430968,
@@ -708,7 +708,7 @@
       "espnId": 4685555,
       "name": "Nicholas Singleton",
       "outlook": "Singleton was selected by the Titans in the fifth round of April's draft. He is a big, versatile back with terrific speed who can contribute as a rusher, receiver, blocker and returner. While working in a committee with fellow rookie Kaytron Allen at Penn State the past four years, Singleton was effective after contact (3.46 YAC is sixth best in this RB rookie class) but struggled with elusiveness (8.0 forced missed tackle rate is worst). He was solid as receiver (102-987-9) and returner (class-high 1,138 kick return yards) during his 53-game tenure. Singleton will open his career behind Tony Pollard and Tyjae Spears, but would make for an interesting waiver add in the event of a Pollard injury.",
-      "sleeperId": "13288"
+      "sleeperId": null
     },
     {
       "espnId": 4682745,
@@ -783,15 +783,15 @@
       "sleeperId": null
     },
     {
-      "espnId": 4685477,
-      "name": "Jam Miller",
-      "outlook": "Miller was selected by the Patriots in the seventh round of April's draft. Miller has decent size, but he has struggled with effectiveness, posting a 4.57 YPC (worst in this rookie class) during his collegiate career (including an ugly 3.88 in 2025). Poor tackle breaking and YAC numbers give him perhaps the worst efficiency profile in this RB class, and he hasn't shown much in the passing game (career 40-336-2 line). He ran a solid 4.42 40-yard dash at the combine but posted the worst marks in this RB class in the vertical and broad jump. He'll be buried on the New England depth chart if he makes the team.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4693370,
       "name": "Riley Nowakowski",
       "outlook": "Nowakowski was selected by the Steelers in the fifth round of April's draft. Nowakowski is a bit undersized with very small hands, but he's a capable blocker and, after totaling 18 catches in 36 games at Wisconsin, made a little bit of a leap as a pass catcher in 2025 (his lone season at Indiana), posting a 32-387-2 receiving line. He's expected to play fullback and offer some tight end depth behind Pat Freiermuth and Darnell Washington.",
+      "sleeperId": null
+    },
+    {
+      "espnId": 4685477,
+      "name": "Jam Miller",
+      "outlook": "Miller was selected by the Patriots in the seventh round of April's draft. Miller has decent size, but he has struggled with effectiveness, posting a 4.57 YPC (worst in this rookie class) during his collegiate career (including an ugly 3.88 in 2025). Poor tackle breaking and YAC numbers give him perhaps the worst efficiency profile in this RB class, and he hasn't shown much in the passing game (career 40-336-2 line). He ran a solid 4.42 40-yard dash at the combine but posted the worst marks in this RB class in the vertical and broad jump. He'll be buried on the New England depth chart if he makes the team.",
       "sleeperId": null
     },
     {
@@ -867,16 +867,16 @@
       "sleeperId": "8144"
     },
     {
-      "espnId": 4595348,
-      "name": "Malik Nabers",
-      "outlook": "Nabers is on the comeback trail after a torn ACL limited him to only four appearances last season. In 18 full games in his career, Nabers has a massive 35% target share (11.3 per game) and he's averaging 18.2 fantasy PPG. As a rookie, the 2024 sixth overall pick finished seventh or better among receivers in targets, receptions, yards and fantasy points despite missing two games and dealing with New York's offensive struggles. Nabers' massive target share allowed him a high floor, as he was a top-30 fantasy scorer in 13 of 15 games, including 10 straight to end the 2024 season. He essentially has a new quarterback (Jaxson Dart threw only three passes his way last season), a new coach (John Harbaugh), a new offensive playcaller (Matt Nagy) and is recovering from the knee, so there are a lot of variables here, but the 23-year-old still holds elite upside. A healthy Nabers should be valued as a mid-to-back-end WR1, but the potential for a slow start (perhaps including missed games) needs to be considered on draft day.",
-      "sleeperId": "11632"
-    },
-    {
       "espnId": 4241478,
       "name": "DeVonta Smith",
       "outlook": "It's generally tough for a former Heisman Trophy winner and first-round draft pick to fly under the radar, but that has been the case for Smith in recent years. With all eyes on A.J. Brown, Smith has finished no lower than 30th among receivers in fantasy PPG in each of his five seasons (top 30 in PPG each of the last four). The \"slim reaper\" saw a big dip in touchdowns last season (four, after at least seven the prior three seasons), but remained very efficient (career 9.1 yards per target and 2.1 yards per route run). Smith has handled roughly one-quarter of the Eagles' targets throughout his career, and that may rise slightly after Brown was traded to New England. Smith, 27, is the Eagles' No. 1 receiver for the first time as a non-rookie and is well positioned for a strong WR2 campaign.",
       "sleeperId": "7525"
+    },
+    {
+      "espnId": 4595348,
+      "name": "Malik Nabers",
+      "outlook": "Nabers is on the comeback trail after a torn ACL limited him to only four appearances last season. In 18 full games in his career, Nabers has a massive 35% target share (11.3 per game) and he's averaging 18.2 fantasy PPG. As a rookie, the 2024 sixth overall pick finished seventh or better among receivers in targets, receptions, yards and fantasy points despite missing two games and dealing with New York's offensive struggles. Nabers' massive target share allowed him a high floor, as he was a top-30 fantasy scorer in 13 of 15 games, including 10 straight to end the 2024 season. He essentially has a new quarterback (Jaxson Dart threw only three passes his way last season), a new coach (John Harbaugh), a new offensive playcaller (Matt Nagy) and is recovering from the knee, so there are a lot of variables here, but the 23-year-old still holds elite upside. A healthy Nabers should be valued as a mid-to-back-end WR1, but the potential for a slow start (perhaps including missed games) needs to be considered on draft day.",
+      "sleeperId": "11632"
     },
     {
       "espnId": 4569618,
@@ -1005,16 +1005,16 @@
       "sleeperId": "9487"
     },
     {
-      "espnId": 4432773,
-      "name": "Brian Thomas Jr.",
-      "outlook": "Thomas is one of the biggest wild cards in fantasy after a roller-coaster start to his career. The 2024 first-round pick was fantasy's No. 4-scoring wide receiver as a rookie, but only played at that WR1 level with Mac Jones under center. Thomas averaged 5.8 targets and 14.4 fantasy PPG with Trevor Lawrence under center that season, and was even worse with Lawrence in 2025 (6.2 targets, 9.9 PPG). With Jakobi Meyers, Parker Washington and Travis Hunter in the mix, Thomas was utilized as more of a vertical threat in 2025 (his 14.4 aDOT was fourth highest), which led to a big dip in catch rate and touchdowns, as well as more drops. The Jaguars offense is suddenly very crowded, so Thomas is more likely to be a boom/bust flex than he is the superstar we expected one year ago. The 23-year-old's raw talent makes him worth middle-round consideration.",
-      "sleeperId": "11631"
-    },
-    {
       "espnId": 4360078,
       "name": "Alec Pierce",
       "outlook": "Pierce has spent the majority of his first four NFL seasons as a situational deep threat, but that didn't stop him from becoming one of the league's highest-paid wide receivers during the offseason. The 2022 second-round pick is fresh off a career year and he's now paced all receivers in YPR, YPT and aDOT each of the last two seasons. However, he's yet to finish a season better than 48th at WR in target share (18%), 42nd in targets (84), 45th in catches (47), 18th in yards (1,003), 18th in TDs (seven) or 25th in fantasy PPG. Of course, with Michael Pittman Jr. no longer in the mix, Pierce is a good bet for a more well-rounded role as Daniel Jones' top target. There's some risk here, but the 26-year-old's hefty contract suggests we should take him seriously as a fantasy WR3.",
       "sleeperId": "8142"
+    },
+    {
+      "espnId": 4432773,
+      "name": "Brian Thomas Jr.",
+      "outlook": "Thomas is one of the biggest wild cards in fantasy after a roller-coaster start to his career. The 2024 first-round pick was fantasy's No. 4-scoring wide receiver as a rookie, but only played at that WR1 level with Mac Jones under center. Thomas averaged 5.8 targets and 14.4 fantasy PPG with Trevor Lawrence under center that season, and was even worse with Lawrence in 2025 (6.2 targets, 9.9 PPG). With Jakobi Meyers, Parker Washington and Travis Hunter in the mix, Thomas was utilized as more of a vertical threat in 2025 (his 14.4 aDOT was fourth highest), which led to a big dip in catch rate and touchdowns, as well as more drops. The Jaguars offense is suddenly very crowded, so Thomas is more likely to be a boom/bust flex than he is the superstar we expected one year ago. The 23-year-old's raw talent makes him worth middle-round consideration.",
+      "sleeperId": "11631"
     },
     {
       "espnId": 4701936,
@@ -1047,16 +1047,16 @@
       "sleeperId": "9756"
     },
     {
-      "espnId": 4688813,
-      "name": "Josh Downs",
-      "outlook": "Downs has settled in as a serviceable slot receiver, which has helped him to finish in the 35-to-45 range among WRs in total fantasy points in each of his three NFL seasons. Downs peaked with a 72-803-5 receiving line in 2024, but took a step back in a crowded offense last season, and failed to deliver a single fantasy week better than 15th at the position. The undersized Downs isn't an option near the goal line, as he hasn't cleared five touchdowns or three end zone targets in a single season. The 25-year-old has a path to a slightly larger role in 2026 with Michael Pittman Jr. gone, leaving Alec Pierce, Tyler Warren and Keenan Allen as his primary target competition. Downs is a sleeper for flex production in PPR formats.",
-      "sleeperId": "9500"
-    },
-    {
       "espnId": 4683062,
       "name": "Xavier Worthy",
       "outlook": "After impressing as a rookie with 101 touches and 12 touchdowns in 20 games (including the playoffs), Worthy had the look of an emerging star. Things didn't go as planned in Year 2, though, as the 2024 first-round pick was injured on his third snap of the season and wasn't productive or utilized as much as expected upon his return. Worthy was limited to one touchdown (Week 6) and reached 12 fantasy points once in 14 games (Week 4). The speedy Worthy is still only 23 years old, so a Year 3 breakout is certainly possible, especially with Rashee Rice and 36-year-old Travis Kelce as his only legit target competition. He's worth a late flier.",
       "sleeperId": "11624"
+    },
+    {
+      "espnId": 4688813,
+      "name": "Josh Downs",
+      "outlook": "Downs has settled in as a serviceable slot receiver, which has helped him to finish in the 35-to-45 range among WRs in total fantasy points in each of his three NFL seasons. Downs peaked with a 72-803-5 receiving line in 2024, but took a step back in a crowded offense last season, and failed to deliver a single fantasy week better than 15th at the position. The undersized Downs isn't an option near the goal line, as he hasn't cleared five touchdowns or three end zone targets in a single season. The 25-year-old has a path to a slightly larger role in 2026 with Michael Pittman Jr. gone, leaving Alec Pierce, Tyler Warren and Keenan Allen as his primary target competition. Downs is a sleeper for flex production in PPR formats.",
+      "sleeperId": "9500"
     },
     {
       "espnId": 4870795,
@@ -1077,28 +1077,28 @@
       "sleeperId": "12530"
     },
     {
-      "espnId": 4362249,
-      "name": "Jayden Reed",
-      "outlook": "Reed began his NFL career with a pair of top-30 fantasy campaigns, but the Green Bay slot receiver was limited to only seven appearances last season due to injury. Even when active, Reed wasn't as effective as in years past, averaging 6.9 fantasy PPG and finding the end zone once (Week 1). This comes after the 2023 second-round pick produced 75 touches, 900-plus yards and seven-plus touchdowns in each of his first two seasons. The 26-year-old signed a contract extension in April and will battle the likes of Christian Watson, Matthew Golden and Savion Williams for targets this season. While he'll likely hit for the occasional solid game, his limited usage (career-high 18% target share) will put a cap on his fantasy upside. He's barely in the flex conversation in PPR leagues.",
-      "sleeperId": "10222"
-    },
-    {
       "espnId": 2976212,
       "name": "Stefon Diggs",
       "outlook": "Diggs signed with the Commanders in August after he was released by the Patriots earlier this offseason. Successful in his return from an ACL tear suffered midway through 2024, the veteran receiver's lone season in New England resulted in 85 catches (ninth among wide receivers) and his seventh career 1,000-yard campaign. Diggs paced the position with an incredible 83% catch rate (second highest all time for a receiver with 100-plus targets) and ranked fourth in yards per route run (2.8). Not used much near the goal line, however, Diggs was limited to four touchdowns and finished 23rd in fantasy PPG. He obviously still has something left in the tank, but is now 32 years old and his usage is trending downward. He has a path to a substantial offense role in Washington and can be viewed as a low-ceiling flex.",
       "sleeperId": "2449"
     },
     {
-      "espnId": 4429025,
-      "name": "Quentin Johnston",
-      "outlook": "Four weeks into the 2025 season, it appeared Johnston was on the verge of a breakout campaign. The 2023 first-round pick found the end zone four times and scored 14-plus fantasy points in each game during the span. The return to earth was abrupt, as Johnston went on to average 9.2 PPG in his final 10 games. The 25-year-old has posted consistent receiving lines in each of the last two seasons (55-724-8 and 51-735-8), but neither resulted in a top-30 fantasy campaign. The Chargers offense should be better in 2026 with a healthy line and Mike McDaniel calling plays, but Johnston is unlikely to see a big boost in usage with the likes of Ladd McConkey and sophomores Tre Harris, Oronde Gadsden II and Omarion Hampton also in the fold. Johnston is no more than a boom/bust flex in deeper leagues.",
-      "sleeperId": "9754"
+      "espnId": 4362249,
+      "name": "Jayden Reed",
+      "outlook": "Reed began his NFL career with a pair of top-30 fantasy campaigns, but the Green Bay slot receiver was limited to only seven appearances last season due to injury. Even when active, Reed wasn't as effective as in years past, averaging 6.9 fantasy PPG and finding the end zone once (Week 1). This comes after the 2023 second-round pick produced 75 touches, 900-plus yards and seven-plus touchdowns in each of his first two seasons. The 26-year-old signed a contract extension in April and will battle the likes of Christian Watson, Matthew Golden and Savion Williams for targets this season. While he'll likely hit for the occasional solid game, his limited usage (career-high 18% target share) will put a cap on his fantasy upside. He's barely in the flex conversation in PPR leagues.",
+      "sleeperId": "10222"
     },
     {
       "espnId": 3126486,
       "name": "Deebo Samuel Sr.",
       "outlook": "Samuel reunited with the 49ers in July after solid yet unspectacular lone season in Washington. The former second-round pick cleared 85 touches and 800 scrimmage yards for the fifth consecutive season and finished 25th among receivers in fantasy points -- his third-career top-30 fantasy campaign. Samuel's role as a short-area target and occasional rusher gets the ball in his hands plenty (he's ranked in the top 15 among WRs in touches and RAC five years in a row), but it doesn't allow him much scoring upside (10 TDs over the last two years, and he's never cleared five end zone targets in one season). Now 30 years old, Samuel figures to resume his role as a short-area playmaker in Kyle Shanahan's highly-efficient offense. He's a fine late-round flier with WR3/flex upside.",
       "sleeperId": "5872"
+    },
+    {
+      "espnId": 4429025,
+      "name": "Quentin Johnston",
+      "outlook": "Four weeks into the 2025 season, it appeared Johnston was on the verge of a breakout campaign. The 2023 first-round pick found the end zone four times and scored 14-plus fantasy points in each game during the span. The return to earth was abrupt, as Johnston went on to average 9.2 PPG in his final 10 games. The 25-year-old has posted consistent receiving lines in each of the last two seasons (55-724-8 and 51-735-8), but neither resulted in a top-30 fantasy campaign. The Chargers offense should be better in 2026 with a healthy line and Mike McDaniel calling plays, but Johnston is unlikely to see a big boost in usage with the likes of Ladd McConkey and sophomores Tre Harris, Oronde Gadsden II and Omarion Hampton also in the fold. Johnston is no more than a boom/bust flex in deeper leagues.",
+      "sleeperId": "9754"
     },
     {
       "espnId": 3116165,
@@ -1179,16 +1179,16 @@
       "sleeperId": "11618"
     },
     {
-      "espnId": 4877706,
-      "name": "Jayden Higgins",
-      "outlook": "Higgins is out for the 2026 season after tearing his ACL in mid August. As a rookie, the 2025 second-round pick played 58% of Houston's offensive snaps and handled a 12% target share en route to clearing 500 yards and scoring six touchdowns. Higgins averaged a lowly 7.6 fantasy PPG, but the 6-foot-4 perimeter receiver is a good bet for a larger role opposite Nico Collins once healthy in 2027. Keep him stashed in dynasty.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4870847,
       "name": "Ja'Kobi Lane",
       "outlook": "Lane was selected by the Ravens in the third round of April's draft. Lane is a tall, perimeter receiver with the biggest hands in this rookie class. He produced solid 43-525-12 and 49-745-4 receiving lines during his final two seasons at USC. Lane was rarely used in the intermediate area and struggled to produce after the catch (career 3.7 RAC is second worst in this class), but he has the frame and skill set to allow him plenty of pro potential. He'll battle the likes of Devontez Walker and fellow rookie Elijah Surratt for work behind Zay Flowers and Rashod Bateman in Baltimore's low-volume pass offense. Lane's primary value is as dynasty stash.",
       "sleeperId": "13293"
+    },
+    {
+      "espnId": 4877706,
+      "name": "Jayden Higgins",
+      "outlook": "Higgins is out for the 2026 season after tearing his ACL in mid August. As a rookie, the 2025 second-round pick played 58% of Houston's offensive snaps and handled a 12% target share en route to clearing 500 yards and scoring six touchdowns. Higgins averaged a lowly 7.6 fantasy PPG, but the 6-foot-4 perimeter receiver is a good bet for a larger role opposite Nico Collins once healthy in 2027. Keep him stashed in dynasty.",
+      "sleeperId": null
     },
     {
       "espnId": 4597500,
@@ -1203,16 +1203,16 @@
       "sleeperId": null
     },
     {
-      "espnId": 4382466,
-      "name": "Jalen Nailor",
-      "outlook": "Nailor signed with the Raiders and will battle the likes of Tre Tucker and second-year receivers Jack Bech and Dont'e Thornton Jr. for a starting gig in Las Vegas' new-look offense. Nailor was a rarely used commodity during his first four NFL seasons, all with the Vikings. The 2022 sixth-round pick totaled a 69-1,066-11 receiving line and never reached 30 catches or 450 yards in a single season. In fact, he's yet to clear six targets in a game. The 27-year-old very well could lock down a starting job in Las Vegas, but he's a long shot to make the big leap to consistent fantasy output in his fifth professional season. He's no more than a late-round wild card in deep leagues.",
-      "sleeperId": "8180"
-    },
-    {
       "espnId": 4869645,
       "name": "Caleb Douglas",
       "outlook": "Douglas was selected by the Dolphins in the third round of April's draft. Douglas is a tall, perimeter receiver with big hands and long arms who, after not seeing much work during two seasons at Florida, exploded for 60-877-6 and 54-846-7 receiving lines at Texas Tech over the last two seasons. His overall efficiency was underwhelming, including six drops and a shaky 1.81 YPRR in 2025. He impressed with a 4.39 40-yard dash at 206 pounds (111 speed score) at the combine. Douglas has a path to a large offensive role as a rookie (Malik Washington, Jalen Tolbert and fellow rookie Chris Bell are his primary competition), but life may be tough in a rebuilding Miami offense led by unproven Malik Willis. He's only worth a late flier.",
       "sleeperId": "13296"
+    },
+    {
+      "espnId": 4382466,
+      "name": "Jalen Nailor",
+      "outlook": "Nailor signed with the Raiders and will battle the likes of Tre Tucker and second-year receivers Jack Bech and Dont'e Thornton Jr. for a starting gig in Las Vegas' new-look offense. Nailor was a rarely used commodity during his first four NFL seasons, all with the Vikings. The 2022 sixth-round pick totaled a 69-1,066-11 receiving line and never reached 30 catches or 450 yards in a single season. In fact, he's yet to clear six targets in a game. The 27-year-old very well could lock down a starting job in Las Vegas, but he's a long shot to make the big leap to consistent fantasy output in his fifth professional season. He's no more than a late-round wild card in deep leagues.",
+      "sleeperId": "8180"
     },
     {
       "espnId": 2977187,
@@ -1251,22 +1251,22 @@
       "sleeperId": null
     },
     {
+      "espnId": 4429022,
+      "name": "Kayshon Boutte",
+      "outlook": "Reportedly a cut/trade candidate throughout most of the 2025 offseason, Boutte went on to lead the AFC champion Patriots' wide receiver room in routes and touchdowns while playing 67% of the offensive snaps when active. Despite the generous usage in a good offense, Boutte wasn't a reliable fantasy option, averaging 8.9 fantasy PPG. After seeing a career-high nine targets in Week 1, Boutte didn't clear five in a game the rest of the regular season. The 2023 sixth-round pick has finished in the range of 500-600 yards each of the last two seasons and has yet to produce a top-50 fantasy campaign. His 2026 role figures to decrease, with Romeo Doubs and likely A.J. Brown taking over atop the depth chart, and second-year wideout Kyle Williams likely to get more run. Boutte, 24, will only be worth late-round consideration if he is traded.",
+      "sleeperId": "9504"
+    },
+    {
       "espnId": 4569603,
       "name": "Malik Washington",
       "outlook": "Washington was a sixth-round flier back in 2024, but that didn't stop him from working his way into a substantial offensive role last season. Washington finished third on the Dolphins in targets, trailing only Jaylen Waddle and De'Von Achane. Of course, Miami's shaky group of offensive personnel was an obvious factor and Washington's efficiency wasn't very good (5.0 yards per target, 7.0 yards per reception, 0.9 yards per route run). The 25-year-old is fine as a short-range target and occasional rusher, but that's likely his ceiling with newcomers Jalen Tolbert, Chris Bell, Caleb Douglas and Kevin Coleman Jr. expected to factor in at wide receiver.",
       "sleeperId": "11610"
     },
     {
-      "espnId": 4429022,
-      "name": "Kayshon Boutte",
-      "outlook": "Reportedly a cut/trade candidate throughout most of the 2025 offseason, Boutte went on to lead the AFC champion Patriots' wide receiver room in routes and touchdowns while playing 67% of the offensive snaps when active. Despite the generous usage in a good offense, Boutte wasn't a reliable fantasy option, averaging 8.9 fantasy PPG. After seeing a career-high nine targets in Week 1, Boutte didn't clear five in a game the rest of the regular season. The 2023 sixth-round pick has finished in the range of 500-600 yards each of the last two seasons and has yet to produce a top-50 fantasy campaign. His 2026 role figures to decrease, with Romeo Doubs and likely A.J. Brown taking over atop the depth chart, and second-year wideout Kyle Williams likely to get more run. Boutte, 24, will only be worth late-round consideration if he is traded.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4569559,
       "name": "Devaughn Vele",
       "outlook": "Vele is expected to open the season as New Orleans' No. 2 receiver behind Chris Olave until Jordyn Tyson returns from injury near midseason. Vele's first season with the Saints was marred with injuries. The 2024 seventh-round pick, who posted a 41-475-3 receiving line with Denver as a rookie, barely played throughout most of 2025 prior to taking on an every-down role during Weeks 10-15. In those five games (one of which he left hurt), he averaged 5.6 targets per game, but reached 12.0 fantasy points once (an 8-93-1 effort in Week 13 against Miami). The 28-year-old has yet to show he can be relied on for consistent targets and fantasy production, but he'll play an every-down role early on, which makes him a sleeper for flex value in deep leagues. He'll be worth a roster spot until Tyson returns.",
-      "sleeperId": "11834"
+      "sleeperId": null
     },
     {
       "espnId": 4870612,
@@ -1290,13 +1290,13 @@
       "espnId": 5083754,
       "name": "Ryan Flournoy",
       "outlook": "Flournoy is an intriguing deep sleeper as the favorite for No. 3 wide receiver duties behind CeeDee Lamb and George Pickens in Dallas. Flournoy flashed in 2025, putting up 14.2 fantasy PPG during the only five games in which his route participation was at least 60%. Flournoy did disappear quite a bit behind the heavily targeted Lamb and Pickens (three or fewer targets in seven of his final 10 games), so he's a long shot for standalone fantasy value even if he locks down the No. 3 gig. The 26-year-old should be added to rosters only if Lamb or Pickens are sidelined.",
-      "sleeperId": null
+      "sleeperId": "11783"
     },
     {
       "espnId": 5123663,
       "name": "Isaac TeSlaa",
       "outlook": "TeSlaa is a candidate for a Year 2 leap as the favorite for No. 3 WR duties in Detroit behind Amon-Ra St. Brown and Jameson Williams. TeSlaa barely played as a rookie (27 total targets), but he had a very specific role and, believe it or not, tied for 11th in the entire NFL with 11 end zone targets. That helped lead to six touchdowns, four of which came when his snaps increased during Detroit's final six games. The 2025 third-round pick has a big size edge on both St. Brown and Williams, so while consistent targets are a long shot, he's still likely to remain busy near the goal line. TeSlaa won't be more than a boom/bust situational target most weeks, but if one of the starters misses time, he'll be on the flex radar. Consider him with a late pick.",
-      "sleeperId": "12535"
+      "sleeperId": null
     },
     {
       "espnId": 4040655,
@@ -1335,15 +1335,15 @@
       "sleeperId": "6803"
     },
     {
-      "espnId": 4600981,
-      "name": "Pat Bryant",
-      "outlook": "A 2025 third-round pick, Bryant played a situational role throughout his rookie season and is likely to do the same in 2026 after Denver added Jaylen Waddle as a running mate for Courtland Sutton. Bryant will battle the likes of Troy Franklin, Marvin Mims Jr. and Lil'Jordan Humphrey for No. 3 duties. During his rookie campaign, Bryant barely saw the field early on, but eventually passed Franklin on the depth chart and earned more work down the stretch. That led to more snaps but not much fantasy production, as he failed to clear 13.2 fantasy points in a single game and found the end zone once. The 23-year-old isn't on the fantasy radar right now, but he makes for a fine dynasty stash.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4682648,
       "name": "Malachi Fields",
       "outlook": "Fields was selected by the Giants in the third round of April's draft. One of the biggest and strongest receivers in this rookie class, Fields figures to work as a perimeter, vertical target in the pros (career 13.3 aDOT during 49 collegiate games). Fields, who dropped just seven passes in college, handled a target share of, at least, 20% and air yard share of, at least, 30% during each of his final three collegiate seasons (two at Virginia, one at Notre Dame). Fields will battle Darnell Mooney, Darius Slayton and Calvin Austin III for New York's No. 2 receiver gig behind Malik Nabers. The rookie is no more than a late-round flier.",
+      "sleeperId": null
+    },
+    {
+      "espnId": 4600981,
+      "name": "Pat Bryant",
+      "outlook": "A 2025 third-round pick, Bryant played a situational role throughout his rookie season and is likely to do the same in 2026 after Denver added Jaylen Waddle as a running mate for Courtland Sutton. Bryant will battle the likes of Troy Franklin, Marvin Mims Jr. and Lil'Jordan Humphrey for No. 3 duties. During his rookie campaign, Bryant barely saw the field early on, but eventually passed Franklin on the depth chart and earned more work down the stretch. That led to more snaps but not much fantasy production, as he failed to clear 13.2 fantasy points in a single game and found the end zone once. The 23-year-old isn't on the fantasy radar right now, but he makes for a fine dynasty stash.",
       "sleeperId": null
     },
     {
@@ -1425,15 +1425,15 @@
       "sleeperId": null
     },
     {
-      "espnId": 5091739,
-      "name": "Chris Brazzell II",
-      "outlook": "Brazzell was selected by the Panthers in the third round of April's draft. He's expected to miss his rookie season due to a knee injury suffered in July. Brazzell is a tall, perimeter receiver with a big wingspan who will do most of his damage down field (career 14.2 aDOT at Tennessee) and doesn't offer much after the catch (3.6 RAC was worst in this rookie WR class). He has good speed (4.37 40-yard dash) and may settle in as a boom/bust low-volume, splash-play fantasy option. He'll battle for a starting role behind Tetairoa McMillan in 2027.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4879276,
       "name": "Bryce Lance",
       "outlook": "Lance was selected by the Saints in the fourth round of April's draft. Trey's little brother is the lone wide receiver in this rookie class who didn't play a single snap at the FBS level. However, he was productive as a perimeter receiver at North Dakota State, posting receiving lines of 75-1,053-17 and 51-1,079-8 over the last two seasons. He's a year or so older than most of his classmates, but he dominated at the combine with terrific showings in the 40-yard dash (4.34), vertical (41.5) and broad jump (133). He has the size and skillset to battle Devaughn Vele for New Orleans' No. 3 gig behind Chris Olave and first-round rookie Jordyn Tyson. Lance's primary value is in dynasty leagues.",
+      "sleeperId": null
+    },
+    {
+      "espnId": 5091739,
+      "name": "Chris Brazzell II",
+      "outlook": "Brazzell was selected by the Panthers in the third round of April's draft. He's expected to miss his rookie season due to a knee injury suffered in July. Brazzell is a tall, perimeter receiver with a big wingspan who will do most of his damage down field (career 14.2 aDOT at Tennessee) and doesn't offer much after the catch (3.6 RAC was worst in this rookie WR class). He has good speed (4.37 40-yard dash) and may settle in as a boom/bust low-volume, splash-play fantasy option. He'll battle for a starting role behind Tetairoa McMillan in 2027.",
       "sleeperId": null
     },
     {
@@ -1692,7 +1692,7 @@
       "espnId": 4243331,
       "name": "Cade Otton",
       "outlook": "Otton re-signed with Tampa Bay after spending his first four NFL seasons with the team. Since entering the league in 2022, Otton ranks first among all tight ends in snaps (3,530) and second in routes (1,838). That simply hasn't translated to much target volume (he is yet to clear 86 in a season) or goal-line work (11 TDs and 19 end zone targets in 63 games). In fact, Otton was the only player with 75-plus targets who didn't score multiple touchdowns last season. The 27-year-old has finished 25th or lower in fantasy PPG in three of four seasons and is a poor bet for his first top-10 finish in 2026. He's well off the fantasy radar.",
-      "sleeperId": null
+      "sleeperId": "8111"
     },
     {
       "espnId": 3116164,
@@ -1791,15 +1791,15 @@
       "sleeperId": null
     },
     {
-      "espnId": 4880236,
-      "name": "Will Kacmarek",
-      "outlook": "Kacmarek was selected by the Dolphins in the third round of April's draft. Kacmarek is a massive, strong blocking tight end who won't see much receiving work in the pros. He's likely to play a lot of snap as a rookie considering Miami's shaky roster, but Greg Dulcich is expected to operate as the team's top pass-catcher at the tight end position. Kacmarek is no more than the deepest of deep sleepers.",
-      "sleeperId": null
-    },
-    {
       "espnId": 4912052,
       "name": "Justin Joly",
       "outlook": "Joly was selected by the Broncos in the fifth round of April's draft. Joly is a highly productive receiving tight end who ranked near the top of this rookie TE class in all receiving counting stats (166-1,978-15) and target share (17%) during 50 collegiate games at UConn and NC State. He's not much of a blocker, but he could stretch the seam as a move tight end in the pros. Joly may one day emerge as a receiving option in Denver, but that's unlikely to happen this year with Evan Engram atop the depth chart.",
+      "sleeperId": null
+    },
+    {
+      "espnId": 4880236,
+      "name": "Will Kacmarek",
+      "outlook": "Kacmarek was selected by the Dolphins in the third round of April's draft. Kacmarek is a massive, strong blocking tight end who won't see much receiving work in the pros. He's likely to play a lot of snap as a rookie considering Miami's shaky roster, but Greg Dulcich is expected to operate as the team's top pass-catcher at the tight end position. Kacmarek is no more than the deepest of deep sleepers.",
       "sleeperId": null
     },
     {
