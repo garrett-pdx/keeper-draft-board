@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-19T16:21:06.923Z",
+  "fetchedAt": "2026-09-20T16:43:57.416Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1710,
         "startDate": null,
-        "endDate": "2026-09-19T14:01:28.000Z",
+        "endDate": "2026-09-20T15:52:01.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -406,20 +406,20 @@
           "low": 195
         },
         {
-          "name": "David Montgomery",
-          "position": "RB",
-          "team": "HOU",
-          "adp": 61.8,
-          "high": 12,
-          "low": 187
-        },
-        {
           "name": "Jameson Williams",
           "position": "WR",
           "team": "DET",
           "adp": 61.8,
           "high": 12,
           "low": 160
+        },
+        {
+          "name": "David Montgomery",
+          "position": "RB",
+          "team": "HOU",
+          "adp": 61.8,
+          "high": 12,
+          "low": 187
         },
         {
           "name": "Terry McLaurin",
@@ -1694,20 +1694,20 @@
           "low": 373
         },
         {
-          "name": "Tennessee Titans",
-          "position": "DEF",
-          "team": "TEN",
-          "adp": 188.68,
-          "high": 46,
-          "low": 387
-        },
-        {
           "name": "Braelon Allen",
           "position": "RB",
           "team": "NYJ",
           "adp": 188.68,
           "high": 37,
           "low": 502
+        },
+        {
+          "name": "Tennessee Titans",
+          "position": "DEF",
+          "team": "TEN",
+          "adp": 188.68,
+          "high": 46,
+          "low": 387
         },
         {
           "name": "Chimere Dike",
