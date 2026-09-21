@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-20T16:43:57.416Z",
+  "fetchedAt": "2026-09-21T18:35:19.388Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1710,
         "startDate": null,
-        "endDate": "2026-09-20T15:52:01.000Z",
+        "endDate": "2026-09-21T17:57:00.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1566,20 +1566,20 @@
           "low": 396
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.38,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Atlanta Falcons",
           "position": "DEF",
           "team": "ATL",
           "adp": 179.38,
           "high": 61,
           "low": 355
+        },
+        {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.38,
+          "high": 41,
+          "low": 437
         },
         {
           "name": "Gunnar Helm",
@@ -1694,20 +1694,20 @@
           "low": 373
         },
         {
-          "name": "Braelon Allen",
-          "position": "RB",
-          "team": "NYJ",
-          "adp": 188.68,
-          "high": 37,
-          "low": 502
-        },
-        {
           "name": "Tennessee Titans",
           "position": "DEF",
           "team": "TEN",
           "adp": 188.68,
           "high": 46,
           "low": 387
+        },
+        {
+          "name": "Braelon Allen",
+          "position": "RB",
+          "team": "NYJ",
+          "adp": 188.68,
+          "high": 37,
+          "low": 502
         },
         {
           "name": "Chimere Dike",
