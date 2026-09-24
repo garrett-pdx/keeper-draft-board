@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-23T17:47:41.479Z",
+  "fetchedAt": "2026-09-24T17:49:17.766Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1711,
         "startDate": null,
-        "endDate": "2026-09-23T16:39:23.000Z",
+        "endDate": "2026-09-24T15:41:53.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1190,20 +1190,20 @@
           "low": 369
         },
         {
-          "name": "Tyler Allgeier",
-          "position": "RB",
-          "team": "ARI",
-          "adp": 150.67,
-          "high": 24,
-          "low": 466
-        },
-        {
           "name": "Chris Rodriguez",
           "position": "RB",
           "team": "JAX",
           "adp": 150.67,
           "high": 53,
           "low": 507
+        },
+        {
+          "name": "Tyler Allgeier",
+          "position": "RB",
+          "team": "ARI",
+          "adp": 150.67,
+          "high": 24,
+          "low": 466
         },
         {
           "name": "Buffalo Bills",
@@ -1694,20 +1694,20 @@
           "low": 373
         },
         {
-          "name": "Tennessee Titans",
-          "position": "DEF",
-          "team": "TEN",
-          "adp": 188.68,
-          "high": 46,
-          "low": 387
-        },
-        {
           "name": "Braelon Allen",
           "position": "RB",
           "team": "NYJ",
           "adp": 188.68,
           "high": 37,
           "low": 502
+        },
+        {
+          "name": "Tennessee Titans",
+          "position": "DEF",
+          "team": "TEN",
+          "adp": 188.68,
+          "high": 46,
+          "low": 387
         },
         {
           "name": "Chimere Dike",
