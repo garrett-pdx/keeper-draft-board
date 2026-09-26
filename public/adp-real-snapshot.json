@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-25T17:52:47.797Z",
+  "fetchedAt": "2026-09-26T17:01:10.834Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1710,
         "startDate": null,
-        "endDate": "2026-09-25T15:21:33.000Z",
+        "endDate": "2026-09-26T16:02:14.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -406,20 +406,20 @@
           "low": 195
         },
         {
-          "name": "Jameson Williams",
-          "position": "WR",
-          "team": "DET",
-          "adp": 61.8,
-          "high": 12,
-          "low": 160
-        },
-        {
           "name": "David Montgomery",
           "position": "RB",
           "team": "HOU",
           "adp": 61.8,
           "high": 12,
           "low": 187
+        },
+        {
+          "name": "Jameson Williams",
+          "position": "WR",
+          "team": "DET",
+          "adp": 61.8,
+          "high": 12,
+          "low": 160
         },
         {
           "name": "Terry McLaurin",
@@ -1566,20 +1566,20 @@
           "low": 396
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.38,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Atlanta Falcons",
           "position": "DEF",
           "team": "ATL",
           "adp": 179.38,
           "high": 61,
           "low": 355
+        },
+        {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.38,
+          "high": 41,
+          "low": 437
         },
         {
           "name": "Gunnar Helm",
