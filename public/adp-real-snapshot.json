@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-30T18:21:09.634Z",
+  "fetchedAt": "2026-10-01T18:47:05.929Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-09-30T17:11:43.000Z",
+        "endDate": "2026-10-01T17:06:10.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -41,7 +41,7 @@
           "name": "Puka Nacua",
           "position": "WR",
           "team": "LAR",
-          "adp": 7.28,
+          "adp": 7.29,
           "high": 1,
           "low": 138
         },
@@ -49,7 +49,7 @@
           "name": "Jaxon Smith-Njigba",
           "position": "WR",
           "team": "SEA",
-          "adp": 7.9,
+          "adp": 7.89,
           "high": 1,
           "low": 116
         },
@@ -57,7 +57,7 @@
           "name": "Jonathan Taylor",
           "position": "RB",
           "team": "IND",
-          "adp": 8.42,
+          "adp": 8.4,
           "high": 1,
           "low": 60
         },
@@ -81,7 +81,7 @@
           "name": "James Cook",
           "position": "RB",
           "team": "BUF",
-          "adp": 11.37,
+          "adp": 11.36,
           "high": 1,
           "low": 79
         },
@@ -105,7 +105,7 @@
           "name": "De'Von Achane",
           "position": "RB",
           "team": "MIA",
-          "adp": 16.33,
+          "adp": 16.34,
           "high": 1,
           "low": 142
         },
@@ -113,7 +113,7 @@
           "name": "Saquon Barkley",
           "position": "RB",
           "team": "PHI",
-          "adp": 17.09,
+          "adp": 17.1,
           "high": 2,
           "low": 92
         },
@@ -121,7 +121,7 @@
           "name": "Chase Brown",
           "position": "RB",
           "team": "CIN",
-          "adp": 17.61,
+          "adp": 17.63,
           "high": 2,
           "low": 121
         },
@@ -129,7 +129,7 @@
           "name": "Omarion Hampton",
           "position": "RB",
           "team": "LAC",
-          "adp": 20.64,
+          "adp": 20.66,
           "high": 2,
           "low": 118
         },
@@ -137,7 +137,7 @@
           "name": "Derrick Henry",
           "position": "RB",
           "team": "BAL",
-          "adp": 21.07,
+          "adp": 21.05,
           "high": 1,
           "low": 135
         },
@@ -145,7 +145,7 @@
           "name": "Ashton Jeanty",
           "position": "RB",
           "team": "LV",
-          "adp": 21.19,
+          "adp": 21.18,
           "high": 2,
           "low": 117
         },
@@ -153,7 +153,7 @@
           "name": "Brock Bowers",
           "position": "TE",
           "team": "LV",
-          "adp": 22.98,
+          "adp": 22.97,
           "high": 1,
           "low": 108
         },
@@ -161,7 +161,7 @@
           "name": "Kenneth Walker III",
           "position": "RB",
           "team": "KC",
-          "adp": 23.59,
+          "adp": 23.57,
           "high": 1,
           "low": 89
         },
@@ -177,7 +177,7 @@
           "name": "Drake London",
           "position": "WR",
           "team": "ATL",
-          "adp": 25.21,
+          "adp": 25.18,
           "high": 5,
           "low": 109
         },
@@ -185,7 +185,7 @@
           "name": "A.J. Brown",
           "position": "WR",
           "team": "NE",
-          "adp": 25.63,
+          "adp": 25.62,
           "high": 1,
           "low": 119
         },
@@ -201,7 +201,7 @@
           "name": "Nico Collins",
           "position": "WR",
           "team": "HOU",
-          "adp": 28.53,
+          "adp": 28.52,
           "high": 5,
           "low": 114
         },
@@ -209,7 +209,7 @@
           "name": "Kyren Williams",
           "position": "RB",
           "team": "LAR",
-          "adp": 29.48,
+          "adp": 29.46,
           "high": 3,
           "low": 102
         },
@@ -217,7 +217,7 @@
           "name": "Jeremiyah Love",
           "position": "RB",
           "team": "ARI",
-          "adp": 33.32,
+          "adp": 33.29,
           "high": 2,
           "low": 138
         },
@@ -225,7 +225,7 @@
           "name": "Malik Nabers",
           "position": "WR",
           "team": "NYG",
-          "adp": 33.38,
+          "adp": 33.4,
           "high": 6,
           "low": 119
         },
@@ -233,7 +233,7 @@
           "name": "Rashee Rice",
           "position": "WR",
           "team": "KC",
-          "adp": 34.95,
+          "adp": 34.96,
           "high": 9,
           "low": 138
         },
@@ -241,8 +241,8 @@
           "name": "Chris Olave",
           "position": "WR",
           "team": "NO",
-          "adp": 36.54,
-          "high": 8,
+          "adp": 36.51,
+          "high": 6,
           "low": 138
         },
         {
@@ -265,7 +265,7 @@
           "name": "Breece Hall",
           "position": "RB",
           "team": "NYJ",
-          "adp": 41.43,
+          "adp": 41.47,
           "high": 6,
           "low": 132
         },
@@ -273,7 +273,7 @@
           "name": "Travis Etienne",
           "position": "RB",
           "team": "NO",
-          "adp": 42.65,
+          "adp": 42.64,
           "high": 8,
           "low": 337
         },
@@ -281,7 +281,7 @@
           "name": "Colston Loveland",
           "position": "TE",
           "team": "CHI",
-          "adp": 43.42,
+          "adp": 43.44,
           "high": 3,
           "low": 198
         },
@@ -289,7 +289,7 @@
           "name": "Zay Flowers",
           "position": "WR",
           "team": "BAL",
-          "adp": 44.36,
+          "adp": 44.34,
           "high": 8,
           "low": 129
         },
@@ -329,7 +329,7 @@
           "name": "Garrett Wilson",
           "position": "WR",
           "team": "NYJ",
-          "adp": 47.72,
+          "adp": 47.71,
           "high": 14,
           "low": 139
         },
@@ -337,7 +337,7 @@
           "name": "Tetairoa McMillan",
           "position": "WR",
           "team": "CAR",
-          "adp": 48.36,
+          "adp": 48.37,
           "high": 5,
           "low": 139
         },
@@ -345,7 +345,7 @@
           "name": "D'Andre Swift",
           "position": "RB",
           "team": "CHI",
-          "adp": 51.02,
+          "adp": 51,
           "high": 3,
           "low": 142
         },
@@ -353,7 +353,7 @@
           "name": "Bucky Irving",
           "position": "RB",
           "team": "TB",
-          "adp": 52.06,
+          "adp": 52.07,
           "high": 9,
           "low": 171
         },
@@ -361,25 +361,25 @@
           "name": "Tyler Warren",
           "position": "TE",
           "team": "IND",
-          "adp": 55.51,
+          "adp": 55.52,
           "high": 5,
           "low": 252
-        },
-        {
-          "name": "Jaylen Waddle",
-          "position": "WR",
-          "team": "DEN",
-          "adp": 55.55,
-          "high": 12,
-          "low": 151
         },
         {
           "name": "Davante Adams",
           "position": "WR",
           "team": "LAR",
-          "adp": 55.58,
+          "adp": 55.56,
           "high": 9,
           "low": 212
+        },
+        {
+          "name": "Jaylen Waddle",
+          "position": "WR",
+          "team": "DEN",
+          "adp": 55.56,
+          "high": 12,
+          "low": 151
         },
         {
           "name": "Quinshon Judkins",
@@ -393,7 +393,7 @@
           "name": "Jadarian Price",
           "position": "RB",
           "team": "SEA",
-          "adp": 58.76,
+          "adp": 58.78,
           "high": 8,
           "low": 197
         },
@@ -401,7 +401,7 @@
           "name": "D.J. Moore",
           "position": "WR",
           "team": "BUF",
-          "adp": 61.72,
+          "adp": 61.71,
           "high": 9,
           "low": 195
         },
@@ -409,7 +409,7 @@
           "name": "David Montgomery",
           "position": "RB",
           "team": "HOU",
-          "adp": 61.79,
+          "adp": 61.8,
           "high": 12,
           "low": 187
         },
@@ -417,7 +417,7 @@
           "name": "Jameson Williams",
           "position": "WR",
           "team": "DET",
-          "adp": 61.8,
+          "adp": 61.81,
           "high": 12,
           "low": 160
         },
@@ -433,7 +433,7 @@
           "name": "Bhayshul Tuten",
           "position": "RB",
           "team": "JAX",
-          "adp": 64.53,
+          "adp": 64.51,
           "high": 13,
           "low": 209
         },
@@ -441,7 +441,7 @@
           "name": "Kyle Pitts",
           "position": "TE",
           "team": "ATL",
-          "adp": 69.9,
+          "adp": 69.93,
           "high": 8,
           "low": 304
         },
@@ -449,7 +449,7 @@
           "name": "TreVeyon Henderson",
           "position": "RB",
           "team": "NE",
-          "adp": 71.03,
+          "adp": 70.99,
           "high": 18,
           "low": 200
         },
@@ -465,7 +465,7 @@
           "name": "Christian Watson",
           "position": "WR",
           "team": "GB",
-          "adp": 71.6,
+          "adp": 71.55,
           "high": 12,
           "low": 244
         },
@@ -473,7 +473,7 @@
           "name": "Luther Burden",
           "position": "WR",
           "team": "CHI",
-          "adp": 71.91,
+          "adp": 71.92,
           "high": 17,
           "low": 216
         },
@@ -481,25 +481,25 @@
           "name": "Josh Jacobs",
           "position": "RB",
           "team": "GB",
-          "adp": 72.1,
+          "adp": 72.06,
           "high": 8,
           "low": 218
-        },
-        {
-          "name": "Rhamondre Stevenson",
-          "position": "RB",
-          "team": "NE",
-          "adp": 74.26,
-          "high": 21,
-          "low": 376
         },
         {
           "name": "Parker Washington",
           "position": "WR",
           "team": "JAX",
-          "adp": 74.28,
+          "adp": 74.25,
           "high": 15,
           "low": 236
+        },
+        {
+          "name": "Rhamondre Stevenson",
+          "position": "RB",
+          "team": "NE",
+          "adp": 74.28,
+          "high": 21,
+          "low": 376
         },
         {
           "name": "Tucker Kraft",
@@ -513,7 +513,7 @@
           "name": "Jaylen Warren",
           "position": "RB",
           "team": "PIT",
-          "adp": 79.89,
+          "adp": 79.85,
           "high": 21,
           "low": 224
         },
@@ -521,7 +521,7 @@
           "name": "Mike Evans",
           "position": "WR",
           "team": "SF",
-          "adp": 80.72,
+          "adp": 80.74,
           "high": 12,
           "low": 251
         },
@@ -530,22 +530,22 @@
           "position": "TE",
           "team": "SF",
           "adp": 80.92,
-          "high": 15,
+          "high": 16,
           "low": 292
         },
         {
           "name": "Sam LaPorta",
           "position": "TE",
           "team": "DET",
-          "adp": 81.84,
-          "high": 13,
+          "adp": 81.87,
+          "high": 18,
           "low": 321
         },
         {
           "name": "Courtland Sutton",
           "position": "WR",
           "team": "DEN",
-          "adp": 82.28,
+          "adp": 82.31,
           "high": 20,
           "low": 250
         },
@@ -553,7 +553,7 @@
           "name": "Carnell Tate",
           "position": "WR",
           "team": "TEN",
-          "adp": 82.88,
+          "adp": 82.9,
           "high": 12,
           "low": 219
         },
@@ -561,7 +561,7 @@
           "name": "Harold Fannin",
           "position": "TE",
           "team": "CLE",
-          "adp": 83.96,
+          "adp": 83.97,
           "high": 12,
           "low": 246
         },
@@ -577,7 +577,7 @@
           "name": "Brian Thomas Jr.",
           "position": "WR",
           "team": "JAX",
-          "adp": 86.99,
+          "adp": 87.01,
           "high": 13,
           "low": 261
         },
@@ -593,7 +593,7 @@
           "name": "Chris Godwin",
           "position": "WR",
           "team": "TB",
-          "adp": 90.41,
+          "adp": 90.4,
           "high": 14,
           "low": 244
         },
@@ -617,7 +617,7 @@
           "name": "Alec Pierce",
           "position": "WR",
           "team": "IND",
-          "adp": 92.43,
+          "adp": 92.44,
           "high": 16,
           "low": 246
         },
@@ -630,14 +630,6 @@
           "low": 357
         },
         {
-          "name": "Dallas Goedert",
-          "position": "TE",
-          "team": "PHI",
-          "adp": 93.07,
-          "high": 14,
-          "low": 289
-        },
-        {
           "name": "Travis Kelce",
           "position": "TE",
           "team": "KC",
@@ -646,10 +638,18 @@
           "low": 316
         },
         {
+          "name": "Dallas Goedert",
+          "position": "TE",
+          "team": "PHI",
+          "adp": 93.15,
+          "high": 14,
+          "low": 289
+        },
+        {
           "name": "Chuba Hubbard",
           "position": "RB",
           "team": "CAR",
-          "adp": 94.3,
+          "adp": 94.27,
           "high": 13,
           "low": 345
         },
@@ -673,7 +673,7 @@
           "name": "Rico Dowdle",
           "position": "RB",
           "team": "PIT",
-          "adp": 98.55,
+          "adp": 98.56,
           "high": 12,
           "low": 374
         },
@@ -689,7 +689,7 @@
           "name": "J.K. Dobbins",
           "position": "RB",
           "team": "DEN",
-          "adp": 99.91,
+          "adp": 99.94,
           "high": 10,
           "low": 390
         },
@@ -697,7 +697,7 @@
           "name": "Jonathon Brooks",
           "position": "RB",
           "team": "CAR",
-          "adp": 100.59,
+          "adp": 100.56,
           "high": 27,
           "low": 404
         },
@@ -721,7 +721,7 @@
           "name": "Jake Ferguson",
           "position": "TE",
           "team": "DAL",
-          "adp": 108.24,
+          "adp": 108.26,
           "high": 24,
           "low": 295
         },
@@ -745,7 +745,7 @@
           "name": "Michael Pittman",
           "position": "WR",
           "team": "PIT",
-          "adp": 112.7,
+          "adp": 112.72,
           "high": 17,
           "low": 423
         },
@@ -753,7 +753,7 @@
           "name": "Dalton Kincaid",
           "position": "TE",
           "team": "BUF",
-          "adp": 113.23,
+          "adp": 113.21,
           "high": 25,
           "low": 248
         },
@@ -769,7 +769,7 @@
           "name": "Blake Corum",
           "position": "RB",
           "team": "LAR",
-          "adp": 113.46,
+          "adp": 113.48,
           "high": 36,
           "low": 281
         },
@@ -777,7 +777,7 @@
           "name": "Josh Downs",
           "position": "WR",
           "team": "IND",
-          "adp": 114.15,
+          "adp": 114.13,
           "high": 3,
           "low": 300
         },
@@ -785,7 +785,7 @@
           "name": "Jacory Croskey-Merritt",
           "position": "RB",
           "team": "WAS",
-          "adp": 114.78,
+          "adp": 114.77,
           "high": 37,
           "low": 371
         },
@@ -793,7 +793,7 @@
           "name": "Kyle Monangai",
           "position": "RB",
           "team": "CHI",
-          "adp": 116.64,
+          "adp": 116.65,
           "high": 13,
           "low": 380
         },
@@ -801,7 +801,7 @@
           "name": "Mark Andrews",
           "position": "TE",
           "team": "BAL",
-          "adp": 116.98,
+          "adp": 116.99,
           "high": 21,
           "low": 313
         },
@@ -833,7 +833,7 @@
           "name": "Wan'Dale Robinson",
           "position": "WR",
           "team": "TEN",
-          "adp": 118.43,
+          "adp": 118.44,
           "high": 24,
           "low": 266
         },
@@ -841,7 +841,7 @@
           "name": "Stefon Diggs",
           "position": "WR",
           "team": "WAS",
-          "adp": 119.83,
+          "adp": 119.82,
           "high": 10,
           "low": 542
         },
@@ -849,7 +849,7 @@
           "name": "MarShawn Lloyd",
           "position": "RB",
           "team": "GB",
-          "adp": 120.88,
+          "adp": 120.91,
           "high": 19,
           "low": 504
         },
@@ -881,7 +881,7 @@
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 126.06,
+          "adp": 125.99,
           "high": 3,
           "low": 259
         },
@@ -913,7 +913,7 @@
           "name": "De'Zhaun Stribling",
           "position": "WR",
           "team": "SF",
-          "adp": 129.76,
+          "adp": 129.75,
           "high": 6,
           "low": 485
         },
@@ -929,8 +929,8 @@
           "name": "Juwan Johnson",
           "position": "TE",
           "team": "NO",
-          "adp": 130.23,
-          "high": 44,
+          "adp": 130.2,
+          "high": 23,
           "low": 391
         },
         {
@@ -969,9 +969,17 @@
           "name": "Hunter Henry",
           "position": "TE",
           "team": "NE",
-          "adp": 134.8,
+          "adp": 134.82,
           "high": 28,
           "low": 357
+        },
+        {
+          "name": "Khalil Shakir",
+          "position": "WR",
+          "team": "BUF",
+          "adp": 135.69,
+          "high": 24,
+          "low": 310
         },
         {
           "name": "Cam Little",
@@ -982,18 +990,10 @@
           "low": 407
         },
         {
-          "name": "Khalil Shakir",
-          "position": "WR",
-          "team": "BUF",
-          "adp": 135.71,
-          "high": 24,
-          "low": 310
-        },
-        {
           "name": "Xavier Worthy",
           "position": "WR",
           "team": "KC",
-          "adp": 136.5,
+          "adp": 136.51,
           "high": 41,
           "low": 344
         },
@@ -1009,7 +1009,7 @@
           "name": "Rachaad White",
           "position": "RB",
           "team": "WAS",
-          "adp": 136.81,
+          "adp": 136.79,
           "high": 21,
           "low": 442
         },
@@ -1017,7 +1017,7 @@
           "name": "Deebo Samuel",
           "position": "WR",
           "team": "SF",
-          "adp": 136.91,
+          "adp": 136.88,
           "high": 28,
           "low": 456
         },
@@ -1025,7 +1025,7 @@
           "name": "Jakobi Meyers",
           "position": "WR",
           "team": "JAX",
-          "adp": 137.39,
+          "adp": 137.37,
           "high": 33,
           "low": 329
         },
@@ -1041,7 +1041,7 @@
           "name": "Malik Washington",
           "position": "WR",
           "team": "MIA",
-          "adp": 140.03,
+          "adp": 140.02,
           "high": 7,
           "low": 296
         },
@@ -1057,7 +1057,7 @@
           "name": "Romeo Doubs",
           "position": "WR",
           "team": "NE",
-          "adp": 140.13,
+          "adp": 140.15,
           "high": 49,
           "low": 338
         },
@@ -1089,7 +1089,7 @@
           "name": "Kenyon Sadiq",
           "position": "TE",
           "team": "NYJ",
-          "adp": 142.45,
+          "adp": 142.32,
           "high": 25,
           "low": 336
         },
@@ -1105,7 +1105,7 @@
           "name": "T.J. Hockenson",
           "position": "TE",
           "team": "MIN",
-          "adp": 143.48,
+          "adp": 143.53,
           "high": 24,
           "low": 363
         },
@@ -1129,7 +1129,7 @@
           "name": "Mike Washington Jr.",
           "position": "RB",
           "team": "LV",
-          "adp": 147.95,
+          "adp": 147.94,
           "high": 38,
           "low": 394
         },
@@ -1145,7 +1145,7 @@
           "name": "Tyjae Spears",
           "position": "RB",
           "team": "TEN",
-          "adp": 148.68,
+          "adp": 148.67,
           "high": 30,
           "low": 395
         },
@@ -1153,7 +1153,7 @@
           "name": "Brenton Strange",
           "position": "TE",
           "team": "JAX",
-          "adp": 148.89,
+          "adp": 148.93,
           "high": 35,
           "low": 314
         },
@@ -1169,7 +1169,7 @@
           "name": "Oronde Gadsden",
           "position": "TE",
           "team": "LAC",
-          "adp": 149.26,
+          "adp": 149.25,
           "high": 49,
           "low": 371
         },
@@ -1177,7 +1177,7 @@
           "name": "Jalen Coker",
           "position": "WR",
           "team": "CAR",
-          "adp": 150.36,
+          "adp": 150.34,
           "high": 27,
           "low": 361
         },
@@ -1193,7 +1193,7 @@
           "name": "Chris Rodriguez",
           "position": "RB",
           "team": "JAX",
-          "adp": 150.66,
+          "adp": 150.63,
           "high": 53,
           "low": 507
         },
@@ -1217,7 +1217,7 @@
           "name": "Chigoziem Okonkwo",
           "position": "TE",
           "team": "WAS",
-          "adp": 152.22,
+          "adp": 152.27,
           "high": 27,
           "low": 389
         },
@@ -1225,7 +1225,7 @@
           "name": "Dalton Schultz",
           "position": "TE",
           "team": "HOU",
-          "adp": 153.45,
+          "adp": 153.41,
           "high": 32,
           "low": 430
         },
@@ -1241,7 +1241,7 @@
           "name": "Colby Parkinson",
           "position": "TE",
           "team": "LAR",
-          "adp": 154.46,
+          "adp": 154.47,
           "high": 41,
           "low": 422
         },
@@ -1281,7 +1281,7 @@
           "name": "Rashid Shaheed",
           "position": "WR",
           "team": "SEA",
-          "adp": 159.15,
+          "adp": 159.17,
           "high": 9,
           "low": 387
         },
@@ -1345,7 +1345,7 @@
           "name": "AJ Barner",
           "position": "TE",
           "team": "SEA",
-          "adp": 163.89,
+          "adp": 163.88,
           "high": 21,
           "low": 428
         },
@@ -1409,7 +1409,7 @@
           "name": "Denzel Boston",
           "position": "WR",
           "team": "CLE",
-          "adp": 169.66,
+          "adp": 169.56,
           "high": 27,
           "low": 399
         },
@@ -1417,7 +1417,7 @@
           "name": "Jalen McMillan",
           "position": "WR",
           "team": "TB",
-          "adp": 169.72,
+          "adp": 169.74,
           "high": 51,
           "low": 417
         },
@@ -1425,7 +1425,7 @@
           "name": "Keaton Mitchell",
           "position": "RB",
           "team": "LAC",
-          "adp": 170,
+          "adp": 170.01,
           "high": 62,
           "low": 420
         },
@@ -1441,7 +1441,7 @@
           "name": "Keenan Allen",
           "position": "WR",
           "team": "IND",
-          "adp": 171.04,
+          "adp": 171.06,
           "high": 26,
           "low": 734
         },
@@ -1497,7 +1497,7 @@
           "name": "Terrance Ferguson",
           "position": "TE",
           "team": "LAR",
-          "adp": 172.68,
+          "adp": 172.73,
           "high": 37,
           "low": 420
         },
@@ -1537,7 +1537,7 @@
           "name": "Pat Freiermuth",
           "position": "TE",
           "team": "PIT",
-          "adp": 177.81,
+          "adp": 177.83,
           "high": 24,
           "low": 465
         },
@@ -1566,14 +1566,6 @@
           "low": 396
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.38,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Atlanta Falcons",
           "position": "DEF",
           "team": "ATL",
@@ -1582,10 +1574,18 @@
           "low": 355
         },
         {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.38,
+          "high": 41,
+          "low": 437
+        },
+        {
           "name": "Gunnar Helm",
           "position": "TE",
           "team": "TEN",
-          "adp": 180.37,
+          "adp": 180.6,
           "high": 75,
           "low": 430
         },
@@ -1601,7 +1601,7 @@
           "name": "Greg Dulcich",
           "position": "TE",
           "team": "MIA",
-          "adp": 181.15,
+          "adp": 181.16,
           "high": 59,
           "low": 431
         },
@@ -1609,7 +1609,7 @@
           "name": "Cade Otton",
           "position": "TE",
           "team": "TB",
-          "adp": 182.38,
+          "adp": 182.37,
           "high": 73,
           "low": 439
         },
@@ -1673,7 +1673,7 @@
           "name": "Jauan Jennings",
           "position": "WR",
           "team": "MIN",
-          "adp": 187.04,
+          "adp": 187.08,
           "high": 22,
           "low": 464
         },
@@ -1681,7 +1681,7 @@
           "name": "Brian Robinson",
           "position": "RB",
           "team": "ATL",
-          "adp": 187.78,
+          "adp": 187.72,
           "high": 12,
           "low": 533
         },
@@ -1689,7 +1689,7 @@
           "name": "Braelon Allen",
           "position": "RB",
           "team": "NYJ",
-          "adp": 188.73,
+          "adp": 188.57,
           "high": 37,
           "low": 502
         },
@@ -1737,7 +1737,7 @@
           "name": "Ray Davis",
           "position": "RB",
           "team": "BUF",
-          "adp": 190.7,
+          "adp": 190.65,
           "high": 66,
           "low": 508
         },
@@ -1761,7 +1761,7 @@
           "name": "Dontayvion Wicks",
           "position": "WR",
           "team": "PHI",
-          "adp": 191.54,
+          "adp": 191.41,
           "high": 50,
           "low": 498
         },
@@ -1785,7 +1785,7 @@
           "name": "David Njoku",
           "position": "TE",
           "team": "LAC",
-          "adp": 194.93,
+          "adp": 195.09,
           "high": 41,
           "low": 521
         },
@@ -1937,7 +1937,7 @@
           "name": "Xavier Hutchinson",
           "position": "WR",
           "team": "HOU",
-          "adp": 208.79,
+          "adp": 208.53,
           "high": 66,
           "low": 612
         },
@@ -1950,14 +1950,6 @@
           "low": 468
         },
         {
-          "name": "Evan Engram",
-          "position": "TE",
-          "team": "DEN",
-          "adp": 209.13,
-          "high": 71,
-          "low": 514
-        },
-        {
           "name": "Isaac TeSlaa",
           "position": "WR",
           "team": "DET",
@@ -1966,10 +1958,18 @@
           "low": 523
         },
         {
+          "name": "Evan Engram",
+          "position": "TE",
+          "team": "DEN",
+          "adp": 209.36,
+          "high": 71,
+          "low": 514
+        },
+        {
           "name": "Devaughn Vele",
           "position": "WR",
           "team": "NO",
-          "adp": 209.8,
+          "adp": 209.51,
           "high": 47,
           "low": 656
         },
@@ -1977,7 +1977,7 @@
           "name": "Mike Gesicki",
           "position": "TE",
           "team": "CIN",
-          "adp": 212.27,
+          "adp": 212.04,
           "high": 67,
           "low": 555
         },
@@ -1998,20 +1998,20 @@
           "low": 500
         },
         {
-          "name": "Kaleb Johnson",
-          "position": "RB",
-          "team": "GB",
-          "adp": 214.66,
-          "high": 39,
-          "low": 503
-        },
-        {
           "name": "Keon Coleman",
           "position": "WR",
           "team": "BUF",
           "adp": 214.66,
           "high": 30,
           "low": 509
+        },
+        {
+          "name": "Kaleb Johnson",
+          "position": "RB",
+          "team": "GB",
+          "adp": 214.66,
+          "high": 39,
+          "low": 503
         },
         {
           "name": "Darius Slayton",
@@ -2057,7 +2057,7 @@
           "name": "Pat Bryant",
           "position": "WR",
           "team": "DEN",
-          "adp": 219.76,
+          "adp": 219.57,
           "high": 42,
           "low": 498
         },
@@ -2089,7 +2089,7 @@
           "name": "Jaylen Wright",
           "position": "RB",
           "team": "MIA",
-          "adp": 221.08,
+          "adp": 220.85,
           "high": 36,
           "low": 519
         },
@@ -2105,7 +2105,7 @@
           "name": "Mason Taylor",
           "position": "TE",
           "team": "NYJ",
-          "adp": 226.36,
+          "adp": 226.69,
           "high": 82,
           "low": 478
         },
@@ -2150,20 +2150,20 @@
           "low": 475
         },
         {
+          "name": "Darren Waller",
+          "position": "TE",
+          "team": "CAR",
+          "adp": 231.92,
+          "high": 68,
+          "low": 650
+        },
+        {
           "name": "Samaje Perine",
           "position": "RB",
           "team": "CIN",
           "adp": 232.1,
           "high": 52,
           "low": 643
-        },
-        {
-          "name": "Darren Waller",
-          "position": "TE",
-          "team": "CAR",
-          "adp": 233.05,
-          "high": 68,
-          "low": 650
         },
         {
           "name": "Chris Brooks",
@@ -2233,7 +2233,7 @@
           "name": "Cole Kmet",
           "position": "TE",
           "team": "CHI",
-          "adp": 240.08,
+          "adp": 240.67,
           "high": 34,
           "low": 580
         },
@@ -2398,20 +2398,20 @@
           "low": 683
         },
         {
+          "name": "Ollie Gordon",
+          "position": "RB",
+          "team": "MIA",
+          "adp": 265.23,
+          "high": 81,
+          "low": 530
+        },
+        {
           "name": "Tyler Higbee",
           "position": "TE",
           "team": "LAR",
           "adp": 265.54,
           "high": 54,
           "low": 598
-        },
-        {
-          "name": "Ollie Gordon",
-          "position": "RB",
-          "team": "MIA",
-          "adp": 266.09,
-          "high": 81,
-          "low": 530
         },
         {
           "name": "Ja'Tavion Sanders",
@@ -2425,7 +2425,7 @@
           "name": "Trey Benson",
           "position": "RB",
           "team": "ARI",
-          "adp": 273.71,
+          "adp": 272.31,
           "high": 57,
           "low": 761
         },
