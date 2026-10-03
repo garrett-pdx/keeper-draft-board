@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-02T18:19:14.783Z",
+  "fetchedAt": "2026-10-03T17:09:04.581Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-10-02T17:26:43.000Z",
+        "endDate": "2026-10-03T14:03:38.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -761,7 +761,7 @@
           "name": "Quentin Johnston",
           "position": "WR",
           "team": "LAC",
-          "adp": 113.39,
+          "adp": 113.4,
           "high": 27,
           "low": 330
         },
@@ -1582,20 +1582,20 @@
           "low": 437
         },
         {
-          "name": "Gunnar Helm",
-          "position": "TE",
-          "team": "TEN",
-          "adp": 180.6,
-          "high": 75,
-          "low": 430
-        },
-        {
           "name": "Ja'Kobi Lane",
           "position": "WR",
           "team": "BAL",
           "adp": 180.6,
           "high": 59,
           "low": 601
+        },
+        {
+          "name": "Gunnar Helm",
+          "position": "TE",
+          "team": "TEN",
+          "adp": 180.6,
+          "high": 75,
+          "low": 430
         },
         {
           "name": "Greg Dulcich",
@@ -1737,7 +1737,7 @@
           "name": "Ray Davis",
           "position": "RB",
           "team": "BUF",
-          "adp": 190.65,
+          "adp": 190.68,
           "high": 66,
           "low": 508
         },
@@ -1792,10 +1792,18 @@
         {
           "name": "Blake Grupe",
           "position": "PK",
-          "team": null,
+          "team": "NYJ",
           "adp": 195.93,
           "high": 67,
           "low": 436
+        },
+        {
+          "name": "Tre Harris",
+          "position": "WR",
+          "team": "LAC",
+          "adp": 197.38,
+          "high": 79,
+          "low": 446
         },
         {
           "name": "Cyrus Allen",
@@ -1804,14 +1812,6 @@
           "adp": 197.42,
           "high": 60,
           "low": 570
-        },
-        {
-          "name": "Tre Harris",
-          "position": "WR",
-          "team": "LAC",
-          "adp": 197.63,
-          "high": 79,
-          "low": 446
         },
         {
           "name": "Jake Tonges",
@@ -2398,7 +2398,7 @@
           "low": 683
         },
         {
-          "name": "Ollie Gordon",
+          "name": "Ollie Gordon II",
           "position": "RB",
           "team": "MIA",
           "adp": 263.55,
