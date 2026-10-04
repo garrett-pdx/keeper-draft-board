@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-03T17:09:04.581Z",
+  "fetchedAt": "2026-10-04T17:24:46.068Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-10-03T14:03:38.000Z",
+        "endDate": "2026-10-04T16:31:34.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -366,20 +366,20 @@
           "low": 252
         },
         {
-          "name": "Jaylen Waddle",
-          "position": "WR",
-          "team": "DEN",
-          "adp": 55.56,
-          "high": 12,
-          "low": 151
-        },
-        {
           "name": "Davante Adams",
           "position": "WR",
           "team": "LAR",
           "adp": 55.56,
           "high": 9,
           "low": 212
+        },
+        {
+          "name": "Jaylen Waddle",
+          "position": "WR",
+          "team": "DEN",
+          "adp": 55.56,
+          "high": 12,
+          "low": 151
         },
         {
           "name": "Quinshon Judkins",
@@ -1582,20 +1582,20 @@
           "low": 437
         },
         {
-          "name": "Ja'Kobi Lane",
-          "position": "WR",
-          "team": "BAL",
-          "adp": 180.6,
-          "high": 59,
-          "low": 601
-        },
-        {
           "name": "Gunnar Helm",
           "position": "TE",
           "team": "TEN",
           "adp": 180.6,
           "high": 75,
           "low": 430
+        },
+        {
+          "name": "Ja'Kobi Lane",
+          "position": "WR",
+          "team": "BAL",
+          "adp": 180.6,
+          "high": 59,
+          "low": 601
         },
         {
           "name": "Greg Dulcich",
@@ -1998,20 +1998,20 @@
           "low": 500
         },
         {
-          "name": "Kaleb Johnson",
-          "position": "RB",
-          "team": "GB",
-          "adp": 214.66,
-          "high": 39,
-          "low": 503
-        },
-        {
           "name": "Keon Coleman",
           "position": "WR",
           "team": "BUF",
           "adp": 214.66,
           "high": 30,
           "low": 509
+        },
+        {
+          "name": "Kaleb Johnson",
+          "position": "RB",
+          "team": "GB",
+          "adp": 214.66,
+          "high": 39,
+          "low": 503
         },
         {
           "name": "Darius Slayton",
