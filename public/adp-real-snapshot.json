@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-04T17:24:46.068Z",
+  "fetchedAt": "2026-10-05T21:03:37.654Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-10-04T16:31:34.000Z",
+        "endDate": "2026-10-05T17:37:00.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1582,20 +1582,20 @@
           "low": 437
         },
         {
-          "name": "Gunnar Helm",
-          "position": "TE",
-          "team": "TEN",
-          "adp": 180.6,
-          "high": 75,
-          "low": 430
-        },
-        {
           "name": "Ja'Kobi Lane",
           "position": "WR",
           "team": "BAL",
           "adp": 180.6,
           "high": 59,
           "low": 601
+        },
+        {
+          "name": "Gunnar Helm",
+          "position": "TE",
+          "team": "TEN",
+          "adp": 180.6,
+          "high": 75,
+          "low": 430
         },
         {
           "name": "Greg Dulcich",
