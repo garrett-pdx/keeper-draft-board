@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-06T18:52:03.057Z",
+  "fetchedAt": "2026-10-07T19:17:14.488Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-10-06T18:51:33.000Z",
+        "endDate": "2026-10-07T17:04:24.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1566,20 +1566,20 @@
           "low": 396
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.38,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Atlanta Falcons",
           "position": "DEF",
           "team": "ATL",
           "adp": 179.38,
           "high": 61,
           "low": 355
+        },
+        {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.38,
+          "high": 41,
+          "low": 437
         },
         {
           "name": "Gunnar Helm",
@@ -1998,20 +1998,20 @@
           "low": 500
         },
         {
-          "name": "Kaleb Johnson",
-          "position": "RB",
-          "team": "GB",
-          "adp": 214.66,
-          "high": 39,
-          "low": 503
-        },
-        {
           "name": "Keon Coleman",
           "position": "WR",
           "team": "BUF",
           "adp": 214.66,
           "high": 30,
           "low": 509
+        },
+        {
+          "name": "Kaleb Johnson",
+          "position": "RB",
+          "team": "GB",
+          "adp": 214.66,
+          "high": 39,
+          "low": 503
         },
         {
           "name": "Darius Slayton",
