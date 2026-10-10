@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-09T18:44:01.560Z",
+  "fetchedAt": "2026-10-10T17:44:19.812Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-09T17:21:49.000Z",
+        "endDate": "2026-10-10T14:25:57.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -393,7 +393,7 @@
           "name": "Jadarian Price",
           "position": "RB",
           "team": "SEA",
-          "adp": 58.78,
+          "adp": 58.76,
           "high": 8,
           "low": 197
         },
@@ -1880,7 +1880,7 @@
         {
           "name": "Kaytron Allen",
           "position": "RB",
-          "team": null,
+          "team": "MIA",
           "adp": 200.36,
           "high": 43,
           "low": 518
@@ -2254,20 +2254,20 @@
           "low": 534
         },
         {
+          "name": "Emanuel Wilson",
+          "position": "RB",
+          "team": "SEA",
+          "adp": 242.06,
+          "high": 37,
+          "low": 590
+        },
+        {
           "name": "Bryce Lance",
           "position": "WR",
           "team": "NO",
           "adp": 242.45,
           "high": 55,
           "low": 667
-        },
-        {
-          "name": "Emanuel Wilson",
-          "position": "RB",
-          "team": "SEA",
-          "adp": 242.84,
-          "high": 37,
-          "low": 590
         },
         {
           "name": "Dawson Knox",
@@ -2374,14 +2374,6 @@
           "low": 494
         },
         {
-          "name": "Odell Beckham",
-          "position": "WR",
-          "team": "MIN",
-          "adp": 260.39,
-          "high": 55,
-          "low": 798
-        },
-        {
           "name": "Jalen Tolbert",
           "position": "WR",
           "team": "MIA",
@@ -2396,6 +2388,14 @@
           "adp": 260.58,
           "high": 80,
           "low": 759
+        },
+        {
+          "name": "Odell Beckham",
+          "position": "WR",
+          "team": "MIN",
+          "adp": 260.85,
+          "high": 55,
+          "low": 798
         },
         {
           "name": "Marquise Brown",
