@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-10T17:44:19.812Z",
+  "fetchedAt": "2026-10-11T17:58:43.146Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-10T14:25:57.000Z",
+        "endDate": "2026-10-11T17:24:33.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1470,20 +1470,20 @@
           "low": 377
         },
         {
-          "name": "Isiah Pacheco",
-          "position": "RB",
-          "team": "DET",
-          "adp": 172.59,
-          "high": 27,
-          "low": 520
-        },
-        {
           "name": "New Orleans Saints",
           "position": "DEF",
           "team": "NO",
           "adp": 172.59,
           "high": 76,
           "low": 366
+        },
+        {
+          "name": "Isiah Pacheco",
+          "position": "RB",
+          "team": "DET",
+          "adp": 172.59,
+          "high": 27,
+          "low": 520
         },
         {
           "name": "Cairo Santos",
