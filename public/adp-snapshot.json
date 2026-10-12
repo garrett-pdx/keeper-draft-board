@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-11T17:58:42.507Z",
+  "fetchedAt": "2026-10-12T21:40:42.891Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -477,7 +477,7 @@
         {
           "name": "Marvin Harrison Jr.",
           "position": "WR",
-          "team": "ARI",
+          "team": "HOU",
           "adp": 65.7,
           "high": 56,
           "low": 77
@@ -2227,7 +2227,7 @@
         {
           "name": "Marvin Harrison Jr.",
           "position": "WR",
-          "team": "ARI",
+          "team": "HOU",
           "adp": 86.6,
           "high": 74,
           "low": 98

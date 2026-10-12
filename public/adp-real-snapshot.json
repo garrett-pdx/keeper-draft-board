@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-11T17:58:43.146Z",
+  "fetchedAt": "2026-10-12T21:40:43.690Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-11T17:24:33.000Z",
+        "endDate": "2026-10-12T19:59:08.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1470,20 +1470,20 @@
           "low": 377
         },
         {
-          "name": "New Orleans Saints",
-          "position": "DEF",
-          "team": "NO",
-          "adp": 172.59,
-          "high": 76,
-          "low": 366
-        },
-        {
           "name": "Isiah Pacheco",
           "position": "RB",
           "team": "DET",
           "adp": 172.59,
           "high": 27,
           "low": 520
+        },
+        {
+          "name": "New Orleans Saints",
+          "position": "DEF",
+          "team": "NO",
+          "adp": 172.59,
+          "high": 76,
+          "low": 366
         },
         {
           "name": "Cairo Santos",
@@ -2006,20 +2006,20 @@
           "low": 500
         },
         {
-          "name": "Kaleb Johnson",
-          "position": "RB",
-          "team": "GB",
-          "adp": 214.66,
-          "high": 39,
-          "low": 503
-        },
-        {
           "name": "Keon Coleman",
           "position": "WR",
           "team": "BUF",
           "adp": 214.66,
           "high": 30,
           "low": 509
+        },
+        {
+          "name": "Kaleb Johnson",
+          "position": "RB",
+          "team": "GB",
+          "adp": 214.66,
+          "high": 39,
+          "low": 503
         },
         {
           "name": "Darius Slayton",
