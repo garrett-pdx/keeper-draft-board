@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-13T19:49:15.540Z",
+  "fetchedAt": "2026-10-14T17:54:54.580Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-13T19:12:12.000Z",
+        "endDate": "2026-10-14T16:48:03.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1072,7 +1072,7 @@
         {
           "name": "Harrison Mevis",
           "position": "PK",
-          "team": "LAR",
+          "team": null,
           "adp": 140.62,
           "high": 36,
           "low": 393
@@ -1470,20 +1470,20 @@
           "low": 377
         },
         {
-          "name": "New Orleans Saints",
-          "position": "DEF",
-          "team": "NO",
-          "adp": 172.59,
-          "high": 76,
-          "low": 366
-        },
-        {
           "name": "Isiah Pacheco",
           "position": "RB",
           "team": "DET",
           "adp": 172.59,
           "high": 27,
           "low": 520
+        },
+        {
+          "name": "New Orleans Saints",
+          "position": "DEF",
+          "team": "NO",
+          "adp": 172.59,
+          "high": 76,
+          "low": 366
         },
         {
           "name": "Cairo Santos",
@@ -1792,7 +1792,7 @@
         {
           "name": "Blake Grupe",
           "position": "PK",
-          "team": "NYJ",
+          "team": "LAR",
           "adp": 195.93,
           "high": 67,
           "low": 436
