@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-16T17:17:47.856Z",
+  "fetchedAt": "2026-10-17T16:17:14.224Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1711,
         "startDate": null,
-        "endDate": "2026-10-16T14:24:54.000Z",
+        "endDate": "2026-10-17T14:53:42.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -406,20 +406,20 @@
           "low": 195
         },
         {
-          "name": "Jameson Williams",
-          "position": "WR",
-          "team": "DET",
-          "adp": 61.79,
-          "high": 12,
-          "low": 160
-        },
-        {
           "name": "David Montgomery",
           "position": "RB",
           "team": "HOU",
           "adp": 61.79,
           "high": 12,
           "low": 187
+        },
+        {
+          "name": "Jameson Williams",
+          "position": "WR",
+          "team": "DET",
+          "adp": 61.79,
+          "high": 12,
+          "low": 160
         },
         {
           "name": "Terry McLaurin",
@@ -2000,7 +2000,7 @@
         {
           "name": "Darius Slayton",
           "position": "WR",
-          "team": "IND",
+          "team": null,
           "adp": 213.47,
           "high": 64,
           "low": 589
