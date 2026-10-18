@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-17T16:17:14.224Z",
+  "fetchedAt": "2026-10-18T16:25:54.697Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1711,
         "startDate": null,
-        "endDate": "2026-10-17T14:53:42.000Z",
+        "endDate": "2026-10-18T15:42:37.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -406,20 +406,20 @@
           "low": 195
         },
         {
-          "name": "David Montgomery",
-          "position": "RB",
-          "team": "HOU",
-          "adp": 61.79,
-          "high": 12,
-          "low": 187
-        },
-        {
           "name": "Jameson Williams",
           "position": "WR",
           "team": "DET",
           "adp": 61.79,
           "high": 12,
           "low": 160
+        },
+        {
+          "name": "David Montgomery",
+          "position": "RB",
+          "team": "HOU",
+          "adp": 61.79,
+          "high": 12,
+          "low": 187
         },
         {
           "name": "Terry McLaurin",
