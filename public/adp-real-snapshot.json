@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-19T19:12:02.808Z",
+  "fetchedAt": "2026-10-20T17:52:52.329Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1712,
         "startDate": null,
-        "endDate": "2026-10-19T19:01:09.000Z",
+        "endDate": "2026-10-20T15:06:39.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -265,7 +265,7 @@
           "name": "Breece Hall",
           "position": "RB",
           "team": "NYJ",
-          "adp": 41.47,
+          "adp": 41.5,
           "high": 6,
           "low": 132
         },
@@ -321,7 +321,7 @@
           "name": "Emeka Egbuka",
           "position": "WR",
           "team": "TB",
-          "adp": 47.44,
+          "adp": 47.46,
           "high": 8,
           "low": 140
         },
@@ -361,7 +361,7 @@
           "name": "Davante Adams",
           "position": "WR",
           "team": "LAR",
-          "adp": 55.49,
+          "adp": 55.5,
           "high": 9,
           "low": 212
         },
@@ -377,7 +377,7 @@
           "name": "Tyler Warren",
           "position": "TE",
           "team": "IND",
-          "adp": 55.55,
+          "adp": 55.57,
           "high": 5,
           "low": 252
         },
@@ -406,20 +406,20 @@
           "low": 195
         },
         {
-          "name": "Jameson Williams",
-          "position": "WR",
-          "team": "DET",
-          "adp": 61.79,
-          "high": 12,
-          "low": 160
-        },
-        {
           "name": "David Montgomery",
           "position": "RB",
           "team": "HOU",
           "adp": 61.79,
           "high": 12,
           "low": 187
+        },
+        {
+          "name": "Jameson Williams",
+          "position": "WR",
+          "team": "DET",
+          "adp": 61.79,
+          "high": 12,
+          "low": 160
         },
         {
           "name": "Terry McLaurin",
@@ -449,7 +449,7 @@
           "name": "TreVeyon Henderson",
           "position": "RB",
           "team": "NE",
-          "adp": 71,
+          "adp": 71.01,
           "high": 18,
           "low": 200
         },
@@ -457,7 +457,7 @@
           "name": "Rome Odunze",
           "position": "WR",
           "team": "CHI",
-          "adp": 71.45,
+          "adp": 71.46,
           "high": 15,
           "low": 188
         },
@@ -521,7 +521,7 @@
           "name": "Mike Evans",
           "position": "WR",
           "team": "SF",
-          "adp": 80.68,
+          "adp": 80.69,
           "high": 12,
           "low": 251
         },
@@ -601,7 +601,7 @@
           "name": "DK Metcalf",
           "position": "WR",
           "team": "PIT",
-          "adp": 91.71,
+          "adp": 91.7,
           "high": 14,
           "low": 248
         },
@@ -641,7 +641,7 @@
           "name": "Dallas Goedert",
           "position": "TE",
           "team": "PHI",
-          "adp": 93.07,
+          "adp": 93.06,
           "high": 14,
           "low": 289
         },
@@ -753,7 +753,7 @@
           "name": "Dalton Kincaid",
           "position": "TE",
           "team": "BUF",
-          "adp": 113.2,
+          "adp": 113.19,
           "high": 25,
           "low": 248
         },
@@ -809,7 +809,7 @@
           "name": "Aaron Jones",
           "position": "RB",
           "team": "MIN",
-          "adp": 117.47,
+          "adp": 117.44,
           "high": 23,
           "low": 304
         },
@@ -1041,7 +1041,7 @@
           "name": "Malik Washington",
           "position": "WR",
           "team": "MIA",
-          "adp": 139.95,
+          "adp": 139.91,
           "high": 7,
           "low": 296
         },
@@ -1537,7 +1537,7 @@
           "name": "Pat Freiermuth",
           "position": "TE",
           "team": "PIT",
-          "adp": 177.81,
+          "adp": 177.61,
           "high": 24,
           "low": 465
         },
@@ -1689,7 +1689,7 @@
           "name": "Braelon Allen",
           "position": "RB",
           "team": "NYJ",
-          "adp": 188.43,
+          "adp": 188.24,
           "high": 37,
           "low": 502
         },
@@ -2398,20 +2398,20 @@
           "low": 494
         },
         {
+          "name": "Ollie Gordon II",
+          "position": "RB",
+          "team": "MIA",
+          "adp": 261.65,
+          "high": 47,
+          "low": 530
+        },
+        {
           "name": "Marquise Brown",
           "position": "WR",
           "team": "PHI",
           "adp": 262.36,
           "high": 70,
           "low": 683
-        },
-        {
-          "name": "Ollie Gordon II",
-          "position": "RB",
-          "team": "MIA",
-          "adp": 263.15,
-          "high": 47,
-          "low": 530
         },
         {
           "name": "Tyler Higbee",
