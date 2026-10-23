@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-22T17:55:12.281Z",
+  "fetchedAt": "2026-10-23T17:49:29.564Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-22T17:00:30.000Z",
+        "endDate": "2026-10-23T17:39:25.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -302,20 +302,20 @@
           "low": 171
         },
         {
-          "name": "Tee Higgins",
-          "position": "WR",
-          "team": "CIN",
-          "adp": 47.13,
-          "high": 12,
-          "low": 180
-        },
-        {
           "name": "Ladd McConkey",
           "position": "WR",
           "team": "LAC",
           "adp": 47.13,
           "high": 8,
           "low": 148
+        },
+        {
+          "name": "Tee Higgins",
+          "position": "WR",
+          "team": "CIN",
+          "adp": 47.13,
+          "high": 12,
+          "low": 180
         },
         {
           "name": "Emeka Egbuka",
@@ -393,7 +393,7 @@
           "name": "Jadarian Price",
           "position": "RB",
           "team": "SEA",
-          "adp": 58.75,
+          "adp": 58.8,
           "high": 8,
           "low": 197
         },
@@ -454,20 +454,20 @@
           "low": 200
         },
         {
-          "name": "Rome Odunze",
-          "position": "WR",
-          "team": "CHI",
-          "adp": 71.48,
-          "high": 15,
-          "low": 188
-        },
-        {
           "name": "Christian Watson",
           "position": "WR",
           "team": "GB",
           "adp": 71.48,
           "high": 12,
           "low": 244
+        },
+        {
+          "name": "Rome Odunze",
+          "position": "WR",
+          "team": "CHI",
+          "adp": 71.48,
+          "high": 15,
+          "low": 188
         },
         {
           "name": "Luther Burden",
@@ -1161,7 +1161,7 @@
           "name": "Brenton Strange",
           "position": "TE",
           "team": "JAX",
-          "adp": 148.87,
+          "adp": 148.89,
           "high": 35,
           "low": 314
         },
@@ -1185,7 +1185,7 @@
           "name": "Jerry Jeudy",
           "position": "WR",
           "team": "CLE",
-          "adp": 150.46,
+          "adp": 150.47,
           "high": 40,
           "low": 369
         },
@@ -1545,7 +1545,7 @@
           "name": "Dylan Sampson",
           "position": "RB",
           "team": "CLE",
-          "adp": 178.58,
+          "adp": 178.53,
           "high": 81,
           "low": 387
         },
@@ -1937,17 +1937,9 @@
           "name": "Xavier Hutchinson",
           "position": "WR",
           "team": "HOU",
-          "adp": 208.42,
+          "adp": 208.27,
           "high": 66,
           "low": 612
-        },
-        {
-          "name": "Evan Engram",
-          "position": "TE",
-          "team": "DEN",
-          "adp": 208.61,
-          "high": 71,
-          "low": 514
         },
         {
           "name": "Isaac TeSlaa",
@@ -1956,6 +1948,14 @@
           "adp": 208.61,
           "high": 50,
           "low": 523
+        },
+        {
+          "name": "Evan Engram",
+          "position": "TE",
+          "team": "DEN",
+          "adp": 208.61,
+          "high": 71,
+          "low": 514
         },
         {
           "name": "Devaughn Vele",
@@ -1993,7 +1993,7 @@
           "name": "Ted Hurst",
           "position": "WR",
           "team": "TB",
-          "adp": 213.39,
+          "adp": 213.38,
           "high": 97,
           "low": 521
         },
@@ -2097,7 +2097,7 @@
           "name": "Jaylen Wright",
           "position": "RB",
           "team": "MIA",
-          "adp": 220.37,
+          "adp": 220.63,
           "high": 36,
           "low": 519
         },
@@ -2105,7 +2105,7 @@
           "name": "Jaylin Noel",
           "position": "WR",
           "team": "HOU",
-          "adp": 221.65,
+          "adp": 221.76,
           "high": 102,
           "low": 455
         },
@@ -2457,7 +2457,7 @@
           "name": "Kyle Williams",
           "position": "WR",
           "team": "NE",
-          "adp": 279.5,
+          "adp": 278.25,
           "high": 62,
           "low": 658
         },
