@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-23T17:49:29.564Z",
+  "fetchedAt": "2026-10-24T16:31:03.008Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-23T17:39:25.000Z",
+        "endDate": "2026-10-24T14:43:05.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1558,20 +1558,20 @@
           "low": 518
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.26,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Jake Elliott",
           "position": "PK",
           "team": "PHI",
           "adp": 179.26,
           "high": 31,
           "low": 396
+        },
+        {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.26,
+          "high": 41,
+          "low": 437
         },
         {
           "name": "Atlanta Falcons",
@@ -2088,7 +2088,7 @@
         {
           "name": "Jaydon Blue",
           "position": "RB",
-          "team": null,
+          "team": "PHI",
           "adp": 220.32,
           "high": 51,
           "low": 553
