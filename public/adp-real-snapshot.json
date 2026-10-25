@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-24T16:31:03.008Z",
+  "fetchedAt": "2026-10-25T17:00:56.701Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-24T14:43:05.000Z",
+        "endDate": "2026-10-25T16:04:40.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -302,20 +302,20 @@
           "low": 171
         },
         {
-          "name": "Ladd McConkey",
-          "position": "WR",
-          "team": "LAC",
-          "adp": 47.13,
-          "high": 8,
-          "low": 148
-        },
-        {
           "name": "Tee Higgins",
           "position": "WR",
           "team": "CIN",
           "adp": 47.13,
           "high": 12,
           "low": 180
+        },
+        {
+          "name": "Ladd McConkey",
+          "position": "WR",
+          "team": "LAC",
+          "adp": 47.13,
+          "high": 8,
+          "low": 148
         },
         {
           "name": "Emeka Egbuka",
@@ -1558,20 +1558,20 @@
           "low": 518
         },
         {
-          "name": "Jake Elliott",
-          "position": "PK",
-          "team": "PHI",
-          "adp": 179.26,
-          "high": 31,
-          "low": 396
-        },
-        {
           "name": "Antonio Williams",
           "position": "WR",
           "team": "WAS",
           "adp": 179.26,
           "high": 41,
           "low": 437
+        },
+        {
+          "name": "Jake Elliott",
+          "position": "PK",
+          "team": "PHI",
+          "adp": 179.26,
+          "high": 31,
+          "low": 396
         },
         {
           "name": "Atlanta Falcons",
@@ -1942,20 +1942,20 @@
           "low": 612
         },
         {
-          "name": "Isaac TeSlaa",
-          "position": "WR",
-          "team": "DET",
-          "adp": 208.61,
-          "high": 50,
-          "low": 523
-        },
-        {
           "name": "Evan Engram",
           "position": "TE",
           "team": "DEN",
           "adp": 208.61,
           "high": 71,
           "low": 514
+        },
+        {
+          "name": "Isaac TeSlaa",
+          "position": "WR",
+          "team": "DET",
+          "adp": 208.61,
+          "high": 50,
+          "low": 523
         },
         {
           "name": "Devaughn Vele",
