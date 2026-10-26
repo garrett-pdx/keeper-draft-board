@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-25T17:00:56.701Z",
+  "fetchedAt": "2026-10-26T19:07:45.807Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-25T16:04:40.000Z",
+        "endDate": "2026-10-26T17:04:13.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -302,20 +302,20 @@
           "low": 171
         },
         {
-          "name": "Tee Higgins",
-          "position": "WR",
-          "team": "CIN",
-          "adp": 47.13,
-          "high": 12,
-          "low": 180
-        },
-        {
           "name": "Ladd McConkey",
           "position": "WR",
           "team": "LAC",
           "adp": 47.13,
           "high": 8,
           "low": 148
+        },
+        {
+          "name": "Tee Higgins",
+          "position": "WR",
+          "team": "CIN",
+          "adp": 47.13,
+          "high": 12,
+          "low": 180
         },
         {
           "name": "Emeka Egbuka",
