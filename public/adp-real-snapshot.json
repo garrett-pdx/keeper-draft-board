@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-26T19:07:45.807Z",
+  "fetchedAt": "2026-10-27T18:37:37.051Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1713,
         "startDate": null,
-        "endDate": "2026-10-26T17:04:13.000Z",
+        "endDate": "2026-10-27T17:14:23.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -302,20 +302,20 @@
           "low": 171
         },
         {
-          "name": "Ladd McConkey",
-          "position": "WR",
-          "team": "LAC",
-          "adp": 47.13,
-          "high": 8,
-          "low": 148
-        },
-        {
           "name": "Tee Higgins",
           "position": "WR",
           "team": "CIN",
           "adp": 47.13,
           "high": 12,
           "low": 180
+        },
+        {
+          "name": "Ladd McConkey",
+          "position": "WR",
+          "team": "LAC",
+          "adp": 47.13,
+          "high": 8,
+          "low": 148
         },
         {
           "name": "Emeka Egbuka",
@@ -454,20 +454,20 @@
           "low": 200
         },
         {
-          "name": "Christian Watson",
-          "position": "WR",
-          "team": "GB",
-          "adp": 71.48,
-          "high": 12,
-          "low": 244
-        },
-        {
           "name": "Rome Odunze",
           "position": "WR",
           "team": "CHI",
           "adp": 71.48,
           "high": 15,
           "low": 188
+        },
+        {
+          "name": "Christian Watson",
+          "position": "WR",
+          "team": "GB",
+          "adp": 71.48,
+          "high": 12,
+          "low": 244
         },
         {
           "name": "Luther Burden",
@@ -1558,20 +1558,20 @@
           "low": 518
         },
         {
-          "name": "Antonio Williams",
-          "position": "WR",
-          "team": "WAS",
-          "adp": 179.26,
-          "high": 41,
-          "low": 437
-        },
-        {
           "name": "Jake Elliott",
           "position": "PK",
           "team": "PHI",
           "adp": 179.26,
           "high": 31,
           "low": 396
+        },
+        {
+          "name": "Antonio Williams",
+          "position": "WR",
+          "team": "WAS",
+          "adp": 179.26,
+          "high": 41,
+          "low": 437
         },
         {
           "name": "Atlanta Falcons",
