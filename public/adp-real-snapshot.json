@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-30T18:31:22.608Z",
+  "fetchedAt": "2026-10-31T17:37:08.323Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1716,
         "startDate": null,
-        "endDate": "2026-10-30T14:41:22.000Z",
+        "endDate": "2026-10-31T16:00:43.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -377,7 +377,7 @@
           "name": "Tyler Warren",
           "position": "TE",
           "team": "IND",
-          "adp": 55.81,
+          "adp": 55.83,
           "high": 5,
           "low": 252
         },
@@ -505,7 +505,7 @@
           "name": "Tucker Kraft",
           "position": "TE",
           "team": "GB",
-          "adp": 76.36,
+          "adp": 76.35,
           "high": 16,
           "low": 235
         },
@@ -633,7 +633,7 @@
           "name": "Travis Kelce",
           "position": "TE",
           "team": "KC",
-          "adp": 92.94,
+          "adp": 92.93,
           "high": 8,
           "low": 316
         },
@@ -689,7 +689,7 @@
           "name": "J.K. Dobbins",
           "position": "RB",
           "team": "DEN",
-          "adp": 99.83,
+          "adp": 99.82,
           "high": 10,
           "low": 390
         },
@@ -809,7 +809,7 @@
           "name": "Aaron Jones",
           "position": "RB",
           "team": "MIN",
-          "adp": 117.22,
+          "adp": 117.19,
           "high": 23,
           "low": 304
         },
@@ -817,7 +817,7 @@
           "name": "Jordan Mason",
           "position": "RB",
           "team": "MIN",
-          "adp": 117.48,
+          "adp": 117.45,
           "high": 35,
           "low": 421
         },
@@ -993,7 +993,7 @@
           "name": "Xavier Worthy",
           "position": "WR",
           "team": "KC",
-          "adp": 136.24,
+          "adp": 136.19,
           "high": 41,
           "low": 344
         },
@@ -1281,7 +1281,7 @@
           "name": "Rashid Shaheed",
           "position": "WR",
           "team": "SEA",
-          "adp": 158.87,
+          "adp": 158.92,
           "high": 9,
           "low": 387
         },
@@ -1529,7 +1529,7 @@
           "name": "Omar Cooper Jr.",
           "position": "WR",
           "team": "NYJ",
-          "adp": 175.2,
+          "adp": 175.06,
           "high": 36,
           "low": 463
         },
@@ -1801,7 +1801,7 @@
           "name": "Caleb Douglas",
           "position": "WR",
           "team": "MIA",
-          "adp": 196.87,
+          "adp": 196.59,
           "high": 73,
           "low": 563
         },
@@ -1953,7 +1953,7 @@
           "name": "Devaughn Vele",
           "position": "WR",
           "team": "NO",
-          "adp": 208,
+          "adp": 207.59,
           "high": 47,
           "low": 656
         },
