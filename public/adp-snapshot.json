@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-01T18:21:26.701Z",
+  "fetchedAt": "2026-11-02T22:16:45.560Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -960,34 +960,50 @@
       "format": "half-ppr",
       "meta": {
         "totalDrafts": 115,
-        "startDate": "2026-10-27",
-        "endDate": "2026-11-01"
+        "startDate": "2026-10-28",
+        "endDate": "2026-11-02"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 128,
-        "startDate": "2026-10-25",
-        "endDate": "2026-11-01"
+        "totalDrafts": 130,
+        "startDate": "2026-10-26",
+        "endDate": "2026-11-02"
       },
       "players": [
         {
-          "name": "Jaxon Smith-Njigba",
-          "position": "WR",
-          "team": "SEA",
-          "adp": 3.8,
+          "name": "Jahmyr Gibbs",
+          "position": "RB",
+          "team": "DET",
+          "adp": 1.2,
           "high": 1,
-          "low": 5
+          "low": 2
+        },
+        {
+          "name": "Christian Watson",
+          "position": "WR",
+          "team": "GB",
+          "adp": 41.2,
+          "high": 37,
+          "low": 44
         },
         {
           "name": "A.J. Brown",
           "position": "WR",
           "team": "NE",
-          "adp": 67.2,
+          "adp": 72,
           "high": 53,
-          "low": 80
+          "low": 96
+        },
+        {
+          "name": "Michael Wilson",
+          "position": "WR",
+          "team": "ARI",
+          "adp": 85.4,
+          "high": 81,
+          "low": 100
         }
       ]
     },
