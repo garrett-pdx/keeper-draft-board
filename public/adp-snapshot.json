@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-02T22:16:45.560Z",
+  "fetchedAt": "2026-11-03T20:02:20.825Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,18 +959,18 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 115,
-        "startDate": "2026-10-28",
-        "endDate": "2026-11-02"
+        "totalDrafts": 112,
+        "startDate": "2026-10-29",
+        "endDate": "2026-11-03"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 130,
-        "startDate": "2026-10-26",
-        "endDate": "2026-11-02"
+        "totalDrafts": 127,
+        "startDate": "2026-10-27",
+        "endDate": "2026-11-03"
       },
       "players": [
         {
@@ -980,22 +980,6 @@
           "adp": 1.2,
           "high": 1,
           "low": 2
-        },
-        {
-          "name": "Christian Watson",
-          "position": "WR",
-          "team": "GB",
-          "adp": 41.2,
-          "high": 37,
-          "low": 44
-        },
-        {
-          "name": "A.J. Brown",
-          "position": "WR",
-          "team": "NE",
-          "adp": 72,
-          "high": 53,
-          "low": 96
         },
         {
           "name": "Michael Wilson",
