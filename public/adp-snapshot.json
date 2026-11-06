@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-05T20:34:20.282Z",
+  "fetchedAt": "2026-11-06T19:55:16.480Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,18 +959,18 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 113,
-        "startDate": "2026-10-31",
-        "endDate": "2026-11-05"
+        "totalDrafts": 114,
+        "startDate": "2026-11-01",
+        "endDate": "2026-11-06"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 124,
-        "startDate": "2026-10-29",
-        "endDate": "2026-11-05"
+        "totalDrafts": 126,
+        "startDate": "2026-10-30",
+        "endDate": "2026-11-06"
       },
       "players": [
         {
@@ -982,10 +982,26 @@
           "low": 2
         },
         {
+          "name": "Christian Watson",
+          "position": "WR",
+          "team": "GB",
+          "adp": 38,
+          "high": 24,
+          "low": 44
+        },
+        {
+          "name": "Parker Washington",
+          "position": "WR",
+          "team": "JAX",
+          "adp": 38.6,
+          "high": 33,
+          "low": 47
+        },
+        {
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 59.4,
+          "adp": 58.8,
           "high": 50,
           "low": 64
         }
@@ -1698,7 +1714,7 @@
         {
           "name": "Jacoby Brissett",
           "position": "QB",
-          "team": "ARI",
+          "team": "BAL",
           "adp": 99.5,
           "high": 82,
           "low": 124
