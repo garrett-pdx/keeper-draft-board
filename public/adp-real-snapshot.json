@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-06T19:55:17.268Z",
+  "fetchedAt": "2026-11-07T17:59:32.610Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1721,
         "startDate": null,
-        "endDate": "2026-11-06T17:00:36.000Z",
+        "endDate": "2026-11-07T14:46:55.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -377,7 +377,7 @@
           "name": "Tyler Warren",
           "position": "TE",
           "team": "IND",
-          "adp": 55.88,
+          "adp": 55.9,
           "high": 5,
           "low": 252
         },
@@ -465,7 +465,7 @@
           "name": "Rome Odunze",
           "position": "WR",
           "team": "CHI",
-          "adp": 71.58,
+          "adp": 71.6,
           "high": 15,
           "low": 188
         },
@@ -681,7 +681,7 @@
           "name": "Seattle Seahawks",
           "position": "DEF",
           "team": "SEA",
-          "adp": 99.65,
+          "adp": 99.64,
           "high": 3,
           "low": 254
         },
@@ -713,7 +713,7 @@
           "name": "Denver Broncos",
           "position": "DEF",
           "team": "DEN",
-          "adp": 105.77,
+          "adp": 105.76,
           "high": 12,
           "low": 262
         },
@@ -793,7 +793,7 @@
           "name": "Kyle Monangai",
           "position": "RB",
           "team": "CHI",
-          "adp": 116.73,
+          "adp": 116.71,
           "high": 13,
           "low": 380
         },
@@ -865,7 +865,7 @@
           "name": "Makai Lemon",
           "position": "WR",
           "team": "PHI",
-          "adp": 124.54,
+          "adp": 124.52,
           "high": 10,
           "low": 291
         },
@@ -918,14 +918,6 @@
           "low": 485
         },
         {
-          "name": "Philadelphia Eagles",
-          "position": "DEF",
-          "team": "PHI",
-          "adp": 130.05,
-          "high": 25,
-          "low": 266
-        },
-        {
           "name": "Juwan Johnson",
           "position": "TE",
           "team": "NO",
@@ -934,10 +926,18 @@
           "low": 391
         },
         {
+          "name": "Philadelphia Eagles",
+          "position": "DEF",
+          "team": "PHI",
+          "adp": 130.05,
+          "high": 25,
+          "low": 266
+        },
+        {
           "name": "Zach Charbonnet",
           "position": "RB",
           "team": "SEA",
-          "adp": 131.03,
+          "adp": 130.99,
           "high": 20,
           "low": 382
         },
@@ -993,7 +993,7 @@
           "name": "Xavier Worthy",
           "position": "WR",
           "team": "KC",
-          "adp": 136.13,
+          "adp": 136.1,
           "high": 41,
           "low": 344
         },
@@ -1041,7 +1041,7 @@
           "name": "Malik Washington",
           "position": "WR",
           "team": "MIA",
-          "adp": 139.5,
+          "adp": 139.46,
           "high": 7,
           "low": 296
         },
@@ -1137,7 +1137,7 @@
           "name": "Mike Washington Jr.",
           "position": "RB",
           "team": "LV",
-          "adp": 147.58,
+          "adp": 147.54,
           "high": 38,
           "low": 394
         },
@@ -1361,7 +1361,7 @@
           "name": "Kansas City Chiefs",
           "position": "DEF",
           "team": "KC",
-          "adp": 164.9,
+          "adp": 164.74,
           "high": 51,
           "low": 314
         },
@@ -1521,7 +1521,7 @@
           "name": "Emmett Johnson",
           "position": "RB",
           "team": "KC",
-          "adp": 174.6,
+          "adp": 174.49,
           "high": 59,
           "low": 452
         },
@@ -1654,20 +1654,20 @@
           "low": 325
         },
         {
+          "name": "Tampa Bay Buccaneers",
+          "position": "DEF",
+          "team": "TB",
+          "adp": 184.63,
+          "high": 14,
+          "low": 376
+        },
+        {
           "name": "Eli Raridon",
           "position": "TE",
           "team": "NE",
           "adp": 184.68,
           "high": 22,
           "low": 493
-        },
-        {
-          "name": "Tampa Bay Buccaneers",
-          "position": "DEF",
-          "team": "TB",
-          "adp": 185.14,
-          "high": 14,
-          "low": 376
         },
         {
           "name": "Braelon Allen",
@@ -1801,7 +1801,7 @@
           "name": "Caleb Douglas",
           "position": "WR",
           "team": "MIA",
-          "adp": 196.55,
+          "adp": 196.31,
           "high": 73,
           "low": 563
         },
@@ -1822,19 +1822,19 @@
           "low": 446
         },
         {
-          "name": "Ryan Flournoy",
-          "position": "WR",
-          "team": "DAL",
-          "adp": 197.48,
-          "high": 33,
-          "low": 455
-        },
-        {
           "name": "Adonai Mitchell",
           "position": "WR",
           "team": "NYJ",
           "adp": 197.48,
           "high": 65,
+          "low": 455
+        },
+        {
+          "name": "Ryan Flournoy",
+          "position": "WR",
+          "team": "DAL",
+          "adp": 197.48,
+          "high": 33,
           "low": 455
         },
         {
@@ -2025,7 +2025,7 @@
           "name": "Devin Singletary",
           "position": "RB",
           "team": "NYG",
-          "adp": 214.74,
+          "adp": 214.3,
           "high": 64,
           "low": 497
         },
