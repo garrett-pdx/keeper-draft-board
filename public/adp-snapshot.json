@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-07T17:59:31.786Z",
+  "fetchedAt": "2026-11-08T18:17:38.991Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,18 +959,18 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 114,
-        "startDate": "2026-11-02",
-        "endDate": "2026-11-07"
+        "totalDrafts": 115,
+        "startDate": "2026-11-03",
+        "endDate": "2026-11-08"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 127,
-        "startDate": "2026-10-31",
-        "endDate": "2026-11-07"
+        "totalDrafts": 124,
+        "startDate": "2026-11-01",
+        "endDate": "2026-11-08"
       },
       "players": [
         {
@@ -988,14 +988,6 @@
           "adp": 5,
           "high": 4,
           "low": 6
-        },
-        {
-          "name": "Christian Watson",
-          "position": "WR",
-          "team": "GB",
-          "adp": 38,
-          "high": 24,
-          "low": 44
         },
         {
           "name": "Parker Washington",
@@ -1017,7 +1009,7 @@
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 60.7,
+          "adp": 60.8,
           "high": 50,
           "low": 72
         }

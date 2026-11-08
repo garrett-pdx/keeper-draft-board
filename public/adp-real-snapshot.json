@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-07T17:59:32.610Z",
+  "fetchedAt": "2026-11-08T18:17:39.890Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1721,
         "startDate": null,
-        "endDate": "2026-11-07T14:46:55.000Z",
+        "endDate": "2026-11-08T17:28:50.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -185,7 +185,7 @@
           "name": "A.J. Brown",
           "position": "WR",
           "team": "NE",
-          "adp": 25.8,
+          "adp": 25.86,
           "high": 1,
           "low": 124
         },
@@ -393,7 +393,7 @@
           "name": "Jadarian Price",
           "position": "RB",
           "team": "SEA",
-          "adp": 58.86,
+          "adp": 58.89,
           "high": 8,
           "low": 197
         },
@@ -673,7 +673,7 @@
           "name": "Rico Dowdle",
           "position": "RB",
           "team": "PIT",
-          "adp": 98.57,
+          "adp": 98.58,
           "high": 12,
           "low": 374
         },
@@ -918,20 +918,20 @@
           "low": 485
         },
         {
-          "name": "Juwan Johnson",
-          "position": "TE",
-          "team": "NO",
-          "adp": 130.05,
-          "high": 44,
-          "low": 391
-        },
-        {
           "name": "Philadelphia Eagles",
           "position": "DEF",
           "team": "PHI",
           "adp": 130.05,
           "high": 25,
           "low": 266
+        },
+        {
+          "name": "Juwan Johnson",
+          "position": "TE",
+          "team": "NO",
+          "adp": 130.05,
+          "high": 44,
+          "low": 391
         },
         {
           "name": "Zach Charbonnet",
@@ -945,7 +945,7 @@
           "name": "KC Concepcion",
           "position": "WR",
           "team": "CLE",
-          "adp": 131.46,
+          "adp": 131.45,
           "high": 31,
           "low": 312
         },
@@ -977,7 +977,7 @@
           "name": "Khalil Shakir",
           "position": "WR",
           "team": "BUF",
-          "adp": 135.22,
+          "adp": 135.21,
           "high": 24,
           "low": 310
         },
@@ -1025,7 +1025,7 @@
           "name": "Jakobi Meyers",
           "position": "WR",
           "team": "JAX",
-          "adp": 137.1,
+          "adp": 137.09,
           "high": 33,
           "low": 329
         },
@@ -1297,7 +1297,7 @@
           "name": "Tre Tucker",
           "position": "WR",
           "team": "LV",
-          "adp": 160.04,
+          "adp": 159.98,
           "high": 19,
           "low": 442
         },
@@ -1465,7 +1465,7 @@
           "name": "San Francisco 49ers",
           "position": "DEF",
           "team": "SF",
-          "adp": 171.51,
+          "adp": 171.29,
           "high": 14,
           "low": 377
         },
@@ -1513,7 +1513,7 @@
           "name": "Kaelon Black",
           "position": "RB",
           "team": "SF",
-          "adp": 174.21,
+          "adp": 174.11,
           "high": 32,
           "low": 507
         },
@@ -1545,7 +1545,7 @@
           "name": "Antonio Williams",
           "position": "WR",
           "team": "WAS",
-          "adp": 177.69,
+          "adp": 177.49,
           "high": 41,
           "low": 437
         },
@@ -1937,7 +1937,7 @@
           "name": "Devaughn Vele",
           "position": "WR",
           "team": "NO",
-          "adp": 206.6,
+          "adp": 206.29,
           "high": 47,
           "low": 656
         },
@@ -2278,20 +2278,20 @@
           "low": 583
         },
         {
+          "name": "Seth McGowan",
+          "position": "RB",
+          "team": "IND",
+          "adp": 243.18,
+          "high": 98,
+          "low": 577
+        },
+        {
           "name": "Brenen Thompson",
           "position": "WR",
           "team": "LAC",
           "adp": 243.57,
           "high": 59,
           "low": 537
-        },
-        {
-          "name": "Seth McGowan",
-          "position": "RB",
-          "team": "IND",
-          "adp": 243.87,
-          "high": 98,
-          "low": 577
         },
         {
           "name": "Tyquan Thornton",
