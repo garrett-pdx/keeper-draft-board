@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-08T18:17:39.890Z",
+  "fetchedAt": "2026-11-09T22:56:46.430Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1721,
         "startDate": null,
-        "endDate": "2026-11-08T17:28:50.000Z",
+        "endDate": "2026-11-09T22:47:34.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -398,20 +398,20 @@
           "low": 197
         },
         {
-          "name": "Jameson Williams",
-          "position": "WR",
-          "team": "DET",
-          "adp": 61.67,
-          "high": 12,
-          "low": 160
-        },
-        {
           "name": "D.J. Moore",
           "position": "WR",
           "team": "BUF",
           "adp": 61.67,
           "high": 9,
           "low": 195
+        },
+        {
+          "name": "Jameson Williams",
+          "position": "WR",
+          "team": "DET",
+          "adp": 61.67,
+          "high": 12,
+          "low": 160
         },
         {
           "name": "David Montgomery",
@@ -918,20 +918,20 @@
           "low": 485
         },
         {
-          "name": "Philadelphia Eagles",
-          "position": "DEF",
-          "team": "PHI",
-          "adp": 130.05,
-          "high": 25,
-          "low": 266
-        },
-        {
           "name": "Juwan Johnson",
           "position": "TE",
           "team": "NO",
           "adp": 130.05,
           "high": 44,
           "low": 391
+        },
+        {
+          "name": "Philadelphia Eagles",
+          "position": "DEF",
+          "team": "PHI",
+          "adp": 130.05,
+          "high": 25,
+          "low": 266
         },
         {
           "name": "Zach Charbonnet",
