@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-09T22:56:45.783Z",
+  "fetchedAt": "2026-11-10T20:24:33.906Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -917,7 +917,7 @@
         {
           "name": "Keenan Allen",
           "position": "WR",
-          "team": "IND",
+          "team": "SF",
           "adp": 150.2,
           "high": 146,
           "low": 155
@@ -959,27 +959,51 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 114,
-        "startDate": "2026-11-04",
-        "endDate": "2026-11-09"
+        "totalDrafts": 117,
+        "startDate": "2026-11-05",
+        "endDate": "2026-11-10"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 122,
-        "startDate": "2026-11-02",
-        "endDate": "2026-11-09"
+        "totalDrafts": 126,
+        "startDate": "2026-11-03",
+        "endDate": "2026-11-10"
       },
       "players": [
+        {
+          "name": "Jahmyr Gibbs",
+          "position": "RB",
+          "team": "DET",
+          "adp": 1,
+          "high": 1,
+          "low": 1
+        },
         {
           "name": "Jaxon Smith-Njigba",
           "position": "WR",
           "team": "SEA",
-          "adp": 5,
-          "high": 4,
-          "low": 6
+          "adp": 5.3,
+          "high": 1,
+          "low": 9
+        },
+        {
+          "name": "Brock Bowers",
+          "position": "TE",
+          "team": "LV",
+          "adp": 47,
+          "high": 32,
+          "low": 64
+        },
+        {
+          "name": "Matthew Golden",
+          "position": "WR",
+          "team": "GB",
+          "adp": 66.8,
+          "high": 56,
+          "low": 80
         }
       ]
     },
