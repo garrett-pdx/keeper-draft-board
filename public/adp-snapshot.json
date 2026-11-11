@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-10T20:24:33.906Z",
+  "fetchedAt": "2026-11-11T20:06:43.476Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -685,7 +685,7 @@
         {
           "name": "Josh Downs",
           "position": "WR",
-          "team": "IND",
+          "team": "KC",
           "adp": 101.2,
           "high": 95,
           "low": 109
@@ -959,27 +959,27 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 117,
-        "startDate": "2026-11-05",
-        "endDate": "2026-11-10"
+        "totalDrafts": 116,
+        "startDate": "2026-11-06",
+        "endDate": "2026-11-11"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 126,
-        "startDate": "2026-11-03",
-        "endDate": "2026-11-10"
+        "totalDrafts": 128,
+        "startDate": "2026-11-04",
+        "endDate": "2026-11-11"
       },
       "players": [
         {
           "name": "Jahmyr Gibbs",
           "position": "RB",
           "team": "DET",
-          "adp": 1,
+          "adp": 1.2,
           "high": 1,
-          "low": 1
+          "low": 2
         },
         {
           "name": "Jaxon Smith-Njigba",
@@ -990,6 +990,14 @@
           "low": 9
         },
         {
+          "name": "Christian Watson",
+          "position": "WR",
+          "team": "GB",
+          "adp": 38.8,
+          "high": 24,
+          "low": 48
+        },
+        {
           "name": "Brock Bowers",
           "position": "TE",
           "team": "LV",
@@ -998,12 +1006,28 @@
           "low": 64
         },
         {
+          "name": "Jaylen Warren",
+          "position": "RB",
+          "team": "PIT",
+          "adp": 59.4,
+          "high": 49,
+          "low": 65
+        },
+        {
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
           "adp": 66.8,
           "high": 56,
           "low": 80
+        },
+        {
+          "name": "Jordan Love",
+          "position": "QB",
+          "team": "GB",
+          "adp": 96.4,
+          "high": 73,
+          "low": 113
         }
       ]
     },
@@ -1866,7 +1890,7 @@
         {
           "name": "Josh Downs",
           "position": "WR",
-          "team": "IND",
+          "team": "KC",
           "adp": 123.7,
           "high": 102,
           "low": 146
