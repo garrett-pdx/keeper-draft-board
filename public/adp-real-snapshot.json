@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-12T20:44:30.841Z",
+  "fetchedAt": "2026-11-13T20:25:35.166Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1724,
         "startDate": null,
-        "endDate": "2026-11-12T18:20:14.000Z",
+        "endDate": "2026-11-13T17:53:26.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1072,7 +1072,7 @@
         {
           "name": "Harrison Mevis",
           "position": "PK",
-          "team": null,
+          "team": "BAL",
           "adp": 140.68,
           "high": 36,
           "low": 393

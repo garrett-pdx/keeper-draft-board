@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-12T20:44:29.924Z",
+  "fetchedAt": "2026-11-13T20:25:34.534Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,18 +959,18 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 116,
-        "startDate": "2026-11-07",
-        "endDate": "2026-11-12"
+        "totalDrafts": 115,
+        "startDate": "2026-11-08",
+        "endDate": "2026-11-13"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 131,
-        "startDate": "2026-11-05",
-        "endDate": "2026-11-12"
+        "totalDrafts": 130,
+        "startDate": "2026-11-06",
+        "endDate": "2026-11-13"
       },
       "players": [
         {
@@ -985,15 +985,23 @@
           "name": "Jaxon Smith-Njigba",
           "position": "WR",
           "team": "SEA",
-          "adp": 4.9,
+          "adp": 4.8,
           "high": 1,
           "low": 9
+        },
+        {
+          "name": "James Cook III",
+          "position": "RB",
+          "team": "BUF",
+          "adp": 15.2,
+          "high": 12,
+          "low": 18
         },
         {
           "name": "Josh Allen",
           "position": "QB",
           "team": "BUF",
-          "adp": 21.7,
+          "adp": 22,
           "high": 17,
           "low": 25
         },
@@ -1001,7 +1009,7 @@
           "name": "Brock Bowers",
           "position": "TE",
           "team": "LV",
-          "adp": 53.3,
+          "adp": 53.6,
           "high": 32,
           "low": 69
         },
@@ -1009,17 +1017,9 @@
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 62.4,
+          "adp": 63,
           "high": 40,
           "low": 80
-        },
-        {
-          "name": "Jordan Love",
-          "position": "QB",
-          "team": "GB",
-          "adp": 96.4,
-          "high": 73,
-          "low": 113
         }
       ]
     },
