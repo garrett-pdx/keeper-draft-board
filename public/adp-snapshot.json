@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-13T20:25:34.534Z",
+  "fetchedAt": "2026-11-14T18:42:00.920Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -960,8 +960,8 @@
       "format": "half-ppr",
       "meta": {
         "totalDrafts": 115,
-        "startDate": "2026-11-08",
-        "endDate": "2026-11-13"
+        "startDate": "2026-11-09",
+        "endDate": "2026-11-14"
       },
       "players": []
     },
@@ -969,8 +969,8 @@
       "format": "ppr",
       "meta": {
         "totalDrafts": 130,
-        "startDate": "2026-11-06",
-        "endDate": "2026-11-13"
+        "startDate": "2026-11-07",
+        "endDate": "2026-11-14"
       },
       "players": [
         {
@@ -1001,15 +1001,31 @@
           "name": "Josh Allen",
           "position": "QB",
           "team": "BUF",
-          "adp": 22,
+          "adp": 21.5,
           "high": 17,
-          "low": 25
+          "low": 24
+        },
+        {
+          "name": "Bucky Irving",
+          "position": "RB",
+          "team": "TB",
+          "adp": 27.8,
+          "high": 18,
+          "low": 33
+        },
+        {
+          "name": "Christian Watson",
+          "position": "WR",
+          "team": "GB",
+          "adp": 39.4,
+          "high": 31,
+          "low": 48
         },
         {
           "name": "Brock Bowers",
           "position": "TE",
           "team": "LV",
-          "adp": 53.6,
+          "adp": 54,
           "high": 32,
           "low": 69
         },
@@ -1017,7 +1033,7 @@
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 63,
+          "adp": 62.1,
           "high": 40,
           "low": 80
         }
