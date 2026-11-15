@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-14T18:42:00.920Z",
+  "fetchedAt": "2026-11-15T19:19:11.921Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,25 +959,25 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 115,
-        "startDate": "2026-11-09",
-        "endDate": "2026-11-14"
+        "totalDrafts": 112,
+        "startDate": "2026-11-10",
+        "endDate": "2026-11-15"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 130,
-        "startDate": "2026-11-07",
-        "endDate": "2026-11-14"
+        "totalDrafts": 131,
+        "startDate": "2026-11-08",
+        "endDate": "2026-11-15"
       },
       "players": [
         {
           "name": "Jahmyr Gibbs",
           "position": "RB",
           "team": "DET",
-          "adp": 1.2,
+          "adp": 1.1,
           "high": 1,
           "low": 2
         },
