@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-15T19:19:11.921Z",
+  "fetchedAt": "2026-11-16T22:49:45.489Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -960,17 +960,17 @@
       "format": "half-ppr",
       "meta": {
         "totalDrafts": 112,
-        "startDate": "2026-11-10",
-        "endDate": "2026-11-15"
+        "startDate": "2026-11-11",
+        "endDate": "2026-11-16"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 131,
-        "startDate": "2026-11-08",
-        "endDate": "2026-11-15"
+        "totalDrafts": 133,
+        "startDate": "2026-11-09",
+        "endDate": "2026-11-16"
       },
       "players": [
         {
@@ -985,7 +985,7 @@
           "name": "Jaxon Smith-Njigba",
           "position": "WR",
           "team": "SEA",
-          "adp": 4.8,
+          "adp": 5.6,
           "high": 1,
           "low": 9
         },
@@ -1009,15 +1009,15 @@
           "name": "Bucky Irving",
           "position": "RB",
           "team": "TB",
-          "adp": 27.8,
-          "high": 18,
+          "adp": 26.9,
+          "high": 16,
           "low": 33
         },
         {
           "name": "Christian Watson",
           "position": "WR",
           "team": "GB",
-          "adp": 39.4,
+          "adp": 39.5,
           "high": 31,
           "low": 48
         },
@@ -1033,9 +1033,17 @@
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 62.1,
+          "adp": 61.8,
           "high": 40,
           "low": 80
+        },
+        {
+          "name": "Jordan Love",
+          "position": "QB",
+          "team": "GB",
+          "adp": 105.8,
+          "high": 88,
+          "low": 127
         }
       ]
     },

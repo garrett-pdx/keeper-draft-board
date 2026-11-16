@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-15T19:19:12.728Z",
+  "fetchedAt": "2026-11-16T22:49:46.438Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1724,
         "startDate": null,
-        "endDate": "2026-11-15T17:59:14.000Z",
+        "endDate": "2026-11-16T19:07:55.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -2046,20 +2046,20 @@
           "low": 628
         },
         {
-          "name": "George Holani",
-          "position": "RB",
-          "team": "SEA",
-          "adp": 218.57,
-          "high": 30,
-          "low": 541
-        },
-        {
           "name": "Jordan James",
           "position": "RB",
           "team": "SF",
           "adp": 218.61,
           "high": 64,
           "low": 442
+        },
+        {
+          "name": "George Holani",
+          "position": "RB",
+          "team": "SEA",
+          "adp": 218.65,
+          "high": 30,
+          "low": 541
         },
         {
           "name": "Pat Bryant",
