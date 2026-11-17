@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-16T22:49:46.438Z",
+  "fetchedAt": "2026-11-17T21:40:52.386Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1724,
         "startDate": null,
-        "endDate": "2026-11-16T19:07:55.000Z",
+        "endDate": "2026-11-17T19:59:27.000Z",
         "excludedPositions": [
           "QB"
         ]

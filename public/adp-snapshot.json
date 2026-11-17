@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-16T22:49:45.489Z",
+  "fetchedAt": "2026-11-17T21:40:51.594Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,57 +959,33 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 112,
-        "startDate": "2026-11-11",
-        "endDate": "2026-11-16"
+        "totalDrafts": 113,
+        "startDate": "2026-11-12",
+        "endDate": "2026-11-17"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 133,
-        "startDate": "2026-11-09",
-        "endDate": "2026-11-16"
+        "totalDrafts": 129,
+        "startDate": "2026-11-10",
+        "endDate": "2026-11-17"
       },
       "players": [
         {
           "name": "Jahmyr Gibbs",
           "position": "RB",
           "team": "DET",
-          "adp": 1.1,
+          "adp": 1.2,
           "high": 1,
           "low": 2
-        },
-        {
-          "name": "Jaxon Smith-Njigba",
-          "position": "WR",
-          "team": "SEA",
-          "adp": 5.6,
-          "high": 1,
-          "low": 9
-        },
-        {
-          "name": "James Cook III",
-          "position": "RB",
-          "team": "BUF",
-          "adp": 15.2,
-          "high": 12,
-          "low": 18
-        },
-        {
-          "name": "Josh Allen",
-          "position": "QB",
-          "team": "BUF",
-          "adp": 21.5,
-          "high": 17,
-          "low": 24
         },
         {
           "name": "Bucky Irving",
           "position": "RB",
           "team": "TB",
-          "adp": 26.9,
+          "adp": 22.2,
           "high": 16,
           "low": 33
         },
@@ -1017,33 +993,25 @@
           "name": "Christian Watson",
           "position": "WR",
           "team": "GB",
-          "adp": 39.5,
+          "adp": 36.4,
           "high": 31,
-          "low": 48
+          "low": 41
         },
         {
           "name": "Brock Bowers",
           "position": "TE",
           "team": "LV",
-          "adp": 54,
-          "high": 32,
+          "adp": 56.5,
+          "high": 42,
           "low": 69
         },
         {
           "name": "Matthew Golden",
           "position": "WR",
           "team": "GB",
-          "adp": 61.8,
+          "adp": 57.5,
           "high": 40,
-          "low": 80
-        },
-        {
-          "name": "Jordan Love",
-          "position": "QB",
-          "team": "GB",
-          "adp": 105.8,
-          "high": 88,
-          "low": 127
+          "low": 66
         }
       ]
     },
