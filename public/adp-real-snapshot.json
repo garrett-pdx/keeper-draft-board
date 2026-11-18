@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-17T21:40:52.386Z",
+  "fetchedAt": "2026-11-18T21:17:53.529Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1724,
         "startDate": null,
-        "endDate": "2026-11-17T19:59:27.000Z",
+        "endDate": "2026-11-18T19:36:59.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -2080,7 +2080,7 @@
         {
           "name": "Jaydon Blue",
           "position": "RB",
-          "team": null,
+          "team": "PHI",
           "adp": 219.91,
           "high": 51,
           "low": 553
