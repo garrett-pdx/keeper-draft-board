@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-19T21:19:22.690Z",
+  "fetchedAt": "2026-11-20T20:59:43.587Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1724,
         "startDate": null,
-        "endDate": "2026-11-19T20:25:49.000Z",
+        "endDate": "2026-11-20T18:33:01.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -1201,7 +1201,7 @@
           "name": "Chris Rodriguez",
           "position": "RB",
           "team": "JAX",
-          "adp": 150.28,
+          "adp": 150.29,
           "high": 53,
           "low": 507
         },
@@ -1945,7 +1945,7 @@
           "name": "Xavier Hutchinson",
           "position": "WR",
           "team": "HOU",
-          "adp": 206.8,
+          "adp": 206.54,
           "high": 66,
           "low": 612
         },

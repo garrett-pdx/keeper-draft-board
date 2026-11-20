@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-19T21:19:21.784Z",
+  "fetchedAt": "2026-11-20T20:59:42.920Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -960,36 +960,19 @@
       "format": "half-ppr",
       "meta": {
         "totalDrafts": 114,
-        "startDate": "2026-11-14",
-        "endDate": "2026-11-19"
+        "startDate": "2026-11-15",
+        "endDate": "2026-11-20"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 125,
-        "startDate": "2026-11-12",
-        "endDate": "2026-11-19"
+        "totalDrafts": 122,
+        "startDate": "2026-11-13",
+        "endDate": "2026-11-20"
       },
-      "players": [
-        {
-          "name": "Christian Watson",
-          "position": "WR",
-          "team": "GB",
-          "adp": 35.4,
-          "high": 31,
-          "low": 40
-        },
-        {
-          "name": "Matthew Golden",
-          "position": "WR",
-          "team": "GB",
-          "adp": 64.6,
-          "high": 57,
-          "low": 76
-        }
-      ]
+      "players": []
     },
     {
       "format": "2qb",
@@ -1474,7 +1457,7 @@
         {
           "name": "Daniel Jones",
           "position": "QB",
-          "team": "IND",
+          "team": "FA",
           "adp": 64.9,
           "high": 41,
           "low": 84
