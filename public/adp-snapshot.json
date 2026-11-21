@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-20T20:59:42.920Z",
+  "fetchedAt": "2026-11-21T20:00:40.622Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -960,19 +960,36 @@
       "format": "half-ppr",
       "meta": {
         "totalDrafts": 114,
-        "startDate": "2026-11-15",
-        "endDate": "2026-11-20"
+        "startDate": "2026-11-16",
+        "endDate": "2026-11-21"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 122,
-        "startDate": "2026-11-13",
-        "endDate": "2026-11-20"
+        "totalDrafts": 121,
+        "startDate": "2026-11-14",
+        "endDate": "2026-11-21"
       },
-      "players": []
+      "players": [
+        {
+          "name": "Jaxon Smith-Njigba",
+          "position": "WR",
+          "team": "SEA",
+          "adp": 5.8,
+          "high": 1,
+          "low": 9
+        },
+        {
+          "name": "Joe Burrow",
+          "position": "QB",
+          "team": "CIN",
+          "adp": 54.6,
+          "high": 45,
+          "low": 64
+        }
+      ]
     },
     {
       "format": "2qb",
