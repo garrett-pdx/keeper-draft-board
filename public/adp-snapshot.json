@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-21T20:00:40.622Z",
+  "fetchedAt": "2026-11-22T20:15:47.829Z",
   "attribution": "Average Draft Position data provided by Fantasy Football Calculator (https://fantasyfootballcalculator.com)",
   "entries": [
     {
@@ -959,18 +959,18 @@
     {
       "format": "half-ppr",
       "meta": {
-        "totalDrafts": 114,
-        "startDate": "2026-11-16",
-        "endDate": "2026-11-21"
+        "totalDrafts": 113,
+        "startDate": "2026-11-17",
+        "endDate": "2026-11-22"
       },
       "players": []
     },
     {
       "format": "ppr",
       "meta": {
-        "totalDrafts": 121,
-        "startDate": "2026-11-14",
-        "endDate": "2026-11-21"
+        "totalDrafts": 120,
+        "startDate": "2026-11-15",
+        "endDate": "2026-11-22"
       },
       "players": [
         {
