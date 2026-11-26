@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-25T22:20:08.879Z",
+  "fetchedAt": "2026-11-26T22:13:27.757Z",
   "attribution": "Average Draft Position data from real, non-mock redraft leagues hosted by MyFantasyLeague (https://www.myfantasyleague.com)",
   "entries": [
     {
@@ -7,7 +7,7 @@
       "meta": {
         "totalDrafts": 1725,
         "startDate": null,
-        "endDate": "2026-11-25T20:30:17.000Z",
+        "endDate": "2026-11-26T20:52:31.000Z",
         "excludedPositions": [
           "QB"
         ]
@@ -2136,7 +2136,7 @@
         {
           "name": "Brandon Aiyuk",
           "position": "WR",
-          "team": null,
+          "team": "WAS",
           "adp": 226.5,
           "high": 51,
           "low": 493
